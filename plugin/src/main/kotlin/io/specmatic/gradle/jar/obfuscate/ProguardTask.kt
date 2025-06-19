@@ -144,6 +144,7 @@ abstract class ProguardTask
 
             appendProguardArgs("-whyareyoukeeping", "class io.specmatic.** { *; }")
             appendProguardArgs("-keepattributes", "!LocalVariableTable, !LocalVariableTypeTable")
+            appendProguardArgs("-keepparameternames")
 
             // Keep all public members in the internal package
             appendProguardArgs("-keep", "class !**.internal.** { public <fields>; public <methods>;}")

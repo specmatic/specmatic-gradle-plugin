@@ -21,7 +21,7 @@ dependencies {
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.31.0")
     implementation("org.kohsuke:github-api:1.327")
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:2.3.1")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.1")
     implementation("org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin:2.4")
     implementation("org.gradlex.java-ecosystem-capabilities:org.gradlex.java-ecosystem-capabilities.gradle.plugin:1.5.3")
     implementation("io.fuchs.gradle.classpath-collision-detector:io.fuchs.gradle.classpath-collision-detector.gradle.plugin:1.0.0")

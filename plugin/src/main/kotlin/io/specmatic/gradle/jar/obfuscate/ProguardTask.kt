@@ -144,6 +144,7 @@ abstract class ProguardTask
 
             appendProguardArgs("-whyareyoukeeping", "class io.specmatic.** { *; }")
             appendProguardArgs("-keepattributes", "!LocalVariableTable, !LocalVariableTypeTable")
+            appendProguardArgs("-keepparameternames")
 
             // Keep all public members in the internal package
             appendProguardArgs("-keep", "class !**.internal.** { public <fields>; public <methods>;}")
@@ -151,6 +152,29 @@ abstract class ProguardTask
             appendProguardArgs("-keep,allowobfuscation", "class io.specmatic.**.internal.** { *; }")
             // Keep kotlin metadata
             appendProguardArgs("-keep", "class kotlin.Metadata")
+
+            // keep enum values and valueOf methods
+            appendProguardArgs(
+                """
+                -keepclassmembers enum * {
+                    public static **[] values();
+                    public static ** valueOf(java.lang.String);
+                }
+                """.trimIndent(),
+            )
+
+            // spring beans and JPA annotations
+            appendProguardArgs(
+                """
+                -keepclassmembers class * {
+                    @jakarta.persistence.* *;
+                    @org.springframework.beans.factory.annotation.Autowired *;
+                    @org.springframework.context.annotation.Bean *;
+                    @org.springframework.stereotype.* *;
+                }
+                """.trimIndent()
+            )
+
             return proguardArgs
         }
 

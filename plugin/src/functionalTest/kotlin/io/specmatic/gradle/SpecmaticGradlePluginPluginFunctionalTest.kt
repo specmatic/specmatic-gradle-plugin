@@ -3,6 +3,8 @@ package io.specmatic.gradle
 import java.util.regex.Pattern
 import kotlin.test.Test
 import org.assertj.core.api.Assertions.assertThat
+import org.gradle.api.GradleException
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Nested
 
@@ -336,16 +338,15 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 """.trimIndent(),
             )
 
-            val result = runWithSuccess("check")
+            val result = runWithFailure("check")
             assertThat(result.output).matches(
                 Pattern.compile(
                     ".* com.google.code.gson:gson .* CVE-2022-25647 .* 2.8.8 .*",
                     Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
                 ),
             )
-            assertThat(result.task(":cyclonedxBom")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
-            assertThat(result.task(":jar")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
-            assertThat(result.task(":vulnScanJar")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+
+            assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
         }
     }
 }

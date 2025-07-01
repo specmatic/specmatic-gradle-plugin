@@ -58,16 +58,20 @@ abstract class AbstractVulnScanTask
                     val cliArgs = getCommandLine(format)
                     project.pluginInfo("$ ${shellEscapedArgs(cliArgs)}")
 
-                    execLauncher.exec {
+                    val result = execLauncher.exec {
                         standardOutput = outputStream
                         errorOutput = System.err
-
                         commandLine = cliArgs
+                        isIgnoreExitValue = true
+                    }
+
+                    if (result.exitValue != 0) {
+                        printReportFile(project, output)
+                        throw GradleException("Found HIGH or CRITICAL vulnerabilities")
                     }
                 }
             } catch (e: Exception) {
-                project.pluginInfo("trivy failed with error: ${e.message} (ignoring error)")
-                return false
+                error("Failed to run Trivy scan: ${e.message}")
             }
             return true
         }
@@ -169,6 +173,9 @@ abstract class AbstractVulnScanTask
         protected val commonArgs: Array<String>
             get() =
                 arrayOf(
+                    "--exit-code", "1",
+                    "--severity", "HIGH,CRITICAL",
+                    "--ignore-unfixed",
                     "--quiet",
                     "--no-progress",
                 )

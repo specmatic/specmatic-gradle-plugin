@@ -43,19 +43,7 @@ internal fun Project.createJarVulnScanTask() {
             )
         }
 
-    val reportTask =
-        project.tasks.register(scanTaskName) {
-            dependsOn(scanTask)
-            group = "vulnerability"
-            description = "Print vulnerabilities in jars"
-
-            doFirst {
-                val reportFile = scanTask.get().getTextTableReportFile()
-                printReportFile(this@createJarVulnScanTask, reportFile)
-            }
-        }
-
     project.tasks.named("check") {
-        dependsOn(reportTask)
+        dependsOn(scanTask)
     }
 }

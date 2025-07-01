@@ -1,7 +1,11 @@
 package io.specmatic.gradle.vuln
 
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.specmatic.gradle.exec.shellEscapedArgs
 import io.specmatic.gradle.license.pluginInfo
+import io.specmatic.gradle.vuln.dto.VulnerabilityReport
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -38,6 +42,10 @@ abstract class AbstractVulnScanTask
                 )
 
             formats.map { (format, output) -> runScan(format, output) }
+
+            printReportFile(project, getTextTableReportFile())
+
+            breakOnVulnerability(project, getJsonReportFile(), setOf("CRITICAL", "HIGH"))
         }
 
         @get:OutputDirectory
@@ -58,20 +66,14 @@ abstract class AbstractVulnScanTask
                     val cliArgs = getCommandLine(format)
                     project.pluginInfo("$ ${shellEscapedArgs(cliArgs)}")
 
-                    val result = execLauncher.exec {
+                    execLauncher.exec {
                         standardOutput = outputStream
                         errorOutput = System.err
                         commandLine = cliArgs
-                        isIgnoreExitValue = true
-                    }
-
-                    if (result.exitValue != 0) {
-                        printReportFile(project, output)
-                        throw GradleException("Found HIGH or CRITICAL vulnerabilities")
                     }
                 }
             } catch (e: Exception) {
-                error("Failed to run Trivy scan: ${e.message}")
+                throw GradleException("Failed to run Trivy scan", e)
             }
             return true
         }
@@ -173,8 +175,6 @@ abstract class AbstractVulnScanTask
         protected val commonArgs: Array<String>
             get() =
                 arrayOf(
-                    "--exit-code", "1",
-                    "--severity", "HIGH,CRITICAL",
                     "--ignore-unfixed",
                     "--quiet",
                     "--no-progress",
@@ -186,4 +186,25 @@ internal fun trivyHomeDir(): File = SystemUtils.getUserHome().resolve(".specmati
 internal fun printReportFile(project: Project, reportFile: File) {
     project.logger.warn(reportFile.readText())
     project.logger.warn("Vulnerability report file: ${reportFile.toURI()}")
+}
+
+private fun breakOnVulnerability(project: Project, jsonReportFile: File, severity: Set<String>) {
+    if (!jsonReportFile.exists() || project.properties["skipVulnValidation"] == "true") {
+        return
+    }
+
+    val mapper = jacksonObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
+
+    val report: VulnerabilityReport = mapper.readValue(
+        jsonReportFile, VulnerabilityReport::class.java
+    )
+
+    report.results.forEach { result ->
+        result.vulnerabilities.forEach { vulnerability ->
+            if (vulnerability.severity in severity) {
+                throw GradleException("Vulnerabilities with severity $severity found in the scan.")
+            }
+        }
+    }
 }

@@ -50,19 +50,7 @@ internal fun Project.createSBOMVulnScanTask() {
             )
         }
 
-    val reportTask =
-        project.tasks.register(scanTaskName) {
-            dependsOn(scanTask)
-            group = "vulnerability"
-            description = "Scan and print vulnerabilities in SBOM"
-
-            doFirst {
-                val reportFile = scanTask.get().getTextTableReportFile()
-                printReportFile(this@createSBOMVulnScanTask, reportFile)
-            }
-        }
-
     project.tasks.named("check") {
-        dependsOn(reportTask)
+        dependsOn(scanTask)
     }
 }

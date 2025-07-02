@@ -37,19 +37,7 @@ internal fun Project.createDockerVulnScanTask(imageName: String) {
             )
         }
 
-    val reportTask =
-        tasks.register(scanTaskName) {
-            dependsOn(scanTask)
-            group = "vulnerability"
-            description = "Print vulnerabilities in docker imagae"
-
-            doFirst {
-                val reportFile = scanTask.get().getTextTableReportFile()
-                printReportFile(project, reportFile)
-            }
-        }
-
     tasks.named("check") {
-        dependsOn(reportTask)
+        dependsOn(scanTask)
     }
 }

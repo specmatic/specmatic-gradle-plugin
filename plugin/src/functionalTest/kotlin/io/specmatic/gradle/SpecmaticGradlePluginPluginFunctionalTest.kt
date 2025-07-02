@@ -3,8 +3,6 @@ package io.specmatic.gradle
 import java.util.regex.Pattern
 import kotlin.test.Test
 import org.assertj.core.api.Assertions.assertThat
-import org.gradle.api.GradleException
-import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Nested
 

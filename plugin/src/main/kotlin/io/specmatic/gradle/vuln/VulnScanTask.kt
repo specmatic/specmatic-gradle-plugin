@@ -189,7 +189,8 @@ internal fun printReportFile(project: Project, reportFile: File) {
 }
 
 private fun breakOnVulnerability(project: Project, jsonReportFile: File, severity: Set<String>) {
-    if (!jsonReportFile.exists() || project.properties["skipVulnValidation"] == "true") {
+    if (project.properties["skipVulnValidation"] == "true") {
+        project.pluginInfo("Skipping vulnerability severity validation as per project properties.")
         return
     }
 

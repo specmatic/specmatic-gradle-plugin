@@ -85,7 +85,9 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
 
         client().newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                error("Failed to update DockerHub overview: ${response.message}")
+                error(
+                    "Failed to update DockerHub overview. code=${response.code} message=${response.message} body=${response.body?.string()}"
+                )
             }
         }
     }

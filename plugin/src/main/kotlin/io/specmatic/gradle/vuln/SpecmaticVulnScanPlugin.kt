@@ -20,6 +20,8 @@ class SpecmaticVulnScanPlugin : Plugin<Project> {
             )
             outputName.set("bom")
             outputFormat.set("all")
+
+            includeConfigs.set(listOf("runtimeClasspath", "compileClasspath"))
         }
 
         target.createSBOMVulnScanTask()

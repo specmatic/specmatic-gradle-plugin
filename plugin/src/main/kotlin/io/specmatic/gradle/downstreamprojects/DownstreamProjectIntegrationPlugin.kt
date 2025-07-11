@@ -118,10 +118,7 @@ internal fun replacePropertyValue(file: File, key: String, value: Any?): String 
     if (line.trim().startsWith("#")) {
         line
     } else {
-        line.replace(
-            Regex("""\s*$key\s*=\s*.*"""),
-            "$key=$value",
-        )
+        line.replace(Regex("""^\s*$key\s*=.*"""), "$key=$value")
     }
 }
 

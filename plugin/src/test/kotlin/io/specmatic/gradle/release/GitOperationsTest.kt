@@ -111,7 +111,7 @@ class GitOperationsTest {
                 gitOperations.assertMainBranch()
             }.isInstanceOf(GradleException::class.java)
                 .hasMessage(
-                    "You are not on the main branch. Please switch to the main branch to create a release. Run with `-PskipBranchCheck=true` to disable."
+                    "You are not on the main branch. Please switch to the main branch to create a release. Run with `-PskipBranchCheck=true` to disable.",
                 )
         }
 
@@ -149,7 +149,7 @@ class GitOperationsTest {
                 gitOperations.assertRepoNotDirty()
             }.isInstanceOf(GradleException::class.java)
                 .hasMessage(
-                    "Repo is dirty. Please commit or stash your changes before creating a release. Run with `-PskipRepoDirtyCheck=true` to disable."
+                    "Repo is dirty. Please commit or stash your changes before creating a release. Run with `-PskipRepoDirtyCheck=true` to disable.",
                 )
         }
 
@@ -171,7 +171,13 @@ class GitOperationsTest {
         @Test
         fun `should bump version before release`() {
             val gradlePropertiesFile = gitRepo.resolve("gradle.properties")
-            gradlePropertiesFile.writeText("version=1.0.0-SNAPSHOT")
+            gradlePropertiesFile.writeText(
+                """
+                version=1.0.0-SNAPSHOT
+                fooVersion=1.2.3
+                bar.version=4.5.6
+                """.trimIndent(),
+            )
 
             val gitOperations =
                 GitOperations(gitRepo, mapOf("version" to "1.0.0-SNAPSHOT"), logger)
@@ -179,7 +185,13 @@ class GitOperationsTest {
             gitOperations.preReleaseGitCommit("1.1.0")
 
             val updatedContent = gradlePropertiesFile.readText()
-            assertThat(updatedContent).isEqualTo("version=1.1.0")
+            assertThat(updatedContent).isEqualTo(
+                """
+                version=1.1.0
+                fooVersion=1.2.3
+                bar.version=4.5.6
+                """.trimIndent(),
+            )
 
             val lastCommit =
                 gitRepo
@@ -213,7 +225,7 @@ class GitOperationsTest {
                     .execGit(logger, "log", "--oneline")
                     .outputUTF8()
                     .trim()
-                    .lines()
+                    .lines(),
             ).hasSize(2)
             assertThat(gitRepo.execGit(logger, "tag").outputUTF8().trim()).isEmpty()
         }
@@ -224,14 +236,26 @@ class GitOperationsTest {
         @Test
         fun `should update version in gradle properties`() {
             val gradlePropertiesFile = gitRepo.resolve("gradle.properties")
-            gradlePropertiesFile.writeText("version=1.0.0")
+            gradlePropertiesFile.writeText(
+                """
+                version=1.0.0
+                fooVersion=1.2.3
+                bar.version=4.5.6
+                """.trimIndent(),
+            )
 
             val gitOperations = GitOperations(gitRepo, emptyMap(), logger)
 
             gitOperations.postReleaseBump("1.1.0-SNAPSHOT")
 
             val updatedContent = gradlePropertiesFile.readText()
-            assertThat(updatedContent).isEqualTo("version=1.1.0-SNAPSHOT")
+            assertThat(updatedContent).isEqualTo(
+                """
+                version=1.1.0-SNAPSHOT
+                fooVersion=1.2.3
+                bar.version=4.5.6
+                """.trimIndent(),
+            )
 
             val commits = gitRepo.execGit(logger, "log", "--pretty=format:%s").outputUTF8().lines()
             assertThat(commits).hasSize(2)
@@ -252,7 +276,7 @@ class GitOperationsTest {
                     .execGit(logger, "log", "--oneline")
                     .outputUTF8()
                     .trim()
-                    .lines()
+                    .lines(),
             ).hasSize(1)
         }
     }
@@ -341,7 +365,7 @@ class GitOperationsTest {
                     .execGit(logger, "tag")
                     .outputUTF8()
                     .trim()
-                    .lines()
+                    .lines(),
             ).contains("1.0.0")
         }
 
@@ -356,7 +380,7 @@ class GitOperationsTest {
                     .execGit(logger, "log", "--oneline")
                     .outputUTF8()
                     .trim()
-                    .lines()
+                    .lines(),
             ).hasSize(1)
         }
     }

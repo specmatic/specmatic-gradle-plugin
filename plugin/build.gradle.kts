@@ -11,6 +11,22 @@ repositories {
 }
 
 dependencies {
+    val dependenciesWithVulnFixes =
+        listOf(
+            "org.apache.commons:commons-lang3:3.18.0",
+        )
+
+    configurations.all {
+        dependenciesWithVulnFixes.forEach {
+            val (group, module, version) = it.split(":")
+            exclude(group = group, module = module)
+        }
+    }
+
+    dependenciesWithVulnFixes.forEach {
+        implementation(it)
+    }
+
     implementation("com.github.jk1.dependency-license-report:com.github.jk1.dependency-license-report.gradle.plugin:2.9")
     implementation("com.adarshr.test-logger:com.adarshr.test-logger.gradle.plugin:4.0.0")
     implementation("org.semver4j:semver4j:6.0.0")

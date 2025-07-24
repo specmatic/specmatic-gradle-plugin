@@ -18,7 +18,7 @@ dependencies {
 
     configurations.all {
         dependenciesWithVulnFixes.forEach {
-            val (group, module, version) = it.split(":")
+            val (group, module, _version) = it.split(":")
             exclude(group = group, module = module)
         }
     }

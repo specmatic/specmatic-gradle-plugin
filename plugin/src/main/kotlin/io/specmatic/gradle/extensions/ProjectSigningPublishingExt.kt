@@ -2,7 +2,6 @@ package io.specmatic.gradle.extensions
 
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.MavenPublishBasePlugin
-import com.vanniktech.maven.publish.SonatypeHost
 import io.specmatic.gradle.jar.massage.publishing
 import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.specmaticExtension
@@ -43,7 +42,7 @@ private fun Project.setupPublishingTargets() {
     val stagingRepo =
         project.uri(
             project.rootProject.layout.buildDirectory
-                .dir("mvn-repo")
+                .dir("mvn-repo"),
         )
 
     project.extensions.getByType(MavenPublishBaseExtension::class.java).apply {
@@ -61,7 +60,7 @@ private fun Project.setupPublishingTargets() {
 
         publishTargets.forEach { publishTarget ->
             if (publishTarget is MavenCentral) {
-                publishToMavenCentral(SonatypeHost.Companion.CENTRAL_PORTAL, false)
+                publishToMavenCentral(false)
             } else if (publishTarget is MavenInternal) {
                 val repo = publishTarget
                 project.pluginInfo("Configuring publishing to ${repo.repoName} with url ${repo.url} and type ${repo.type}")

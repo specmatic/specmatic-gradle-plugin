@@ -40,7 +40,7 @@ class SpecmaticSpotlessPlugin : Plugin<Project> {
 
     private fun configure(extension: BaseKotlinExtension) {
         extension.apply {
-            ktlint("1.6.0")
+            ktlint("1.7.1")
         }
     }
 }

@@ -124,7 +124,7 @@ abstract class AbstractVulnScanTask
                 val downloadUrl = asset.browserDownloadUrl
 
                 project.pluginInfo(
-                    "Currently installed trivy version($currentVersion) is not up-to-date. Downloading version ${release.name} from $downloadUrl to $trivyCompressedDownloadPath"
+                    "Currently installed trivy version($currentVersion) is not up-to-date. Downloading version ${release.name} from $downloadUrl to $trivyCompressedDownloadPath",
                 )
                 FileUtils.copyURLToFile(URL(downloadUrl), trivyCompressedDownloadPath)
                 project.delete(trivyInstallDir())
@@ -194,12 +194,12 @@ private fun breakOnVulnerability(project: Project, jsonReportFile: File, severit
         return
     }
 
-    val mapper = jacksonObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
+    val mapper =
+        jacksonObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
 
-    val report: VulnerabilityReport = mapper.readValue(
-        jsonReportFile, VulnerabilityReport::class.java
-    )
+    val report: VulnerabilityReport = mapper.readValue(jsonReportFile, VulnerabilityReport::class.java)
 
     report.results.forEach { result ->
         result.vulnerabilities.forEach { vulnerability ->

@@ -43,7 +43,7 @@ dependencies {
     testImplementation("org.apache.maven:maven-model:3.9.11")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.assertj:assertj-core:3.27.3")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.13.3")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.13.4")
     testImplementation("io.mockk:mockk:1.14.5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

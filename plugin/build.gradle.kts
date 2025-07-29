@@ -18,13 +18,8 @@ dependencies {
 
     configurations.all {
         dependenciesWithVulnFixes.forEach {
-            val (group, module) = it.split(":")
-            exclude(group = group, module = module)
+            this.resolutionStrategy.force(it)
         }
-    }
-
-    dependenciesWithVulnFixes.forEach {
-        implementation(it)
     }
 
     implementation("com.github.jk1.dependency-license-report:com.github.jk1.dependency-license-report.gradle.plugin:2.9")

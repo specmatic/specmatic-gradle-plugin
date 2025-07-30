@@ -56,6 +56,7 @@ class SpecmaticGradlePlugin : Plugin<Project> {
 
         target.applyToRootProjectOrSubprojects {
             plugins.apply(LifecycleBasePlugin::class.java)
+            plugins.apply(SpecmaticSpdxPlugin::class.java)
             plugins.apply(SpecmaticVulnScanPlugin::class.java)
 
             plugins.apply(VersionInfoPlugin::class.java)

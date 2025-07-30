@@ -78,14 +78,15 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertThat(projectDir.resolve("build/Dockerfile").exists()).isTrue
             assertThat(projectDir.resolve("build/Dockerfile").readText().lines())
-                .contains("ADD libs/example-project-1.2.3-all-unobfuscated.jar /usr/local/share/example-project.jar")
+                .contains("ADD reports/cyclonedx/bom.json /usr/local/share/example-project/sbom.cyclonedx.json")
+                .contains("ADD libs/example-project-1.2.3-all-unobfuscated.jar /usr/local/share/example-project/example-project.jar")
                 .contains("ADD example-project /usr/local/bin/example-project")
                 .contains("""ENTRYPOINT ["/usr/local/bin/example-project"]""")
 
             assertThat(projectDir.resolve("build/example-project").exists()).isTrue
             assertThat(projectDir.resolve("build/example-project").readText().lines())
                 .contains("""#!/usr/bin/env bash""")
-                .contains("""exec java ${'$'}JAVA_OPTS -jar /usr/local/share/example-project.jar "${'$'}@"""")
+                .contains("""exec java ${'$'}JAVA_OPTS -jar /usr/local/share/example-project/example-project.jar "${'$'}@"""")
         }
 
         @Test
@@ -288,14 +289,15 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertThat(projectDir.resolve("executable/build/Dockerfile").exists()).isTrue
             assertThat(projectDir.resolve("executable/build/Dockerfile").readText().lines())
-                .contains("ADD libs/executable-1.2.3-all-unobfuscated.jar /usr/local/share/specmatic-foo.jar")
+                .contains("ADD reports/cyclonedx/bom.json /usr/local/share/specmatic-foo/sbom.cyclonedx.json")
+                .contains("ADD libs/executable-1.2.3-all-unobfuscated.jar /usr/local/share/specmatic-foo/specmatic-foo.jar")
                 .contains("ADD specmatic-foo /usr/local/bin/specmatic-foo")
                 .contains("""ENTRYPOINT ["/usr/local/bin/specmatic-foo"]""")
 
             assertThat(projectDir.resolve("executable/build/specmatic-foo").exists()).isTrue
             assertThat(projectDir.resolve("executable/build/specmatic-foo").readText().lines())
                 .contains("""#!/usr/bin/env bash""")
-                .contains("""exec java ${'$'}JAVA_OPTS -jar /usr/local/share/specmatic-foo.jar "${'$'}@"""")
+                .contains("""exec java ${'$'}JAVA_OPTS -jar /usr/local/share/specmatic-foo/specmatic-foo.jar "${'$'}@"""")
         }
 
         @Test

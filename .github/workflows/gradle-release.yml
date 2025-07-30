@@ -18,6 +18,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: 'Build/test'
         uses: specmatic/specmatic-github-workflows/action-build-gradle@main

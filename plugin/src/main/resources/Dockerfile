@@ -9,6 +9,7 @@ RUN apk upgrade && \
 
 SHELL ["/bin/bash", "-c"]
 
+ADD %SOURCE_SBOM_PATH% %TARGET_SBOM_PATH%
 ADD %SOURCE_JAR_PATH% %TARGET_JAR_PATH%
 ADD %IMAGE_NAME% /usr/local/bin/%IMAGE_NAME%
 

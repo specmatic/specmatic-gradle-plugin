@@ -6,8 +6,10 @@ import io.specmatic.gradle.features.mainJar
 import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.versioninfo.versionInfo
 import io.specmatic.gradle.vuln.createDockerVulnScanTask
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import org.cyclonedx.gradle.CycloneDxTask
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.Exec
@@ -18,14 +20,26 @@ private val DOCKER_ORGANIZATIONS = listOf(DOCKER_ORG_PRIMARY, DOCKER_ORG_SECONDA
 
 internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
     val imageName = dockerImage(dockerBuildConfig)
+    val sourceSbomPath =
+        project.layout.buildDirectory
+            .get()
+            .asFile
+            .resolve("reports/cyclonedx/bom.json")
 
     val createDockerfilesTask =
         tasks.register("createDockerFiles") {
             dependsOn(dockerBuildConfig.mainJarTaskName!!)
             group = "docker"
             description = "Creates the Dockerfile and other files needed to build the docker image"
-            val targetJarPath = "/usr/local/share/${project.dockerImage(dockerBuildConfig)}.jar"
-            createDockerfile(dockerBuildConfig, targetJarPath)
+            val targetJarPath = "/usr/local/share/${project.dockerImage(dockerBuildConfig)}/${project.dockerImage(dockerBuildConfig)}.jar"
+            val targetSbomPath = "/usr/local/share/${project.dockerImage(dockerBuildConfig)}/sbom.cyclonedx.json"
+
+            createDockerfile(
+                dockerBuildConfig = dockerBuildConfig,
+                targetJarPath = targetJarPath,
+                sourceSbomFile = sourceSbomPath,
+                targetSbomPath = targetSbomPath,
+            )
             createSpecmaticShellScript(dockerBuildConfig, targetJarPath)
         }
 
@@ -42,10 +56,12 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 .flatMap { listOf("--tag", it) }
                 .toTypedArray() +
             arrayOf("--file", "Dockerfile") +
+            arrayOf("--attest", "type=provenance,mode=max") +
+            arrayOf("--attest", "type=sbom") +
             dockerBuildConfig.extraDockerArgs
 
     tasks.register("dockerBuild", Exec::class.java) {
-        dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!)
+        dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(CycloneDxTask::class.java))
         group = "docker"
         description = "Builds the docker image"
 
@@ -144,7 +160,12 @@ fun Task.createSpecmaticShellScript(dockerBuildConfig: DockerBuildConfig, target
     }
 }
 
-private fun Task.createDockerfile(dockerBuildConfig: DockerBuildConfig, targetJarPath: String) {
+private fun Task.createDockerfile(
+    dockerBuildConfig: DockerBuildConfig,
+    targetJarPath: String,
+    sourceSbomFile: File,
+    targetSbomPath: String,
+) {
     val dockerFile =
         project.layout.buildDirectory
             .file("Dockerfile")
@@ -166,7 +187,16 @@ private fun Task.createDockerfile(dockerBuildConfig: DockerBuildConfig, targetJa
                 .relativeTo(
                     project.layout.buildDirectory
                         .get()
-                        .asFile
+                        .asFile,
+                ).path
+                .replace("\\", "/")
+
+        val sourceSbomPath =
+            sourceSbomFile
+                .relativeTo(
+                    project.layout.buildDirectory
+                        .get()
+                        .asFile,
                 ).path
                 .replace("\\", "/")
 
@@ -174,6 +204,8 @@ private fun Task.createDockerfile(dockerBuildConfig: DockerBuildConfig, targetJa
             templateContent
                 .replace("%TARGET_JAR_PATH%", targetJarPath)
                 .replace("%SOURCE_JAR_PATH%", sourceJarPath)
+                .replace("%SOURCE_SBOM_PATH%", sourceSbomPath)
+                .replace("%TARGET_SBOM_PATH%", targetSbomPath)
                 .replace("%IMAGE_NAME%", project.dockerImage(dockerBuildConfig))
 
         dockerFile.writeText(dockerFileContent)

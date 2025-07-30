@@ -67,6 +67,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
         commandLine(
             "docker",
+            "buildx",
             "build",
             *commonDockerBuildArgs,
             ".",

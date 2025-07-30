@@ -71,6 +71,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             *commonDockerBuildArgs,
             ".",
         )
+        environment("DOCKER_BUILDKIT", "1")
 
         workingDir =
             project.layout.buildDirectory
@@ -96,6 +97,8 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 "--push",
                 ".",
             )
+
+            environment("DOCKER_BUILDKIT", "1")
 
             workingDir =
                 project.layout.buildDirectory

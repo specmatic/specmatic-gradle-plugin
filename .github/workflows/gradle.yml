@@ -12,12 +12,6 @@ jobs:
     permissions:
       contents: write # This is required so that the dependency check can push dependency graph to the github repository
     steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: 'Build/Test'
         uses: specmatic/specmatic-github-workflows/action-build-gradle@main
 

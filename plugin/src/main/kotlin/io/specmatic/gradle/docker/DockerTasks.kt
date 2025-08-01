@@ -134,7 +134,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
         }
 
     tasks.register("dockerBuildxPublish") {
-        dependsOn(dockerBuildxPublishInternalTask, dockerReadmePublishTask)
+        dependsOn(dockerBuildxPublishInternalTask, dockerReadmePublishTask, project.tasks.withType(CycloneDxTask::class.java))
         group = "docker"
         description = "Publish image and README to docker hub"
     }

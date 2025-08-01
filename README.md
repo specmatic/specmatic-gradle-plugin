@@ -47,7 +47,7 @@ projects.
    help you upload the relevant secrets by scanning your github workflows.
 
    | Variable(s)                                                                                                                                 | Purpose                                                                                                        | 
-   |---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+         |---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
    | **Maven Central**                                                                                                                           |                                                                                                                |
    | `ORG_GRADLE_PROJECT_mavenCentralUsername`                                                                                                   | Username for Maven Central                                                                                     |
    | `ORG_GRADLE_PROJECT_mavenCentralPassword`                                                                                                   | Password for Maven Central                                                                                     |
@@ -254,34 +254,37 @@ java -Dlogback.configurationFile=logback.xml -jar <jar-file>
 
 Here is a list of available tasks
 
-| Task                                                 | Description                                                                                                                                                   |
-|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Other checks**                                     |                                                                                                                                                               |
-| `detectCollisions`                                   | Detects dependency collisions and prints a report.                                                                                                            |
-| **License Checks**                                   |                                                                                                                                                               |
-| `checkLicense`                                       | Check if License could be used                                                                                                                                |
-| `generateLicenseReport`                              | Generates license report for all dependencies of this project and its subprojects.                                                                            |
-| **Publishing tasks**                                 |                                                                                                                                                               |
-| `publishAllPublicationsToMavenCentralRepository`     | Publishes all Maven publications produced by this project to the mavenCentral repository.                                                                     |
-| `publishAllPublicationsToSpecmaticPrivateRepository` | Publishes all Maven publications produced by this project to the specmaticPrivate repository.                                                                 |
-| `publishAllPublicationsToStagingRepository`          | Publishes all Maven publications produced by this project to the staging repository.                                                                          |
-| `publishToMavenCentral`                              | Publishes to a staging repository on Sonatype OSS.                                                                                                            |
-| **Release tasks**                                    |                                                                                                                                                               |
-| `release`                                            | Verify project, release, and update version to next.                                                                                                          |
-| **Vulnerability tasks**                              |                                                                                                                                                               |
-| `vulnScanSBOM`                                       | Scan for and print vulnerabilities in just dependency tree.                                                                                                   |
-| `vulnScanJar`                                        | Scan for and print vulnerabilities by deep scanning inside each generated jar.                                                                                |
-| `vulnScanDocker`                                     | Scan for and Print vulnerabilities in docker image.                                                                                                           |
-| **Docker tasks**                                     |                                                                                                                                                               |
-| `dockerBuild`                                        | Builds the docker image (for local use)                                                                                                                       |
-| `dockerBuildxPublish`                                | Builds and publishes `linux/amd64,linux/arm64` variants of the docker image                                                                                   | 
-| **Downstream Project Validation**                    |                                                                                                                                                               |
-| `validateDownstreamProjects`                         | Validate downstream project(s)                                                                                                                                |
-| `bumpVersionsInDownstreamProjects`                   | Bump versions in downstream project(s)                                                                                                                        | 
-| `fetchArtifactsInDownstreamProjects`                 | Fetch artifacts downstream project(s)                                                                                                                         | 
-| **Internal tasks**                                   |                                                                                                                                                               |
-| `createGithubRelease`                                | Create a Github release. This is already wired up when publishing a release.                                                                                  |
-| `cyclonedxBom`                                       | Generates a CycloneDX compliant Software Bill of Materials (SBOM).                                                                                            |
+| Task                                                 | Description                                                                                   |
+|------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| **Other checks**                                     |                                                                                               |
+| `detectCollisions`                                   | Detects dependency collisions and prints a report.                                            |
+| **License Checks**                                   |                                                                                               |
+| `checkLicense`                                       | Check if License could be used                                                                |
+| `generateLicenseReport`                              | Generates license report for all dependencies of this project and its subprojects.            |
+| **Publishing tasks**                                 |                                                                                               |
+| `publishAllPublicationsToMavenCentralRepository`     | Publishes all Maven publications produced by this project to the mavenCentral repository.     |
+| `publishAllPublicationsToSpecmaticPrivateRepository` | Publishes all Maven publications produced by this project to the specmaticPrivate repository. |
+| `publishAllPublicationsToStagingRepository`          | Publishes all Maven publications produced by this project to the staging repository.          |
+| `publishToMavenCentral`                              | Publishes to a staging repository on Sonatype OSS.                                            |
+| **Release tasks**                                    |                                                                                               |
+| `release`                                            | Verify project, release, and update version to next.                                          |
+| **Vulnerability tasks**                              |                                                                                               |
+| `vulnScanSBOM`                                       | Scan for and print vulnerabilities in just dependency tree.                                   |
+| `vulnScanJar`                                        | Scan for and print vulnerabilities by deep scanning inside each generated jar.                |
+| `vulnScanDocker`                                     | Scan for and Print vulnerabilities in docker image.                                           |
+| **Docker tasks**                                     |                                                                                               |
+| `dockerBuild`                                        | Builds the docker image (for local use)                                                       |
+| `dockerBuildxPublish`                                | Builds and publishes `linux/amd64,linux/arm64` variants of the docker image                   | 
+| **Downstream Project Validation**                    |                                                                                               |
+| `validateDownstreamProjects`                         | Validate downstream project(s)                                                                |
+| `bumpVersionsInDownstreamProjects`                   | Bump versions in downstream project(s)                                                        | 
+| `fetchArtifactsInDownstreamProjects`                 | Fetch artifacts downstream project(s)                                                         | 
+| **Internal tasks**                                   |                                                                                               |
+| `createGithubRelease`                                | Create a Github release. This is already wired up when publishing a release.                  |
+| `cyclonedxBom`                                       | Generates a CycloneDX compliant Software Bill of Materials (SBOM).                            | 
+| **Application execution tasks**                      |                                                                                               |
+| `runObfuscated`                                      | Runs the obfuscated jar with the main class specified in the specmatic block.                 |
+| `runUnobfuscated`                                    | Runs the unobfuscated jar with the main class specified in the specmatic block.               |
 
 ## Available distribution flavours and the artifacts they generate
 

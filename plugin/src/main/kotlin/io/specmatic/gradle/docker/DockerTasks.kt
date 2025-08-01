@@ -56,8 +56,6 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 .flatMap { listOf("--tag", it) }
                 .toTypedArray() +
             arrayOf("--file", "Dockerfile") +
-            arrayOf("--attest", "type=provenance,mode=max") +
-            arrayOf("--attest", "type=sbom") +
             dockerBuildConfig.extraDockerArgs
 
     tasks.register("dockerBuild", Exec::class.java) {
@@ -67,7 +65,6 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
         commandLine(
             "docker",
-            "buildx",
             "build",
             *commonDockerBuildArgs,
             ".",
@@ -96,6 +93,8 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 "--platform",
                 "linux/amd64,linux/arm64",
                 "--push",
+                *arrayOf("--attest", "type=provenance,mode=max"),
+                *arrayOf("--attest", "type=sbom"),
                 ".",
             )
 

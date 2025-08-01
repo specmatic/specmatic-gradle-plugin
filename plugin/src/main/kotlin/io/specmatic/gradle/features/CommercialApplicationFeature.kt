@@ -35,6 +35,13 @@ class CommercialApplicationFeature(project: Project) :
             val obfuscatedShadowJar =
                 project.createObfuscatedShadowJar(obfuscatedOriginalJar, shadowActions, shadowPrefix, true)
 
+            project.createRunObfuscatedFatJarTask(
+                obfuscatedShadowJar,
+                mainClass,
+            )
+
+            project.createRunFatJarTask(unobfuscatedShadowJar, mainClass)
+
             project.plugins.withType(MavenPublishPlugin::class.java) {
                 project.createShadowedObfuscatedJarPublication(
                     obfuscatedShadowJar,

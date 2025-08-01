@@ -30,6 +30,8 @@ open class OSSApplicationFeature(project: Project) :
             project.forceJavadocAndSourcesJars()
             val unobfuscatedShadowJarTask = project.createUnobfuscatedShadowJar(shadowActions, shadowPrefix, true)
 
+            project.createRunFatJarTask(unobfuscatedShadowJarTask, mainClass)
+
             project.plugins.withType(MavenPublishPlugin::class.java) {
                 project.createShadowedUnobfuscatedJarPublication(
                     unobfuscatedShadowJarTask,

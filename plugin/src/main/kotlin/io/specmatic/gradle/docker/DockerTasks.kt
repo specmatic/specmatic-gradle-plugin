@@ -81,7 +81,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
     val dockerBuildxPublishInternalTask =
         tasks.register("dockerBuildxPublishInternal", Exec::class.java) {
-            dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!)
+            dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(CycloneDxTask::class.java))
             group = "docker"
             description = "Publishes the multivariant docker image"
 
@@ -134,7 +134,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
         }
 
     tasks.register("dockerBuildxPublish") {
-        dependsOn(dockerBuildxPublishInternalTask, dockerReadmePublishTask, project.tasks.withType(CycloneDxTask::class.java))
+        dependsOn(dockerBuildxPublishInternalTask, dockerReadmePublishTask)
         group = "docker"
         description = "Publish image and README to docker hub"
     }

@@ -30,7 +30,7 @@ dependencies {
     implementation("commons-codec:commons-codec:1.19.0")
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.0.0-beta10")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.34.0")
-    implementation("org.kohsuke:github-api:1.327")
+    implementation("org.kohsuke:github-api:1.329")
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:2.3.1")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.2")
     implementation("org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin:2.4")

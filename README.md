@@ -163,6 +163,9 @@ projects.
                 imageName = "foo"
                 // any extra docker build args
                 extraDockerArgs = listOf("...")
+                // publish to docker hub under these orgs. First one will be considered the primary org, and a readme will be generated
+                dockerOrgNames = listOf("specmatic", "znsio")
+                dockerOrgNames = listOf("ghcr.io/specmatic") // for GitHub Container Registry
             }
     
             // Obfuscation is enabled by default, but you may pass additional proguard args https://www.guardsquare.com/manual/configuration/usage

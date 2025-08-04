@@ -36,6 +36,10 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
 
     @TaskAction
     fun updateOverview() {
+        if (repositoryName.get().startsWith("ghcr.io")) {
+            logger.warn("Skipping DockerHub overview update for repository: ${repositoryName.get()}")
+            return
+        }
         val jwtToken = fetchJwtToken(dockerHubUsername.get(), dockerHubApiToken.get())
         updateDockerHubOverview(jwtToken)
     }
@@ -86,7 +90,7 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
         client().newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 error(
-                    "Failed to update DockerHub overview. code=${response.code} message=${response.message} body=${response.body?.string()}"
+                    "Failed to update DockerHub overview. code=${response.code} message=${response.message} body=${response.body?.string()}",
                 )
             }
         }

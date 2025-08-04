@@ -10,16 +10,22 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import org.cyclonedx.gradle.CycloneDxTask
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.Exec
 
-private const val DOCKER_ORG_PRIMARY = "specmatic"
-private const val DOCKER_ORG_SECONDARY = "znsio"
-private val DOCKER_ORGANIZATIONS = listOf(DOCKER_ORG_PRIMARY, DOCKER_ORG_SECONDARY)
-
 internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
+    val dockerOrgNames = dockerBuildConfig.dockerOrgNames
+    if (dockerOrgNames.isEmpty()) {
+        throw GradleException(
+            "No docker org names specified in the docker build config. Please specify at least one docker org name.",
+        )
+    }
+
+    val primaryOrg = dockerOrgNames.first()
     val imageName = dockerImage(dockerBuildConfig)
+
     val sourceSbomPath =
         project.layout.buildDirectory
             .get()
@@ -46,12 +52,12 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
     pluginInfo("Adding docker tasks on $this")
 
     val dockerTags =
-        DOCKER_ORGANIZATIONS.flatMap { org ->
+        dockerOrgNames.flatMap { org ->
             listOf("$org/$imageName:$version", "$org/$imageName:latest")
         }
 
     val commonDockerBuildArgs =
-        annotationArgs(imageName) +
+        annotationArgs(primaryOrg, imageName) +
             dockerTags
                 .flatMap { listOf("--tag", it) }
                 .toTypedArray() +
@@ -128,7 +134,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 },
             )
 
-            repositoryName.set("$DOCKER_ORG_PRIMARY/$imageName")
+            repositoryName.set("$primaryOrg/$imageName")
 
             readmeContent.set(provider { readmeFile.readText() })
         }
@@ -221,10 +227,10 @@ private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String = 
     dockerBuildConfig.imageName!!
 }
 
-private fun Project.annotationArgs(imageName: String): Array<String> = arrayOf(
+private fun Project.annotationArgs(primaryOrg: String, imageName: String): Array<String> = arrayOf(
     "org.opencontainers.image.created=${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(Date())}",
     "org.opencontainers.image.authors=Specmatic Team <info@specmatic.io>",
-    "org.opencontainers.image.url=https://hub.docker.com/u/$DOCKER_ORG_PRIMARY/$imageName",
+    "org.opencontainers.image.url=https://hub.docker.com/u/$primaryOrg/$imageName",
     "org.opencontainers.image.version=$version",
     "org.opencontainers.image.revision=${project.versionInfo().gitCommit}",
     "org.opencontainers.image.vendor=specmatic.io",

@@ -20,7 +20,7 @@ internal fun Project.forceJavadocAndSourcesJars() {
     }
 }
 
-internal fun Project.createUnobfuscatedJarPublication(artifactIdentifier: String,): NamedDomainObjectProvider<MavenPublication> {
+internal fun Project.createUnobfuscatedJarPublication(artifactIdentifier: String): NamedDomainObjectProvider<MavenPublication> {
     val jarTask = tasks.jar
     val publication =
         publishJar(
@@ -30,13 +30,13 @@ internal fun Project.createUnobfuscatedJarPublication(artifactIdentifier: String
     return publication
 }
 
-internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<out Jar>, artifactIdentifier: String,) {
+internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<out Jar>, artifactIdentifier: String) {
     val publication =
         publishJar(
             object : PublishingConfigurer {
                 override fun configure(publication: MavenPublication) {
                     pluginInfo(
-                        "Configuring publication named ${name()} for artifact '${publication.groupId}:${publication.artifactId}:${publication.version}' using task ${task.get().path}"
+                        "Configuring publication named \\${name()} for artifact '\\${publication.groupId}:\\${publication.artifactId}:\\${publication.version}' using task \\${task.get().path}",
                     )
                     publication.artifact(task) {
                         // we keep the classifier when building the jar, because we need to distinguish between the original and obfuscated jars, in the `lib` dir.
@@ -48,10 +48,21 @@ internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<o
                         withXml {
                             val topLevel = asNode()
                             val dependencies = topLevel.appendNode("dependencies")
-                            (configurations["compileClasspath"].allDependencies - configurations.shadow.get().allDependencies).forEach {
+                            val allDependencies =
+                                configurations["compileClasspath"].allDependencies -
+                                    configurations.shadow.get().allDependencies
+                            allDependencies.forEach {
                                 val dependency = dependencies.appendNode("dependency")
                                 dependency.appendNode("groupId", it.group)
-                                dependency.appendNode("artifactId", it.name)
+                                // If this is a project dependency and the project publishes a -min artifact, use the -min suffix
+                                val artifactId =
+                                    if (it is org.gradle.api.artifacts.ProjectDependency) {
+                                        // Convention: the obfuscated artifactId is project.name + "-min"
+                                        "${it.dependencyProject.name}-min"
+                                    } else {
+                                        it.name
+                                    }
+                                dependency.appendNode("artifactId", artifactId)
                                 dependency.appendNode("version", it.version)
                                 dependency.appendNode("scope", "compile")
                             }
@@ -65,7 +76,7 @@ internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<o
     createConfigurationAndAddArtifacts(publication.name, task)
 }
 
-internal fun Project.createShadowedObfuscatedJarPublication(task: TaskProvider<out Jar>, artifactIdentifier: String,) {
+internal fun Project.createShadowedObfuscatedJarPublication(task: TaskProvider<out Jar>, artifactIdentifier: String) {
     publishJar(ArtifactPublishingConfigurer(project, artifactIdentifier, task))
     createConfigurationAndAddArtifacts(task)
 }
@@ -107,7 +118,7 @@ class JavaComponentPublisher(
         publication.from(component)
         publication.artifactId = artifactIdentifier
         project.pluginInfo(
-            "Configuring publication named ${name()} for artifact '${publication.groupId}:${publication.artifactId}:${publication.version}' using component ${component.name}"
+            "Configuring publication named ${name()} for artifact '${publication.groupId}:${publication.artifactId}:${publication.version}' using component ${component.name}",
         )
     }
 
@@ -121,7 +132,7 @@ class ArtifactPublishingConfigurer(
 ) : PublishingConfigurer {
     override fun configure(publication: MavenPublication) {
         project.pluginInfo(
-            "Configuring publication named ${name()} for artifact '${publication.groupId}:${publication.artifactId}:${publication.version}' using task ${task.get().path}"
+            "Configuring publication named ${name()} for artifact '${publication.groupId}:${publication.artifactId}:${publication.version}' using task ${task.get().path}",
         )
         publication.artifact(task) {
             // we keep the classifier when building the jar, because we need to distinguish between the original and obfuscated jars, in the `lib` dir.
@@ -134,7 +145,7 @@ class ArtifactPublishingConfigurer(
     override fun name(): String = artifactIdentifier
 }
 
-private fun Project.publishJar(configurer: PublishingConfigurer,): NamedDomainObjectProvider<MavenPublication> =
+private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObjectProvider<MavenPublication> =
     publishing.publications.register(configurer.name(), MavenPublication::class.java) {
         pom.packaging = "jar"
 

@@ -26,9 +26,14 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
     internal var shadowActions = mutableListOf<Action<ShadowJar>>()
     internal var proguardExtraArgs = mutableListOf<String?>()
     internal var shadowPrefix = ""
+    internal var vulnerableDeps = mutableListOf<String?>()
 
     fun publish(configuration: Action<MavenPublication>) {
         this.publicationConfigurations.add(configuration)
+    }
+
+    fun vulnerableDeps(vararg deps: String?) {
+        this.vulnerableDeps.addAll(deps)
     }
 
     fun publishGradle(configuration: Action<MavenPublication>) {

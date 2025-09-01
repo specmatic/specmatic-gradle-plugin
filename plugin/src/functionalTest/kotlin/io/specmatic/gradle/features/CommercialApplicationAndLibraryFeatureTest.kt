@@ -381,7 +381,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             assertThat(getDependencies("io.specmatic.example:executable-all:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:executable-all-debug:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).containsExactlyInAnyOrder(
-                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:core-min:1.2.3",
                 "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
                 "org.slf4j:slf4j-api:2.0.17",
                 *loggingDependencies,
@@ -577,7 +577,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             assertThat(getDependencies("io.specmatic.example:executable-all:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:executable-all-debug:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).containsExactlyInAnyOrder(
-                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:core-min:1.2.3",
                 "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
                 "org.slf4j:slf4j-api:2.0.17",
                 *loggingDependencies,

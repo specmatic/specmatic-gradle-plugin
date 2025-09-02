@@ -125,7 +125,7 @@ private fun Project.processDependencies(
         dependency.appendNode("groupId", eachDependency.group)
         handleGroupId(eachDependency, dependency, obfuscated)
         dependency.appendNode("version", eachDependency.version)
-        dependency.appendNode("scope", "runtime")
+        dependency.appendNode("scope", "compile")
 
         addExcludes(eachDependency, globalExcludeRules, dependency)
     }

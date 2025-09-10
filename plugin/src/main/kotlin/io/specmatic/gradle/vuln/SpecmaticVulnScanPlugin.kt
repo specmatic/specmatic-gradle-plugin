@@ -1,27 +1,33 @@
 package io.specmatic.gradle.vuln
 
-import org.cyclonedx.gradle.CycloneDxTask
+import org.cyclonedx.gradle.CyclonedxDirectTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
 class SpecmaticVulnScanPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        target.tasks.register("cyclonedxBom", CycloneDxTask::class.java) {
+        target.tasks.register("cyclonedxBom", CyclonedxDirectTask::class.java) {
             group = "Reporting"
             description = "Generates a CycloneDX compliant Software Bill of Materials (SBOM)"
 
             includeBomSerialNumber.set(false)
-            // https://github.com/CycloneDX/cyclonedx-gradle-plugin/issues/271
-            destination.set(
+            includeConfigs.set(listOf("runtimeClasspath", "compileClasspath"))
+
+            jsonOutput.set(
                 project.layout.buildDirectory
                     .get()
                     .asFile
-                    .resolve("reports/cyclonedx")
+                    .resolve("reports/cyclonedx/bom.json"),
             )
-            outputName.set("bom")
-            outputFormat.set("all")
 
-            includeConfigs.set(listOf("runtimeClasspath", "compileClasspath"))
+            xmlOutput.set(
+                project.layout.buildDirectory
+                    .get()
+                    .asFile
+                    .resolve("reports/cyclonedx/bom.xml")
+            )
+
+            includeLicenseText.set(true)
         }
 
         target.createSBOMVulnScanTask()

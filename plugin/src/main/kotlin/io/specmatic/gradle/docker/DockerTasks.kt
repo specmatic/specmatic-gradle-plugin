@@ -9,7 +9,7 @@ import io.specmatic.gradle.vuln.createDockerVulnScanTask
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
-import org.cyclonedx.gradle.CycloneDxTask
+import org.cyclonedx.gradle.CyclonedxDirectTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -65,7 +65,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             dockerBuildConfig.extraDockerArgs
 
     tasks.register("dockerBuild", Exec::class.java) {
-        dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(CycloneDxTask::class.java))
+        dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(CyclonedxDirectTask::class.java))
         group = "docker"
         description = "Builds the docker image"
 
@@ -87,7 +87,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
     val dockerBuildxPublishInternalTask =
         tasks.register("dockerBuildxPublishInternal", Exec::class.java) {
-            dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(CycloneDxTask::class.java))
+            dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(CyclonedxDirectTask::class.java))
             group = "docker"
             description = "Publishes the multivariant docker image"
 

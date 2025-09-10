@@ -25,6 +25,8 @@ class SpecmaticReleasePlugin : Plugin<Project> {
     }
 }
 
+const val RELEASE_TASK_NAME = "release"
+
 private fun Project.configureReleaseTasks() {
     val originalGitCommit = project.versionInfo().gitCommit
 
@@ -37,8 +39,8 @@ private fun Project.configureReleaseTasks() {
     val createGithubReleaseTask = findOrCreateGithubReleaseTask(gitPushTask)
 
     val releaseTask =
-        project.tasks.register("release") {
-            group = "release"
+        project.tasks.register(RELEASE_TASK_NAME) {
+            group = RELEASE_TASK_NAME
             description = "Release the project"
             dependsOn(createGithubReleaseTask)
         }
@@ -64,14 +66,14 @@ private fun Project.configureReleaseTasks() {
 
 private fun Project.validateSnapshotDependenciesTask(): TaskProvider<ValidateSnapshotDependencies?> =
     tasks.register("validateSnapshotDependencies", ValidateSnapshotDependencies::class.java) {
-        group = "release"
+        group = RELEASE_TASK_NAME
         description = "Validate snapshot dependencies"
     }
 
 private fun Project.gitPushTask(runReleaseLifecycleHooksTask: TaskProvider<*>): TaskProvider<*> =
     project.tasks.register("releaseGitPush", GitPushTask::class.java) {
         dependsOn(runReleaseLifecycleHooksTask)
-        group = "release"
+        group = RELEASE_TASK_NAME
         description = "Perform a git push after release"
 
         rootDir.set(project.rootProject.rootDir)
@@ -80,7 +82,7 @@ private fun Project.gitPushTask(runReleaseLifecycleHooksTask: TaskProvider<*>): 
 private fun Project.postReleaseBumpTask(dependentTask: TaskProvider<*>): TaskProvider<*> =
     project.tasks.register("postReleaseBump", PostReleaseBump::class.java) {
         dependsOn(dependentTask)
-        group = "release"
+        group = RELEASE_TASK_NAME
         description = "Post-release bump"
 
         rootDir.set(project.rootProject.rootDir)
@@ -91,7 +93,7 @@ private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvide
     if (project.hasProperty("functionalTestingHack") && project.property("functionalTestingHack") == "true") {
         project.tasks.register("runReleaseLifecycleHooks") {
             dependsOn(removeSnapshotTask)
-            group = "release"
+            group = RELEASE_TASK_NAME
             description = "Run release lifecycle hooks (add your tasks here) - test hax"
         }
     } else {
@@ -99,7 +101,7 @@ private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvide
 
         val prepareGithubReleaseArtifactsTask =
             tasks.register("prepareGithubReleaseArtifacts", Copy::class.java) {
-                group = "release"
+                group = RELEASE_TASK_NAME
                 description = "Prepare artifacts for Github release"
 
                 val targetDir = project.layout.buildDirectory.dir("githubAssets")
@@ -117,7 +119,7 @@ private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvide
 
         project.tasks.register("runReleaseLifecycleHooks", GradleBuild::class.java) {
             dependsOn(removeSnapshotTask)
-            group = "release"
+            group = RELEASE_TASK_NAME
             description = "Run release lifecycle hooks (add your tasks here)"
 
             startParameter = project.gradle.startParameter.newInstance()
@@ -137,7 +139,7 @@ private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvide
 private fun Project.runReleaseTagTask(dependentTask: TaskProvider<*>): TaskProvider<*> =
     project.tasks.register("createReleaseTag", CreateReleaseTagTask::class.java) {
         dependsOn(dependentTask)
-        group = "release"
+        group = RELEASE_TASK_NAME
         description = "Create release tag"
 
         rootDir.set(project.rootProject.rootDir)
@@ -147,7 +149,7 @@ private fun Project.runReleaseTagTask(dependentTask: TaskProvider<*>): TaskProvi
 private fun Project.preReleaseBumpTask(dependentTask: TaskProvider<*>): TaskProvider<*> =
     project.tasks.register("preReleaseBump", PreReleaseVersionBump::class.java) {
         dependsOn(dependentTask)
-        group = "release"
+        group = RELEASE_TASK_NAME
         description = "Bump version before release"
 
         rootDir.set(project.rootProject.rootDir)
@@ -155,7 +157,7 @@ private fun Project.preReleaseBumpTask(dependentTask: TaskProvider<*>): TaskProv
     }
 
 private fun Project.getPreReleaseCheckTask(): TaskProvider<*> = project.tasks.register("preReleaseCheck", PreReleaseCheck::class.java) {
-    group = "release"
+    group = RELEASE_TASK_NAME
     description = "Pre-release checks"
 
     rootDir.set(project.rootProject.rootDir)
@@ -174,7 +176,7 @@ private fun Project.findOrCreateGithubReleaseTask(dependentTasks: TaskProvider<*
         pluginInfo("Creating createGithubRelease task")
         tasks.register("createGithubRelease", CreateGithubReleaseTask::class.java) {
             dependsOn(dependentTasks)
-            group = "release"
+            group = RELEASE_TASK_NAME
             description = "Create a Github release"
             sourceDir.set(
                 project.layout.buildDirectory

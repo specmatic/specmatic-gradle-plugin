@@ -45,6 +45,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 targetJarPath = targetJarPath,
                 sourceSbomFile = sourceSbomPath,
                 targetSbomPath = targetSbomPath,
+                extraApkDependencies = dockerBuildConfig.extraApkDependencies,
             )
             createSpecmaticShellScript(dockerBuildConfig, targetJarPath)
         }
@@ -174,6 +175,7 @@ private fun Task.createDockerfile(
     targetJarPath: String,
     sourceSbomFile: File,
     targetSbomPath: String,
+    extraApkDependencies: List<String>,
 ) {
     val dockerFile =
         project.layout.buildDirectory
@@ -209,6 +211,7 @@ private fun Task.createDockerfile(
                 ).path
                 .replace("\\", "/")
 
+        val extraDependencies = extraApkDependencies.joinToString(" ")
         val dockerFileContent =
             templateContent
                 .replace("%TARGET_JAR_PATH%", targetJarPath)
@@ -216,6 +219,7 @@ private fun Task.createDockerfile(
                 .replace("%SOURCE_SBOM_PATH%", sourceSbomPath)
                 .replace("%TARGET_SBOM_PATH%", targetSbomPath)
                 .replace("%IMAGE_NAME%", project.dockerImage(dockerBuildConfig))
+                .replace("%EXTRA_APK_DEPS%", extraDependencies)
 
         dockerFile.writeText(dockerFileContent)
     }

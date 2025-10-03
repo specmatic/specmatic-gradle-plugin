@@ -2,9 +2,9 @@ FROM alpine:3.22
 
 WORKDIR /usr/src/app
 
-# Install OpenJDK 17, git, and curl in a single RUN command
+# Install OpenJDK 17, git, curl and any extra dependencies in a single RUN command
 RUN apk upgrade && \
-    apk add --no-cache openjdk17-jre git curl bash jq && \
+    apk add --no-cache openjdk17-jre git curl bash jq %EXTRA_APK_DEPS% && \
     rm -rf /var/cache/apk/*
 
 SHELL ["/bin/bash", "-c"]

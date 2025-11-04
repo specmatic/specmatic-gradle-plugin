@@ -37,7 +37,7 @@ dependencies {
     implementation("org.gradlex.java-ecosystem-capabilities:org.gradlex.java-ecosystem-capabilities.gradle.plugin:1.5.3")
     implementation("io.fuchs.gradle.classpath-collision-detector:io.fuchs.gradle.classpath-collision-detector.gradle.plugin:1.0.0")
     implementation("com.diffplug.spotless:com.diffplug.spotless.gradle.plugin:8.0.0")
-    implementation("com.squareup.okhttp3:okhttp:5.2.1")
+    implementation("com.squareup.okhttp3:okhttp:5.3.0")
     implementation("org.zeroturnaround:zt-exec:1.12")
 
     testImplementation("org.apache.maven:maven-model:3.9.11")

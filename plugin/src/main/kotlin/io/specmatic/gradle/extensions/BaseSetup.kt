@@ -8,7 +8,6 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
-import org.gradle.kotlin.dsl.exclude
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningPlugin
 
@@ -44,15 +43,26 @@ internal fun Project.baseSetup() {
 }
 
 private fun Project.configureVulns() {
-    project.specmaticExtension().projectConfigurations[this]?.vulnerableDeps?.forEach {
-        if (it != null) {
-            configurations.named("implementation") {
-                dependencies.add(
-                    project.dependencies.create(it),
-                )
+    project.plugins.withType(JavaPlugin::class.java) {
+        val vulnerableDeps =
+            project
+                .specmaticExtension()
+                .projectConfigurations[project]
+                ?.vulnerableDeps
+                .orEmpty()
+                .filterNotNull()
+                .toTypedArray()
 
-                val (groupId, artifactId, version) = it.split(":")
-                exclude(group = groupId, module = artifactId)
+        vulnerableDeps.forEach {
+            configurations.named("implementation") {
+                pluginInfo("Excluding vulnerable dependency $it from implementation configuration")
+                dependencies.add(project.dependencies.create(it))
+            }
+        }
+
+        project.dependencies.constraints {
+            vulnerableDeps.forEach { dep ->
+                add("implementation", dep)
             }
         }
     }

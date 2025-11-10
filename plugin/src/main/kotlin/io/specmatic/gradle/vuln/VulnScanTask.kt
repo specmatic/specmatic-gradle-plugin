@@ -5,12 +5,15 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.specmatic.gradle.exec.shellEscapedArgs
 import io.specmatic.gradle.license.pluginInfo
+import io.specmatic.gradle.utils.okHttpConnector
 import io.specmatic.gradle.vuln.dto.VulnerabilityReport
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.net.URL
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import okhttp3.OkHttpClient
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.DefaultTask
@@ -24,6 +27,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.kohsuke.github.GitHubBuilder
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector
 
 @CacheableTask
 abstract class AbstractVulnScanTask
@@ -103,7 +107,8 @@ abstract class AbstractVulnScanTask
 
         private fun downloadTrivy() {
             project.pluginInfo("Checking if trivy is up to date")
-            val gitHub = GitHubBuilder().build()
+
+            val gitHub = GitHubBuilder().withConnector(okHttpConnector).build()
             val repository = gitHub.getRepository("aquasecurity/trivy")
             val release = repository.latestRelease
 

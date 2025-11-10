@@ -24,7 +24,7 @@ class SpecmaticVulnScanPlugin : Plugin<Project> {
                     .resolve("reports/cyclonedx/bom.xml"),
             )
 
-            includeConfigs.set(listOf("runtimeClasspath", "compileClasspath"))
+            includeConfigs.set(listOf("runtimeClasspath"))
         }
 
         target.createSBOMVulnScanTask()

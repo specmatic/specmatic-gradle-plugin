@@ -2,7 +2,7 @@ package io.specmatic.gradle.vuln
 
 import java.io.File
 import javax.inject.Inject
-import org.cyclonedx.gradle.CycloneDxTask
+import org.cyclonedx.gradle.BaseCyclonedxTask
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFile
@@ -32,7 +32,7 @@ internal fun Project.createSBOMVulnScanTask() {
 
     val scanTask =
         tasks.register("${scanTaskName}Scan", SBOMVulnScanTask::class.java) {
-            dependsOn(tasks.withType(CycloneDxTask::class.java))
+            dependsOn(tasks.withType(BaseCyclonedxTask::class.java))
 
             trivyHomeDir.set(trivyHomeDir())
             sbomFile.set(

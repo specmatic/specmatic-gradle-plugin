@@ -29,7 +29,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.21")
     implementation("commons-codec:commons-codec:1.20.0")
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.0.0-beta10")
-    implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.34.0")
+    implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.35.0")
     implementation("org.kohsuke:github-api:1.330")
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.0.1")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.1")

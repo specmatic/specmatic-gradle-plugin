@@ -31,7 +31,7 @@ dependencies {
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.0.0-beta10")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.34.0")
     implementation("org.kohsuke:github-api:1.330")
-    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.0.2")
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.1.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.1")
     implementation("org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin:2.4")
     implementation("org.gradlex.java-ecosystem-capabilities:org.gradlex.java-ecosystem-capabilities.gradle.plugin:1.5.3")

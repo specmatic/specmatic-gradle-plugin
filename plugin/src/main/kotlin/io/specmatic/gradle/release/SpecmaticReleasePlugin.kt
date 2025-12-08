@@ -47,6 +47,7 @@ private fun Project.configureReleaseTasks() {
 
     project.gradle.addBuildListener(
         object : BuildAdapter() {
+            @Deprecated("Deprecated in Java")
             override fun buildFinished(result: BuildResult) {
                 if (result.failure != null) {
                     val executedTasks =

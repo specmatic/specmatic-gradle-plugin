@@ -102,7 +102,7 @@ abstract class ProguardTask
                 }
             } catch (e: ExecException) {
                 project.pluginInfo(e.message!!)
-                project.pluginInfo("Check the proguard output in $outputFile")
+                project.pluginInfo("Check the proguard output in ${outputFile.toURI()}")
                 throw e
             } finally {
                 project.configurations.remove(proguard)
@@ -198,10 +198,15 @@ abstract class ProguardTask
                         .mapFile()
                 }
 
-            dependentObfuscationMappingFiles.forEach {
-                project.pluginInfo("Adding proguard mapping file from dependent project: ${it.path}")
-                appendProguardArgs("-applymapping", it.path)
+            val merged = getProguardOutputDir().resolve("dependent-proguard-mappings.txt")
+            merged.parentFile.mkdirs()
+            merged.bufferedWriter().use { out ->
+                dependentObfuscationMappingFiles.forEach { f ->
+                    out.append(f.readText())
+                }
             }
+
+            appendProguardArgs("-applymapping", merged.absolutePath)
         }
 
         internal fun mapFile(): File = getProguardOutputDir().resolve("proguard.mapping.txt")

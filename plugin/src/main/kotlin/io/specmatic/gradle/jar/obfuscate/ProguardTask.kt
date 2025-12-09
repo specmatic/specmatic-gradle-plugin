@@ -72,7 +72,7 @@ abstract class ProguardTask
                 this.project.configurations
                     .named("proguard_${this.name}")
                     .get()
-                    .asPath
+                    .asPath,
             )
             args.add("proguard.ProGuard") // main class
             args.addAll(createArgs())
@@ -82,7 +82,7 @@ abstract class ProguardTask
                     javaLauncher
                         .get()
                         .executablePath.asFile.path,
-                    "@${getArgsFile()}"
+                    "@${getArgsFile()}",
                 )
             val outputFile = project.file("${getProguardOutputDir()}/proguard-task-output-${this.name}.log")
             val outputFileStream = outputFile.outputStream()
@@ -172,7 +172,7 @@ abstract class ProguardTask
                     @org.springframework.context.annotation.Bean *;
                     @org.springframework.stereotype.* *;
                 }
-                """.trimIndent()
+                """.trimIndent(),
             )
 
             return proguardArgs
@@ -187,9 +187,11 @@ abstract class ProguardTask
 
         private fun addMappingFiles() {
             val dependentProjects = project.projectDependencies().map { project.rootProject.project(it.path) }
+            project.pluginInfo("Adding proguard mapping file from dependent project(s): ${dependentProjects.map { it.path }}")
 
             val dependentObfuscationMappingFiles =
                 dependentProjects.map { dependentProject ->
+
                     dependentProject.tasks
                         .named("obfuscateJarInternal", ProguardTask::class.java)
                         .get()
@@ -197,6 +199,7 @@ abstract class ProguardTask
                 }
 
             dependentObfuscationMappingFiles.forEach {
+                project.pluginInfo("Adding proguard mapping file from dependent project: ${it.path}")
                 appendProguardArgs("-applymapping", it.path)
             }
         }

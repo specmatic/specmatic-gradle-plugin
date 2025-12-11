@@ -3,6 +3,7 @@ package io.specmatic.gradle.extensions
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.MavenPublishBasePlugin
 import io.specmatic.gradle.jar.massage.publishing
+import io.specmatic.gradle.jar.publishing.isCommercial
 import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.specmaticExtension
 import org.gradle.api.Project
@@ -76,12 +77,7 @@ private fun Project.setupPublishingTargets() {
             }
         }
 
-        val isOSSFeature =
-            specmaticExtension.projectConfigurations[project] is io.specmatic.gradle.features.OSSLibraryFeature ||
-                specmaticExtension.projectConfigurations[project] is io.specmatic.gradle.features.OSSApplicationFeature ||
-                specmaticExtension.projectConfigurations[project] is io.specmatic.gradle.features.OSSApplicationAndLibraryFeature
-
-        if (!isOSSFeature) {
+        if (project.isCommercial()) {
             tasks.withType(PublishToMavenRepository::class.java) {
                 onlyIf("disabling publishing of unobfuscated artifacts to this repository") {
                     val mavenRepo = publishTargets.filterIsInstance<MavenInternal>().first { it.repoName == this.repository.name }

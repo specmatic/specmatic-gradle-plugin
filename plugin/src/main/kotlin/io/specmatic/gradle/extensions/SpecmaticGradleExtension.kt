@@ -30,22 +30,10 @@ open class SpecmaticGradleExtension {
     var downstreamDependentProjects = listOf<String>()
 
     var kotlinApiVersion: KotlinVersion = KotlinVersion.KOTLIN_1_9
-    internal val publishTo = mutableListOf<PublishTarget>()
+
     internal val licenseData = mutableListOf<ModuleLicenseData>()
     internal val projectConfigurations: MutableMap<Project, BaseDistribution> = mutableMapOf()
     var versionReplacements = mutableMapOf<String, String>()
-
-    fun publishToMavenCentral() {
-        publishTo.add(MavenCentral())
-    }
-
-    fun publishTo(repoName: String, url: URI, repoType: RepoType) {
-        publishTo.add(MavenInternal(repoName, url, repoType))
-    }
-
-    fun publishTo(repoName: String, url: String, repoType: RepoType) {
-        publishTo(repoName, URI.create(url), repoType)
-    }
 
     fun licenseData(block: ModuleLicenseData.() -> Unit) {
         licenseData.add(ModuleLicenseData().apply(block))

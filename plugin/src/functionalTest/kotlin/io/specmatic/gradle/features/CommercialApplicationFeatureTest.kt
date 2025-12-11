@@ -29,13 +29,17 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     
                     kotlinVersion = "1.9.20"
                     withCommercialApplication(rootProject) {
                         mainClass = "io.specmatic.example.Main"
                         dockerBuild()
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                        
+                        if(project.findProperty("publishToMavenCentral") == "true") {
+                            publishToMavenCentral()
+                        }
                     }
                 }
                 
@@ -58,39 +62,73 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
             writeLogbackXml(projectDir)
         }
 
+        @Nested
+        inner class WithMavenCentralPublishing {
+            @Test
+            fun `it publish single fat jar without any dependencies staging repository along with empty javadoc and sources`() {
+                runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal", "-PpublishToMavenCentral=true")
+
+                val artifacts =
+                    arrayOf(
+                        "io.specmatic.example:example-project-all-debug:1.2.3",
+                        "io.specmatic.example:example-project:1.2.3",
+                    )
+
+                assertPublishedWithSourcesAndJavadocs(*artifacts)
+                artifacts.forEach { assertThat(getDependencies(it)).isEmpty() }
+
+                artifacts.forEach {
+                    assertThat(
+                        listJarContents(it),
+                    ).contains("io/specmatic/example/VersionInfo.class")
+                        .contains("io/specmatic/example/version.properties")
+                        .contains("kotlin/Metadata.class") // kotlin is also packaged
+                        .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+                        .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+                        .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+
+                    assertThat(mainClass(it))
+                        .isEqualTo("io.specmatic.example.Main")
+                }
+            }
+        }
+
+        @Nested
+        inner class WithoutMavenCentralPublishing {
+            @Test
+            fun `it publish single fat jar without any to staging repository without javadoc and sources`() {
+                runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
+
+                val artifacts =
+                    arrayOf(
+                        "io.specmatic.example:example-project-all-debug:1.2.3",
+                        "io.specmatic.example:example-project:1.2.3",
+                    )
+
+                assertPublishedWithoutSourcesAndJavadocs(*artifacts)
+                artifacts.forEach { assertThat(getDependencies(it)).isEmpty() }
+
+                artifacts.forEach {
+                    assertThat(
+                        listJarContents(it),
+                    ).contains("io/specmatic/example/VersionInfo.class")
+                        .contains("io/specmatic/example/version.properties")
+                        .contains("kotlin/Metadata.class") // kotlin is also packaged
+                        .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+                        .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+                        .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+
+                    assertThat(mainClass(it))
+                        .isEqualTo("io.specmatic.example.Main")
+                }
+            }
+        }
+
         @Test
         fun `it should obfuscate`() {
             val result = runWithSuccess("runMain", "runMainOriginal")
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
             assertMainJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
-        }
-
-        @Test
-        fun `it publish single fat jar without any dependencies declared in the pom to staging repository`() {
-            runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
-
-            val artifacts =
-                arrayOf(
-                    "io.specmatic.example:example-project-all-debug:1.2.3",
-                    "io.specmatic.example:example-project:1.2.3",
-                )
-
-            assertPublished(*artifacts)
-            artifacts.forEach { assertThat(getDependencies(it)).isEmpty() }
-
-            artifacts.forEach {
-                assertThat(
-                    listJarContents(it),
-                ).contains("io/specmatic/example/VersionInfo.class")
-                    .contains("io/specmatic/example/version.properties")
-                    .contains("kotlin/Metadata.class") // kotlin is also packaged
-                    .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
-                    .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
-                    .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
-
-                assertThat(mainClass(it))
-                    .isEqualTo("io.specmatic.example.Main")
-            }
         }
 
         @Test
@@ -133,12 +171,12 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
-                    
                     withCommercialApplication(rootProject) {
                         mainClass = "io.specmatic.example.Main"
                         shadow("example")
+
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 
@@ -190,7 +228,7 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
             assertMainJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-            assertPublished(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
 
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -254,16 +292,27 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     
                     withCommercialLibrary(project(":core")) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                        
+                        if(project.findProperty("publishToMavenCentral") == "true") {
+                            publishToMavenCentral()
+                        }
                     }
                     
                     withCommercialApplication(project(":executable")) {
                         mainClass = "io.specmatic.example.executable.Main"
                         dockerBuild {
                             imageName = "specmatic-foo"
+                        }
+                        
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                        
+                        if(project.findProperty("publishToMavenCentral") == "true") {
+                            publishToMavenCentral()
                         }
                     }
                 }
@@ -319,78 +368,159 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
 
         val allArtifacts = obfuscatedArtifacts + unobfuscatedArtifacts
 
-        @Test
-        fun `it obfuscates and publishes jars`() {
-            val result =
-                runWithSuccess(
-                    "publishAllPublicationsToStagingRepository",
-                    "publishToMavenLocal",
-                    "publishAllPublicationsToObfuscatedOnlyRepository",
-                    "publishAllPublicationsToAllArtifactsRepository",
-                    "runMain",
-                    "runMainOriginal",
-                )
-            assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
-            assertMainJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
+        @Nested
+        inner class WithMavenCentralPublishing {
+            @Test
+            fun `it obfuscates and publishes jars with javadoc and sources`() {
+                val result =
+                    runWithSuccess(
+                        "publishAllPublicationsToStagingRepository",
+                        "publishToMavenLocal",
+                        "publishAllPublicationsToObfuscatedOnlyRepository",
+                        "publishAllPublicationsToAllArtifactsRepository",
+                        "runMain",
+                        "runMainOriginal",
+                        "-PpublishToMavenCentral=true",
+                    )
+                assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
+                assertMainJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-            assertPublished(*allArtifacts)
+                assertPublishedWithSourcesAndJavadocs(*allArtifacts)
 
-            assertThat(
-                projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
-            ).containsExactlyInAnyOrder(*obfuscatedArtifacts)
+                assertThat(
+                    projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
+                ).containsExactlyInAnyOrder(*obfuscatedArtifacts)
 
-            assertThat(
-                projectDir.resolve("build/all-artifacts").getPublishedArtifactCoordinates(),
-            ).containsExactlyInAnyOrder(*allArtifacts)
+                assertThat(
+                    projectDir.resolve("build/all-artifacts").getPublishedArtifactCoordinates(),
+                ).containsExactlyInAnyOrder(*allArtifacts)
 
-            assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
-            assertThat(getDependencies("io.specmatic.example:executable-all-debug:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:executable-all-debug:1.2.3")).isEmpty()
 
-            assertThat(getDependencies("io.specmatic.example:core:1.2.3")).isEmpty()
-            assertThat(getDependencies("io.specmatic.example:core-all-debug:1.2.3")).isEmpty()
-            assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
-                "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
-                "org.slf4j:slf4j-api:2.0.17",
-            )
-            assertThat(getDependencies("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3"))
-                .containsExactlyInAnyOrder(
+                assertThat(getDependencies("io.specmatic.example:core:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:core-all-debug:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
                     "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
                     "org.slf4j:slf4j-api:2.0.17",
                 )
+                assertThat(getDependencies("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3"))
+                    .containsExactlyInAnyOrder(
+                        "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+                        "org.slf4j:slf4j-api:2.0.17",
+                    )
 
-            // original jar should be larger than obfuscated jar
-            assertThat(getJar("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3").length())
-                .isGreaterThan(
-                    getJar("io.specmatic.example:core-min:1.2.3").length(),
+                // original jar should be larger than obfuscated jar
+                assertThat(getJar("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3").length())
+                    .isGreaterThan(
+                        getJar("io.specmatic.example:core-min:1.2.3").length(),
+                    )
+                assertThat(getJar("io.specmatic.example:core-all-debug:1.2.3").length())
+                    .isGreaterThan(getJar("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3").length())
+                assertThat(getJar("io.specmatic.example:core-all-debug:1.2.3").length())
+                    .isGreaterThan(getJar("io.specmatic.example:core:1.2.3").length())
+
+                assertThat(
+                    listJarContents("io.specmatic.example:executable-all-debug:1.2.3"),
+                ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
+                    .contains("io/specmatic/example/core/version.properties") // from the core dependency
+                    .contains("io/specmatic/example/executable/VersionInfo.class")
+                    .contains("io/specmatic/example/executable/version.properties")
+                    .contains("kotlin/Metadata.class") // kotlin is also packaged
+                    .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+                    .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+                    .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+
+                assertThat(
+                    listJarContents("io.specmatic.example:executable:1.2.3"),
+                ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
+                    .contains("io/specmatic/example/core/version.properties") // from the core dependency
+                    .contains("io/specmatic/example/executable/VersionInfo.class")
+                    .contains("io/specmatic/example/executable/version.properties")
+                    .contains("kotlin/Metadata.class") // kotlin is also packaged
+                    .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+                    .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+                    .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+
+                assertThat(mainClass("io.specmatic.example:executable:1.2.3")).isEqualTo("io.specmatic.example.executable.Main")
+            }
+        }
+
+        @Nested
+        inner class WithoutMavenCentralPublishing {
+            @Test
+            fun `it obfuscates and publishes jars without javadoc and sources`() {
+                val result =
+                    runWithSuccess(
+                        "publishAllPublicationsToStagingRepository",
+                        "publishToMavenLocal",
+                        "publishAllPublicationsToObfuscatedOnlyRepository",
+                        "publishAllPublicationsToAllArtifactsRepository",
+                        "runMain",
+                        "runMainOriginal",
+                    )
+                assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
+                assertMainJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
+
+                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+
+                assertThat(
+                    projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
+                ).containsExactlyInAnyOrder(*obfuscatedArtifacts)
+
+                assertThat(
+                    projectDir.resolve("build/all-artifacts").getPublishedArtifactCoordinates(),
+                ).containsExactlyInAnyOrder(*allArtifacts)
+
+                assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:executable-all-debug:1.2.3")).isEmpty()
+
+                assertThat(getDependencies("io.specmatic.example:core:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:core-all-debug:1.2.3")).isEmpty()
+                assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
+                    "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+                    "org.slf4j:slf4j-api:2.0.17",
                 )
-            assertThat(getJar("io.specmatic.example:core-all-debug:1.2.3").length())
-                .isGreaterThan(getJar("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3").length())
-            assertThat(getJar("io.specmatic.example:core-all-debug:1.2.3").length())
-                .isGreaterThan(getJar("io.specmatic.example:core:1.2.3").length())
+                assertThat(getDependencies("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3"))
+                    .containsExactlyInAnyOrder(
+                        "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+                        "org.slf4j:slf4j-api:2.0.17",
+                    )
 
-            assertThat(
-                listJarContents("io.specmatic.example:executable-all-debug:1.2.3"),
-            ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
-                .contains("io/specmatic/example/core/version.properties") // from the core dependency
-                .contains("io/specmatic/example/executable/VersionInfo.class")
-                .contains("io/specmatic/example/executable/version.properties")
-                .contains("kotlin/Metadata.class") // kotlin is also packaged
-                .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
-                .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
-                .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+                // original jar should be larger than obfuscated jar
+                assertThat(getJar("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3").length())
+                    .isGreaterThan(
+                        getJar("io.specmatic.example:core-min:1.2.3").length(),
+                    )
+                assertThat(getJar("io.specmatic.example:core-all-debug:1.2.3").length())
+                    .isGreaterThan(getJar("io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3").length())
+                assertThat(getJar("io.specmatic.example:core-all-debug:1.2.3").length())
+                    .isGreaterThan(getJar("io.specmatic.example:core:1.2.3").length())
 
-            assertThat(
-                listJarContents("io.specmatic.example:executable:1.2.3"),
-            ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
-                .contains("io/specmatic/example/core/version.properties") // from the core dependency
-                .contains("io/specmatic/example/executable/VersionInfo.class")
-                .contains("io/specmatic/example/executable/version.properties")
-                .contains("kotlin/Metadata.class") // kotlin is also packaged
-                .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
-                .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
-                .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+                assertThat(
+                    listJarContents("io.specmatic.example:executable-all-debug:1.2.3"),
+                ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
+                    .contains("io/specmatic/example/core/version.properties") // from the core dependency
+                    .contains("io/specmatic/example/executable/VersionInfo.class")
+                    .contains("io/specmatic/example/executable/version.properties")
+                    .contains("kotlin/Metadata.class") // kotlin is also packaged
+                    .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+                    .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+                    .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
 
-            assertThat(mainClass("io.specmatic.example:executable:1.2.3")).isEqualTo("io.specmatic.example.executable.Main")
+                assertThat(
+                    listJarContents("io.specmatic.example:executable:1.2.3"),
+                ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
+                    .contains("io/specmatic/example/core/version.properties") // from the core dependency
+                    .contains("io/specmatic/example/executable/VersionInfo.class")
+                    .contains("io/specmatic/example/executable/version.properties")
+                    .contains("kotlin/Metadata.class") // kotlin is also packaged
+                    .contains("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+                    .contains("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+                    .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+
+                assertThat(mainClass("io.specmatic.example:executable:1.2.3")).isEqualTo("io.specmatic.example.executable.Main")
+            }
         }
 
         @Test
@@ -447,15 +577,16 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
-                    
                     withCommercialLibrary(project(":core")) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withCommercialApplication(project(":executable")) {
                         mainClass = "io.specmatic.example.executable.Main"
                         shadow("example")
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 
@@ -525,7 +656,7 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
             assertMainJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-            assertPublished(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
 
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),

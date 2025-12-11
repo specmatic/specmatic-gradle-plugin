@@ -8,6 +8,7 @@ import io.specmatic.gradle.jar.publishing.forceJavadocAndSourcesJars
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 
 open class OSSApplicationAndLibraryFeature(project: Project) :
@@ -44,15 +45,8 @@ open class OSSApplicationAndLibraryFeature(project: Project) :
                     )
 
                 shadowJarPublication.configure {
-                    artifact(project.tasks.named("sourcesJar")) {
-                        classifier = "sources"
-                    }
-                    artifact(project.tasks.named("javadocJar")) {
-                        classifier = "javadoc"
-                    }
+                    configureSourcesAndJavadocPublishing(project)
                 }
-
-                signPublishTasksDependOnSourcesJar()
             }
         }
     }
@@ -70,5 +64,14 @@ open class OSSApplicationAndLibraryFeature(project: Project) :
             apply { block() }
             mainJarTaskName = "unobfuscatedShadowJar"
         }
+    }
+}
+
+internal fun MavenPublication.configureSourcesAndJavadocPublishing(project: Project) {
+    artifact(project.tasks.named("sourcesJar")) {
+        classifier = "sources"
+    }
+    artifact(project.tasks.named("javadocJar")) {
+        classifier = "javadoc"
     }
 }

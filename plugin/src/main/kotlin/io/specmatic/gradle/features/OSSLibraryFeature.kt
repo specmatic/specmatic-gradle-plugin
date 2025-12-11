@@ -14,7 +14,6 @@ open class OSSLibraryFeature(project: Project) :
     override fun applyToProject() {
         super.applyToProject()
         if (this.isGradlePlugin) {
-            signPublishTasksDependOnSourcesJar()
             return
         }
 
@@ -23,7 +22,6 @@ open class OSSLibraryFeature(project: Project) :
 
             project.plugins.withType(MavenPublishPlugin::class.java) {
                 project.createUnobfuscatedJarPublication(project.name)
-                signPublishTasksDependOnSourcesJar()
             }
         }
     }

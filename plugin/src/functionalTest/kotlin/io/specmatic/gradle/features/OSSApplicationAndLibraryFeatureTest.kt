@@ -29,12 +29,12 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
-                    
                     withOSSApplicationLibrary(rootProject) {
                         mainClass = "io.specmatic.example.Main"
                         dockerBuild()
+                        
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 
@@ -76,7 +76,7 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project-all:1.2.3",
             )
 
-            assertPublishedWithJavadocAndSources(
+            assertPublishedWithSourcesAndJavadocs(
                 "io.specmatic.example:example-project:1.2.3",
                 "io.specmatic.example:example-project-all:1.2.3",
             )
@@ -141,12 +141,13 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
-                    
                     withOSSApplicationLibrary(rootProject) {
                         mainClass = "io.specmatic.example.Main"
                         shadow("example")
+                        
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+
                     }
                 }
                 
@@ -188,7 +189,7 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project-all:1.2.3",
             )
 
-            assertPublishedWithJavadocAndSources(
+            assertPublishedWithSourcesAndJavadocs(
                 "io.specmatic.example:example-project:1.2.3",
                 "io.specmatic.example:example-project-all:1.2.3",
             )
@@ -250,10 +251,10 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     
                     withOSSLibrary(project(":core")) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withOSSApplicationLibrary(project("executable")) {
@@ -261,6 +262,8 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                         dockerBuild {
                             imageName = "specmatic-foo"
                         }
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 
@@ -314,7 +317,7 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core:1.2.3",
             )
 
-            assertPublishedWithJavadocAndSources(
+            assertPublishedWithSourcesAndJavadocs(
                 "io.specmatic.example:executable:1.2.3",
                 "io.specmatic.example:executable-all:1.2.3",
                 "io.specmatic.example:core:1.2.3",
@@ -405,15 +408,17 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     
                     withOSSLibrary(project(":core")) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withOSSApplicationLibrary(project("executable")) {
                         mainClass = "io.specmatic.example.executable.Main"
                         shadow("example")
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 
@@ -464,7 +469,7 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core:1.2.3",
             )
 
-            assertPublishedWithJavadocAndSources(
+            assertPublishedWithSourcesAndJavadocs(
                 "io.specmatic.example:executable:1.2.3",
                 "io.specmatic.example:executable-all:1.2.3",
                 "io.specmatic.example:core:1.2.3",

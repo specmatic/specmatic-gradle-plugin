@@ -192,11 +192,10 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishToMavenCentral()
-                    
                     withOSSApplication(rootProject) {
                         // we asked it to be published, but also specified where
                         publish {}
+                        publishToMavenCentral()
                     }
                 }
                 """.trimIndent(),
@@ -238,13 +237,12 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishToMavenCentral()
-                    
                     withOSSApplication(rootProject) {
                         mainClass = "org.example.Main"
                         
                         // we asked it to be published, but also specified where
                         publish {}
+                        publishToMavenCentral()
                     }
                 }
                 
@@ -289,9 +287,9 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishToMavenCentral()
-                    
-                    withOSSApplication(rootProject) { }
+                    withOSSApplication(rootProject) {
+                        publishToMavenCentral()
+                    }
                 }
                 
                 tasks.register("customJar", Jar::class.java) {

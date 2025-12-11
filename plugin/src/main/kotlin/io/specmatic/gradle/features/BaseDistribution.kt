@@ -4,7 +4,12 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.specmatic.gradle.autogen.createJULLogForwarderClassTask
 import io.specmatic.gradle.autogen.createLogbackXMLFileTask
 import io.specmatic.gradle.docker.registerDockerTasks
+import io.specmatic.gradle.extensions.MavenCentral
+import io.specmatic.gradle.extensions.MavenInternal
+import io.specmatic.gradle.extensions.PublishTarget
+import io.specmatic.gradle.extensions.RepoType
 import io.specmatic.gradle.jar.massage.mavenPublications
+import java.net.URI
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -27,6 +32,7 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
     internal var proguardExtraArgs = mutableListOf<String?>()
     internal var shadowPrefix = ""
     internal var vulnerableDeps = mutableListOf<String?>()
+    internal val publishTo = mutableListOf<PublishTarget>()
 
     fun publish(configuration: Action<MavenPublication>) {
         this.publicationConfigurations.add(configuration)
@@ -41,8 +47,21 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
         this.publicationConfigurations.add(configuration)
     }
 
+    fun publishToMavenCentral() {
+        publishTo.add(MavenCentral())
+    }
+
+    fun publishTo(repoName: String, url: URI, repoType: RepoType) {
+        publishTo.add(MavenInternal(repoName, url, repoType))
+    }
+
+    fun publishTo(repoName: String, url: String, repoType: RepoType) {
+        publishTo(repoName, URI.create(url), repoType)
+    }
+
     internal open fun applyToProject() {
         // hook for any common setup
+        signPublishTasksDependOnSourcesJar()
         project.plugins.apply(JavaPlugin::class.java)
         project.plugins.withType(MavenPublishPlugin::class.java) {
             project.mavenPublications {
@@ -55,27 +74,15 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
 
     protected fun signPublishTasksDependOnSourcesJar() {
         project.tasks.withType(Sign::class.java) {
-            dependsOn(
-                project.tasks
-                    .withType(Jar::class.java)
-                    .filter { it.name.lowercase().endsWith("sourcesjar") },
-            )
+            dependsOn(project.tasks.withType(Jar::class.java))
         }
 
         project.tasks.withType(AbstractPublishToMaven::class.java) {
-            dependsOn(
-                project.tasks
-                    .withType(Jar::class.java)
-                    .filter { it.name.lowercase().endsWith("sourcesjar") },
-            )
+            dependsOn(project.tasks.withType(Jar::class.java))
         }
 
         project.tasks.withType(GenerateModuleMetadata::class.java) {
-            dependsOn(
-                project.tasks
-                    .withType(Jar::class.java)
-                    .filter { it.name.lowercase().endsWith("sourcesjar") },
-            )
+            dependsOn(project.tasks.withType(Jar::class.java))
         }
     }
 

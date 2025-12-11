@@ -61,7 +61,7 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
             if (!response.isSuccessful) {
                 error("Failed to fetch JWT token: ${response.message}")
             }
-            val responseBody = response.body?.string() ?: error("Empty response body")
+            val responseBody = response.body.string().ifBlank { error("Empty response body") }
             val jsonNode = mapper().readTree(responseBody)
             return jsonNode["token"]?.asText() ?: error("JWT token not found in response")
         }
@@ -90,7 +90,7 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
         client().newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 error(
-                    "Failed to update DockerHub overview. code=${response.code} message=${response.message} body=${response.body?.string()}",
+                    "Failed to update DockerHub overview. code=${response.code} message=${response.message} body=${response.body.string()}",
                 )
             }
         }

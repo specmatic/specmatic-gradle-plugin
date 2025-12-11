@@ -2,6 +2,7 @@ package io.specmatic.gradle.extensions
 
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.MavenPublishBasePlugin
+import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.massage.publishing
 import io.specmatic.gradle.jar.publishing.isCommercial
 import io.specmatic.gradle.license.pluginInfo
@@ -50,7 +51,7 @@ private fun Project.setupPublishingTargets() {
         val specmaticExtension = project.rootProject.specmaticExtension()
 
         val publishTargets =
-            specmaticExtension.publishTo +
+            specmaticExtension.projectConfigurations[project]?.publishTo.orEmpty() +
                 listOf(
                     MavenInternal(
                         "staging",
@@ -62,6 +63,10 @@ private fun Project.setupPublishingTargets() {
         publishTargets.forEach { publishTarget ->
             if (publishTarget is MavenCentral) {
                 publishToMavenCentral(false)
+
+                if (project.isCommercial()) {
+                    setupCommericalJavadocAndSources()
+                }
             } else if (publishTarget is MavenInternal) {
                 val repo = publishTarget
                 project.pluginInfo("Configuring publishing to ${repo.repoName} with url ${repo.url} and type ${repo.type}")
@@ -80,7 +85,7 @@ private fun Project.setupPublishingTargets() {
         if (project.isCommercial()) {
             tasks.withType(PublishToMavenRepository::class.java) {
                 onlyIf("disabling publishing of unobfuscated artifacts to this repository") {
-                    val mavenRepo = publishTargets.filterIsInstance<MavenInternal>().first { it.repoName == this.repository.name }
+                    val mavenRepo = publishTargets.filterIsInstance<MavenInternal>().firstOrNull { it.repoName == this.repository.name }
 
                     val singleDependency =
                         publication.artifacts
@@ -94,11 +99,67 @@ private fun Project.setupPublishingTargets() {
                                 singleDependency.archiveClassifier.get() == "all-obfuscated"
                         )
 
-                    mavenRepo.type == RepoType.PUBLISH_ALL ||
-                        (mavenRepo.type == RepoType.PUBLISH_OBFUSCATED_ONLY && thisPublishTaskIsPublishingObfuscatedDependency)
+                    if (mavenRepo is MavenInternal) {
+                        mavenRepo.type == RepoType.PUBLISH_ALL ||
+                            (mavenRepo.type == RepoType.PUBLISH_OBFUSCATED_ONLY && thisPublishTaskIsPublishingObfuscatedDependency)
+                    } else {
+                        thisPublishTaskIsPublishingObfuscatedDependency
+                    }
                 }
             }
         }
         signAllPublications()
     }
+}
+
+private fun Project.setupCommericalJavadocAndSources() {
+    val dummyReadme =
+        project.layout.buildDirectory
+            .file("generated/dummy-readme/README.md")
+            .get()
+            .asFile
+
+    tasks.register("generateDummyReadme") {
+        doLast {
+            dummyReadme.parentFile.mkdirs()
+            dummyReadme.writeText(
+                """
+                This is a DUMMY FILE.
+                
+                Specmatic does not open source this library (${project.group}:${project.name}:${project.version}).
+                Therefore the source code is not included in this distribution.
+                
+                Please contact Specmatic (https://specmatic.io) for more information.
+                """.trimIndent(),
+            )
+        }
+    }
+
+    val sourcesJarTask =
+        project.tasks.register("emptySourcesJar", Jar::class.java) {
+            dependsOn("generateDummyReadme")
+
+            archiveClassifier.set("sources")
+        }
+    project.mavenPublications { artifact(sourcesJarTask) }
+
+    val javadocJarTask =
+        project.tasks.register("emptyJavadocJar", Jar::class.java) {
+            dependsOn("generateDummyReadme")
+
+            archiveClassifier.set("javadoc")
+        }
+
+    project.tasks.withType(Jar::class.java) {
+        if (name.contains("sourcesjar", ignoreCase = true) || name.contains("javadocjar")) {
+            includeEmptyDirs = false
+            eachFile {
+                if (this.path != dummyReadme.name) {
+                    this.exclude()
+                }
+            }
+        }
+    }
+
+    project.mavenPublications { artifact(javadocJarTask) }
 }

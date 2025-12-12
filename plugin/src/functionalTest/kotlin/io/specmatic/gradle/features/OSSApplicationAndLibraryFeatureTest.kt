@@ -279,6 +279,9 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 """.trimIndent(),
             )
 
+            projectDir.resolve("core").mkdirs()
+            projectDir.resolve("executable").mkdirs()
+
             writeMainClass(projectDir.resolve("executable"), "io.specmatic.example.executable.Main")
             writeLogbackXml(projectDir.resolve("executable"))
         }
@@ -374,6 +377,9 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 include("executable")
                 """.trimIndent(),
             )
+
+            projectDir.resolve("core").mkdirs()
+            projectDir.resolve("executable").mkdirs()
 
             buildFile.writeText(
                 """

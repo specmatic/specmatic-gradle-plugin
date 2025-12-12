@@ -109,6 +109,9 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 """.trimIndent(),
             )
 
+            projectDir.resolve("project-a").mkdirs()
+            projectDir.resolve("project-b").mkdirs()
+
             buildFile.writeText(
                 """
                 plugins {
@@ -122,6 +125,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 // nothing applied to project-b
                 """.trimIndent(),
             )
+
             // Run the build
             val result = runWithSuccess("assemble")
 

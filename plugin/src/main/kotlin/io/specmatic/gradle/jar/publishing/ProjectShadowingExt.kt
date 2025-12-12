@@ -259,7 +259,7 @@ internal fun ShadowJar.configureCommonShadowConfigs(
     shadowPrefix: String,
     isApplication: Boolean,
 ) {
-    val runtimeClasspath = project.configurations.findByName("runtimeClasspath")
+    val runtimeClasspath = project.configurations.getByName("runtimeClasspath")
 
     maybeRelocateIfConfigured(project, shadowPrefix, isApplication)
 

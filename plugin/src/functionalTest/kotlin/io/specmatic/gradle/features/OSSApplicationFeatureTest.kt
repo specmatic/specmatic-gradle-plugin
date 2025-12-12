@@ -194,6 +194,9 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 """.trimIndent(),
             )
 
+            projectDir.resolve("core").mkdirs()
+            projectDir.resolve("executable").mkdirs()
+
             buildFile.writeText(
                 """
                 plugins {
@@ -325,6 +328,9 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 include("executable")
                 """.trimIndent(),
             )
+
+            projectDir.resolve("core").mkdirs()
+            projectDir.resolve("executable").mkdirs()
 
             buildFile.writeText(
                 """

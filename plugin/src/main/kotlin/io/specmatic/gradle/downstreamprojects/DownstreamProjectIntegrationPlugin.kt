@@ -122,7 +122,7 @@ internal fun replacePropertyValue(file: File, key: String, value: Any?): String 
     }
 }
 
-private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<Exec?> =
+private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<Exec> =
     tasks.register("fetchArtifacts-$eachProject", Exec::class.java) {
         onlyIf("$specmaticModulePropertyKey is set") {
             project.hasProperty(specmaticModulePropertyKey)
@@ -143,7 +143,7 @@ private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotEx
 private fun Project.validateDownstreamProjectTask(
     eachRepo: String,
     cloneRepoIfNotExists: TaskProvider<out Task>,
-): TaskProvider<GradleBuild?> = tasks.register("validate-$eachRepo", GradleBuild::class.java) {
+): TaskProvider<GradleBuild> = tasks.register("validate-$eachRepo", GradleBuild::class.java) {
     subprojects.forEach { subproject ->
         dependsOn("${subproject.path}:publishAllPublicationsToStagingRepository")
         dependsOn("${subproject.path}:publishToMavenLocal")

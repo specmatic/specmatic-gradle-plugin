@@ -48,7 +48,7 @@ internal fun Project.createObfuscatedOriginalJar(proguardExtraArgs: MutableList<
     return obfuscateJarTask
 }
 
-private fun Project.dependOnUpstreamObfuscationTasks(proguardTask: TaskProvider<ProguardTask?>) {
+private fun Project.dependOnUpstreamObfuscationTasks(proguardTask: TaskProvider<ProguardTask>) {
     afterEvaluate {
         val dependentProjects = project.projectDependencies().map { rootProject.project(it.path) }
 

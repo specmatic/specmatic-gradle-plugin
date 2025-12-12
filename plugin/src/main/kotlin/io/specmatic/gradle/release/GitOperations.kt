@@ -43,7 +43,7 @@ fun File.execGit(logger: Logger, vararg args: String, quiet: Boolean = false): P
     }
 }
 
-class GitOperations(private val rootDir: File, private val projectProperties: Map<String?, Any?>, private val logger: Logger,) {
+class GitOperations(private val rootDir: File, private val projectProperties: Map<String, Any?>, private val logger: Logger,) {
     fun makeGitTag(newVersion: String) {
         val tagList = localGitTags() + extractRemoteTags()
 

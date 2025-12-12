@@ -64,7 +64,7 @@ private fun Project.configureReleaseTasks() {
     )
 }
 
-private fun Project.validateSnapshotDependenciesTask(): TaskProvider<ValidateSnapshotDependencies?> =
+private fun Project.validateSnapshotDependenciesTask(): TaskProvider<ValidateSnapshotDependencies> =
     tasks.register("validateSnapshotDependencies", ValidateSnapshotDependencies::class.java) {
         group = RELEASE_TASK_NAME
         description = "Validate snapshot dependencies"

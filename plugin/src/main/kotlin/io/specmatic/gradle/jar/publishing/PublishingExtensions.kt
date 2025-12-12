@@ -234,7 +234,46 @@ private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObj
         pom.packaging = "jar"
 
         configurer.configure(this)
+
+        if (project.isCommercial()) {
+            addCommercialPomFragments()
+        }
     }
+
+internal fun Project.isOSS(): Boolean {
+    val specmaticExtension = project.rootProject.specmaticExtension()
+
+    return specmaticExtension.projectConfigurations[project] is OSSLibraryFeature ||
+        specmaticExtension.projectConfigurations[project] is OSSApplicationFeature ||
+        specmaticExtension.projectConfigurations[project] is OSSApplicationAndLibraryFeature
+}
+
+internal fun Project.isCommercial(): Boolean = !isOSS()
+
+private fun MavenPublication.addCommercialPomFragments() {
+    pom {
+        licenses {
+            license {
+                name.set("Specmatic End User License Agreement")
+                url.set("https://specmatic.io/eula/")
+            }
+        }
+
+        developers {
+            developer {
+                organization.set("Specmatic")
+                organizationUrl.set("https://specmatic.io")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/specmatic")
+            issueManagement {
+                url.set("https://support.specmatic.io")
+            }
+        }
+    }
+}
 
 private fun Project.createConfigurationAndAddArtifacts(taskProvider: TaskProvider<out Jar>) {
     val shadowOriginalJarConfig = configurations.create(taskProvider.name)

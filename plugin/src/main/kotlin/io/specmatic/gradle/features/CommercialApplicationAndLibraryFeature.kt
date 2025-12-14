@@ -13,8 +13,6 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.TaskProvider
 
 class CommercialApplicationAndLibraryFeature(project: Project) :
     BaseDistribution(project),

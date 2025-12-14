@@ -136,12 +136,13 @@ private fun Project.handleGroupId(eachDependency: Dependency, dependency: Node, 
         val projectDependency = rootProject.project(eachDependency.path)
         val distribution = rootProject.specmaticExtension().projectConfigurations[projectDependency]
         when (distribution) {
-            is CommercialLibraryFeature ->
+            is CommercialLibraryFeature -> {
                 if (obfuscated) {
                     dependency.appendNode("artifactId", "${projectDependency.name}-min")
                 } else {
                     dependency.appendNode("artifactId", "${projectDependency.name}-dont-use-this-unless-you-know-what-you-are-doing")
                 }
+            }
 
             is CommercialApplicationAndLibraryFeature -> {
                 if (obfuscated) {
@@ -155,7 +156,9 @@ private fun Project.handleGroupId(eachDependency: Dependency, dependency: Node, 
                 dependency.appendNode("artifactId", projectDependency.name)
             }
 
-            else -> throw GradleException("Don't know how to express dependency on project ${eachDependency.name} in ${this.name}")
+            else -> {
+                throw GradleException("Don't know how to express dependency on project ${eachDependency.name} in ${this.name}")
+            }
         }
     } else {
         dependency.appendNode("artifactId", eachDependency.name)

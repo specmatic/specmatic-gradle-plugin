@@ -84,7 +84,7 @@ class ShadowConfigurationFunctionalTest : AbstractFunctionalTest() {
     @Test
     fun `it should shadow packages`() {
         runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
-        assertPublished(
+        assertPublishedWithoutSourcesAndJavadocs(
             "io.specmatic.example:core-all-debug:1.2.3",
             "io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
             "io.specmatic.example:core-min:1.2.3",

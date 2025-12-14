@@ -66,7 +66,7 @@ class MiscTest : AbstractFunctionalTest() {
 
         runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
 
-        assertPublished(
+        assertPublishedWithoutSourcesAndJavadocs(
             "io.specmatic.example:core:1.2.3",
             "io.specmatic.example:executable:1.2.3",
         )

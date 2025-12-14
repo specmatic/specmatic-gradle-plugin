@@ -39,15 +39,8 @@ open class OSSApplicationFeature(project: Project) :
                 )
 
                 project.mavenPublications {
-                    artifact(project.tasks.named("sourcesJar")) {
-                        classifier = "sources"
-                    }
-                    artifact(project.tasks.named("javadocJar")) {
-                        classifier = "javadoc"
-                    }
+                    configureSourcesAndJavadocPublishing(project)
                 }
-
-                signPublishTasksDependOnSourcesJar()
             }
         }
     }

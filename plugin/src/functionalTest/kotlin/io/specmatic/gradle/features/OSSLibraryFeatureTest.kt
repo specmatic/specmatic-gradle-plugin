@@ -29,11 +29,10 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
-                
                     kotlinVersion = "1.9.20"
                     withOSSLibrary(rootProject) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 """.trimIndent(),
@@ -46,7 +45,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
         fun `it publish jar with all dependencies declared in the pom to staging repository`() {
             runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
 
-            assertPublishedWithJavadocAndSources("io.specmatic.example:example-project:1.2.3")
+            assertPublishedWithSourcesAndJavadocs("io.specmatic.example:example-project:1.2.3")
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
                 "org.jetbrains.kotlin:kotlin-stdlib:1.9.20",
                 "org.slf4j:slf4j-api:2.0.17",
@@ -158,13 +157,14 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 }
                 
                 specmatic {
-                    publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
-                    publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
-                
                     withOSSLibrary(project(":core")) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withOSSLibrary(project("executable")) {
+                        publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                        publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                 }
                 
@@ -184,7 +184,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
         fun `it publish all jars with dependencies`() {
             runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
 
-            assertPublishedWithJavadocAndSources(
+            assertPublishedWithSourcesAndJavadocs(
                 "io.specmatic.example:executable:1.2.3",
                 "io.specmatic.example:core:1.2.3",
             )

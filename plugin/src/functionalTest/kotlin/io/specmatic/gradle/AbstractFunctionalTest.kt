@@ -143,12 +143,8 @@ open class AbstractFunctionalTest {
         }
     }
 
-    fun createRunner(gradleRunArgs: Array<out String>): GradleRunner = GradleRunner
-        .create()
-        .forwardOutput()
-        .withPluginClasspath()
-        .withProjectDir(projectDir)
-        .withArguments(
+    fun createRunner(gradleRunArgs: Array<out String>): GradleRunner =
+        GradleRunner.create().forwardOutput().withPluginClasspath().withProjectDir(projectDir).withArguments(
             *gradleRunArgs,
             "-Dmaven.repo.local=$localMavenRepo",
             "--stacktrace",
@@ -168,10 +164,7 @@ open class AbstractFunctionalTest {
         )
 
         if (!innerPackage.isNullOrBlank()) {
-            val expectedLines =
-                result.output
-                    .lines()
-                    .filter { it.startsWith("Hello from $innerPackage") && it.contains(".internal.") }
+            val expectedLines = result.output.lines().filter { it.startsWith("Hello from $innerPackage") && it.contains(".internal.") }
             assertThat(expectedLines).containsExactly(
                 "Hello from $innerPackage.Class5#sayHello",
                 "Hello from $innerPackage.Class4#sayHello",
@@ -193,17 +186,14 @@ open class AbstractFunctionalTest {
         if (!innerPackage.isNullOrBlank()) {
             val packageComponents = innerPackage.split(".internal.")
             val expectedLines =
-                result.output
-                    .lines()
-                    .filter { it.startsWith("Hello from ${packageComponents[0]}") && !it.contains(".internal.") }
-            assertThat(expectedLines)
-                .containsExactlyInAnyOrder(
-                    "Hello from ${packageComponents[0]}.a.a.e#e",
-                    "Hello from ${packageComponents[0]}.a.a.d#d",
-                    "Hello from ${packageComponents[0]}.a.a.c#c",
-                    "Hello from ${packageComponents[0]}.a.a.b#b",
-                    "Hello from ${packageComponents[0]}.a.a.a#a",
-                )
+                result.output.lines().filter { it.startsWith("Hello from ${packageComponents[0]}") && !it.contains(".internal.") }
+            assertThat(expectedLines).containsExactlyInAnyOrder(
+                "Hello from ${packageComponents[0]}.a.a.e#e",
+                "Hello from ${packageComponents[0]}.a.a.d#d",
+                "Hello from ${packageComponents[0]}.a.a.c#c",
+                "Hello from ${packageComponents[0]}.a.a.b#b",
+                "Hello from ${packageComponents[0]}.a.a.a#a",
+            )
         }
         assertThat(result.output).contains("BUILD SUCCESSFUL")
     }
@@ -218,8 +208,10 @@ open class AbstractFunctionalTest {
 
     fun listJarContents(coordinates: String): List<String> {
         val jarFile = openJar(coordinates)
-        return jarFile.use { jarFile.entries().toList().map { it.name } }
+        return jarFile.listJarContents()
     }
+
+    fun JarFile.listJarContents(): List<String> = this.use { entries().toList().map { it.name } }
 
     fun getJar(coordinates: String): File =
         stagingRepo.artifactDir(coordinates).resolve("${coordinates.artifactId()}-${coordinates.version()}.jar")
@@ -269,7 +261,7 @@ open class AbstractFunctionalTest {
         return publishedArtifacts.toSet()
     }
 
-    fun assertPublished(vararg coordinates: String) {
+    fun assertPublishedWithoutSourcesAndJavadocs(vararg coordinates: String) {
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         stagingRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
 
@@ -277,11 +269,11 @@ open class AbstractFunctionalTest {
         localMavenRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
     }
 
-    fun assertPublishedWithJavadocAndSources(vararg coordinates: String) {
+    fun assertPublishedWithSourcesAndJavadocs(vararg coordinates: String, isEmptySourceAndJavadoc: Boolean = false) {
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
-        stagingRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates)
+        stagingRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates, isEmptySourceAndJavadoc = isEmptySourceAndJavadoc)
 
-        localMavenRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates)
+        localMavenRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates, isEmptySourceAndJavadoc = isEmptySourceAndJavadoc)
         assertThat(localMavenRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
     }
 
@@ -303,7 +295,7 @@ open class AbstractFunctionalTest {
         }
     }
 
-    fun File.assertSourcesAndJavadocsPresentWithOriginalJars(vararg coordinates: String) {
+    fun File.assertSourcesAndJavadocsPresentWithOriginalJars(vararg coordinates: String, isEmptySourceAndJavadoc: Boolean) {
         coordinates.forEach {
             val groupId = it.groupId()
             val artifactId = it.artifactId()
@@ -313,11 +305,19 @@ open class AbstractFunctionalTest {
 
             assertThat(artifactDir(groupId, artifactId, version).resolve("$artifactId-$version.pom")).exists()
 
-            assertThat(jarFiles).containsExactlyInAnyOrder(
-                artifactDir(groupId, artifactId, version).resolve("$artifactId-$version.jar"),
-                artifactDir(groupId, artifactId, version).resolve("$artifactId-$version-javadoc.jar"),
-                artifactDir(groupId, artifactId, version).resolve("$artifactId-$version-sources.jar"),
-            )
+            val mainJar = artifactDir(groupId, artifactId, version).resolve("$artifactId-$version.jar")
+            val javadocJar = artifactDir(groupId, artifactId, version).resolve("$artifactId-$version-javadoc.jar")
+            val sourcesJar = artifactDir(groupId, artifactId, version).resolve("$artifactId-$version-sources.jar")
+
+            assertThat(jarFiles).containsExactlyInAnyOrder(mainJar, javadocJar, sourcesJar)
+
+            if (isEmptySourceAndJavadoc) {
+                assertThat(javadocJar.length()).isLessThan(1024)
+                assertThat(sourcesJar.length()).isLessThan(1024)
+
+                assertThat(JarFile(sourcesJar).listJarContents()).containsExactlyInAnyOrder("META-INF/MANIFEST.MF", "README.md")
+                assertThat(JarFile(javadocJar).listJarContents()).containsExactlyInAnyOrder("META-INF/MANIFEST.MF", "README.md")
+            }
         }
     }
 

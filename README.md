@@ -164,7 +164,7 @@ projects.
                 // any extra docker build args
                 extraDockerArgs = listOf("...")
                 // publish to docker hub under these orgs. First one will be considered the primary org, and a readme will be generated
-                dockerOrgNames = listOf("specmatic")
+                dockerOrgNames = listOf("specmatic", "znsio")
                 dockerOrgNames = listOf("ghcr.io/specmatic") // for GitHub Container Registry
             }
     

@@ -199,6 +199,7 @@ private fun Project.getOrCreateAutoGenerateKotlinSourcesTask(): TaskProvider<Tas
     return tasks.register("autoGenerateKotlinSources") {
         group = "build"
         description = "Hook to auto-generate sources"
+        outputs.dir(generatedKotlinSourcesDir())
     }
 }
 
@@ -210,5 +211,6 @@ private fun Project.getOrCreateAutoGenerateResourcesTask(): TaskProvider<Task> {
     return tasks.register("autoGenerateResources") {
         group = "build"
         description = "Hook to auto-generate resources"
+        outputs.dir(generatedResourcesDir())
     }
 }

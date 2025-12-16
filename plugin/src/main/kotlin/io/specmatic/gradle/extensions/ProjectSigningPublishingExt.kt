@@ -138,9 +138,13 @@ private fun Project.setupCommericalJavadocAndSources() {
     val sourcesJarTask =
         project.tasks.register("emptySourcesJar", Jar::class.java) {
             dependsOn("generateDummyReadme")
-
             archiveClassifier.set("sources")
+
+            from(dummyReadme.parentFile) {
+                include(dummyReadme.name)
+            }
         }
+
     project.mavenPublications { artifact(sourcesJarTask) }
 
     val javadocJarTask =
@@ -148,11 +152,24 @@ private fun Project.setupCommericalJavadocAndSources() {
             dependsOn("generateDummyReadme")
 
             archiveClassifier.set("javadoc")
+
+            from(dummyReadme.parentFile) {
+                include(dummyReadme.name)
+            }
         }
+
+    project.mavenPublications { artifact(javadocJarTask) }
 
     project.tasks.withType(Jar::class.java) {
         if (name.contains("sourcesjar", ignoreCase = true) || name.contains("javadocjar")) {
+            dependsOn("generateDummyReadme")
+
             includeEmptyDirs = false
+
+            from(dummyReadme.parentFile) {
+                include(dummyReadme.name)
+            }
+
             eachFile {
                 if (this.path != dummyReadme.name) {
                     this.exclude()
@@ -160,6 +177,4 @@ private fun Project.setupCommericalJavadocAndSources() {
             }
         }
     }
-
-    project.mavenPublications { artifact(javadocJarTask) }
 }

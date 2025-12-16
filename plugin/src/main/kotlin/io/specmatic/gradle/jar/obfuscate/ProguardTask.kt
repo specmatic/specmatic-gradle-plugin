@@ -34,7 +34,7 @@ abstract class ProguardTask
         objectFactory: ObjectFactory,
     ) : DefaultTask() {
         @get:Input
-        val proguardVersion = "7.7.0"
+        val proguardVersion = "7.8.2"
 
         private var javaLauncher: Property<JavaLauncher> =
             objectFactory.property(JavaLauncher::class.java).convention(javaToolchainService.launcherFor {})

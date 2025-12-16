@@ -6,11 +6,6 @@ plugins {
 }
 
 specmatic {
-    publishToMavenCentral()
-    publishTo("specmaticPrivate", "https://repo.specmatic.io/private", RepoType.PUBLISH_ALL)
-    publishTo("specmaticSnapshots", "https://repo.specmatic.io/snapshots", RepoType.PUBLISH_OBFUSCATED_ONLY)
-    publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_OBFUSCATED_ONLY)
-
     downstreamDependentProjects =
         listOf(
             "specmatic",
@@ -35,6 +30,11 @@ specmatic {
         )
 
     withOSSLibrary(project(":plugin")) {
+        publishTo("specmaticPrivate", "https://repo.specmatic.io/private", RepoType.PUBLISH_ALL)
+        publishTo("specmaticSnapshots", "https://repo.specmatic.io/snapshots", RepoType.PUBLISH_OBFUSCATED_ONLY)
+        publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_OBFUSCATED_ONLY)
+        publishToMavenCentral()
+
         // from com.gradle.publish.PublishPlugin#PUBLISH_TASK_NAME
         publishGradle {
             pom {

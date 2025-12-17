@@ -40,7 +40,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("org.zeroturnaround:zt-exec:1.12")
 
-    testImplementation("org.apache.maven:maven-model:3.9.11")
+    testImplementation("org.apache.maven:maven-model:3.9.12")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.assertj:assertj-core:3.27.6")
     testImplementation("org.junit.jupiter:junit-jupiter-params:6.0.1")

@@ -62,7 +62,8 @@ private fun Project.setupPublishingTargets() {
 
         publishTargets.forEach { publishTarget ->
             if (publishTarget is MavenCentral) {
-                publishToMavenCentral(project.properties["disableMavenCentralAutoPublish"] == "true")
+                val enableAutoPublish = project.properties["disableMavenCentralAutoPublish"] != "true"
+                publishToMavenCentral(enableAutoPublish)
 
                 if (project.isCommercial()) {
                     setupCommericalJavadocAndSources()

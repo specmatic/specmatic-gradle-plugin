@@ -62,7 +62,7 @@ private fun Project.setupPublishingTargets() {
 
         publishTargets.forEach { publishTarget ->
             if (publishTarget is MavenCentral) {
-                publishToMavenCentral(false)
+                publishToMavenCentral(project.properties["disableMavenCentralAutoPublish"] == "true")
 
                 if (project.isCommercial()) {
                     setupCommericalJavadocAndSources()

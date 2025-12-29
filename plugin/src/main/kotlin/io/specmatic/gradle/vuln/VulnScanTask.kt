@@ -105,46 +105,55 @@ abstract class AbstractVulnScanTask
         private fun downloadTrivy() {
             project.pluginInfo("Checking if trivy is up to date")
 
-            val gitHubBuilder = GitHubBuilder().withConnector(okHttpConnector)
-            if (System.getenv("SPECMATIC_GITHUB_USER") != null && System.getenv("SPECMATIC_GITHUB_TOKEN") != null) {
-                gitHubBuilder.withPassword(System.getenv("SPECMATIC_GITHUB_USER"), System.getenv("SPECMATIC_GITHUB_TOKEN"))
-            }
-            val gitHub = gitHubBuilder.build()
-            val repository = gitHub.getRepository("aquasecurity/trivy")
-            val release = repository.latestRelease
-
-            val currentVersion = if (trivyVersionFile().exists()) trivyVersionFile().readText() else "unknown"
-
-            if (currentVersion != release.name) {
-                val asset =
-                    release.listAssets().find {
-                        it.name.lowercase().contains("_$os-$arch") &&
-                            (
-                                it.name
-                                    .lowercase()
-                                    .endsWith(".zip") ||
-                                    it.name.lowercase().endsWith(".tar.gz")
-                            )
-                    } ?: throw RuntimeException("No asset found for trivy for $os $arch")
-                val trivyCompressedDownloadPath = temporaryDir.resolve(asset.name)
-                val downloadUrl = asset.browserDownloadUrl
-
-                project.pluginInfo(
-                    "Currently installed trivy version($currentVersion) is not up-to-date. Downloading version ${release.name} from $downloadUrl to $trivyCompressedDownloadPath",
-                )
-                FileUtils.copyURLToFile(URL(downloadUrl), trivyCompressedDownloadPath)
-                project.delete(trivyInstallDir())
-                trivyInstallDir().mkdirs()
-                project.copy {
-                    if (trivyCompressedDownloadPath.extension == "zip") {
-                        from(project.zipTree(trivyCompressedDownloadPath))
-                    } else {
-                        from(project.tarTree(trivyCompressedDownloadPath))
-                    }
-                    into(trivyInstallDir())
+            try {
+                val gitHubBuilder = GitHubBuilder().withConnector(okHttpConnector)
+                if (System.getenv("SPECMATIC_GITHUB_USER") != null && System.getenv("SPECMATIC_GITHUB_TOKEN") != null) {
+                    gitHubBuilder.withPassword(System.getenv("SPECMATIC_GITHUB_USER"), System.getenv("SPECMATIC_GITHUB_TOKEN"))
                 }
+                val gitHub = gitHubBuilder.build()
+                val repository = gitHub.getRepository("aquasecurity/trivy")
+                val release = repository.latestRelease
 
-                trivyVersionFile().writeText(release.name)
+                val currentVersion = if (trivyVersionFile().exists()) trivyVersionFile().readText() else "unknown"
+
+                if (currentVersion != release.name) {
+                    val asset =
+                        release.listAssets().find {
+                            it.name.lowercase().contains("_$os-$arch") &&
+                                (
+                                    it.name
+                                        .lowercase()
+                                        .endsWith(".zip") ||
+                                        it.name.lowercase().endsWith(".tar.gz")
+                                )
+                        } ?: throw RuntimeException("No asset found for trivy for $os $arch")
+                    val trivyCompressedDownloadPath = temporaryDir.resolve(asset.name)
+                    val downloadUrl = asset.browserDownloadUrl
+
+                    project.pluginInfo(
+                        "Currently installed trivy version($currentVersion) is not up-to-date. Downloading version ${release.name} from $downloadUrl to $trivyCompressedDownloadPath",
+                    )
+                    FileUtils.copyURLToFile(URL(downloadUrl), trivyCompressedDownloadPath)
+                    project.delete(trivyInstallDir())
+                    trivyInstallDir().mkdirs()
+                    project.copy {
+                        if (trivyCompressedDownloadPath.extension == "zip") {
+                            from(project.zipTree(trivyCompressedDownloadPath))
+                        } else {
+                            from(project.tarTree(trivyCompressedDownloadPath))
+                        }
+                        into(trivyInstallDir())
+                    }
+
+                    trivyVersionFile().writeText(release.name)
+                }
+            } catch (e: Exception) {
+                if (trivyExecutableFile().exists()) {
+                    project.pluginInfo("Unable to check latest Trivy version: ${e.message}. Using existing trivy executable.")
+                    return
+                } else {
+                    throw RuntimeException("Failed to check or download Trivy", e)
+                }
             }
         }
 

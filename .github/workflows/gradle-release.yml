@@ -18,14 +18,8 @@ jobs:
     permissions:
       contents: write
     steps:
-#      - name: 'Build/test'
-#        uses: specmatic/specmatic-github-workflows/action-build-gradle@main
-      - name: Download semver cli
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          wget -O /usr/local/bin/semver https://raw.githubusercontent.com/fsaintjacques/semver-tool/master/src/semver
-          chmod +x /usr/local/bin/semver
+      - name: 'Build/test'
+        uses: specmatic/specmatic-github-workflows/action-base-setup@main
 
       - name: 'Release'
         run: |

@@ -18,8 +18,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 'Build/test'
-        uses: specmatic/specmatic-github-workflows/action-build-gradle@main
+#      - name: 'Build/test'
+#        uses: specmatic/specmatic-github-workflows/action-build-gradle@main
 
       - name: 'Release'
         run: |

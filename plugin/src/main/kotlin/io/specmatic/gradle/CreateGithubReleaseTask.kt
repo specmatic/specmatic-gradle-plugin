@@ -5,8 +5,6 @@ import io.specmatic.gradle.utils.okHttpConnector
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
-import java.util.concurrent.TimeUnit
-import okhttp3.OkHttpClient
 import org.apache.commons.codec.digest.DigestUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -18,7 +16,6 @@ import org.kohsuke.github.GHRelease
 import org.kohsuke.github.GHReleaseBuilder
 import org.kohsuke.github.GHRepository
 import org.kohsuke.github.GitHubBuilder
-import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector
 
 @DisableCachingByDefault(because = "Makes network calls")
 abstract class CreateGithubReleaseTask : DefaultTask() {

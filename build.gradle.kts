@@ -34,6 +34,7 @@ specmatic {
         )
 
     withOSSLibrary(project(":plugin")) {
+        vulnerableDeps("org.apache.logging.log4j:log4j-core:2.25.3")
         publishTo("specmaticPrivate", "https://repo.specmatic.io/private", RepoType.PUBLISH_ALL)
         publishTo("specmaticSnapshots", "https://repo.specmatic.io/snapshots", RepoType.PUBLISH_OBFUSCATED_ONLY)
         publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_OBFUSCATED_ONLY)

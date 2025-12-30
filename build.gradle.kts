@@ -1,4 +1,5 @@
 import io.specmatic.gradle.extensions.RepoType
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     // version specified in settings.gradle
@@ -6,6 +7,9 @@ plugins {
 }
 
 specmatic {
+    kotlinVersion = "2.3.0"
+    kotlinApiVersion = KotlinVersion.KOTLIN_2_3
+
     downstreamDependentProjects =
         listOf(
             "specmatic",

@@ -140,7 +140,7 @@ internal fun Project.applyShadowConfigs() {
         }
 
     val softwareComponentFactory = (project as ProjectInternal).services.get(SoftwareComponentFactory::class.java)
-    val shadowComponent = softwareComponentFactory.adhoc(ShadowBasePlugin.COMPONENT_NAME)
+    val shadowComponent = softwareComponentFactory.adhoc(ShadowBasePlugin.CONFIGURATION_NAME)
     project.components.add(shadowComponent)
     shadowComponent.addVariantsFromConfiguration(shadowRuntimeElements) {
         mapToMavenScope("runtime")

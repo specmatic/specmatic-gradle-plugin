@@ -86,7 +86,8 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
         }
     }
 
-    protected open fun shadow(prefix: String?, action: Action<ShadowJar>?) {
+    // Made public so implementing classes inheriting from BaseDistribution will satisfy feature interfaces
+   open fun shadow(prefix: String?, action: Action<ShadowJar>?) {
         if (prefix != null) {
             // check that prefix is a valid java package name
             require(prefix.matches(Regex("^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$"))) { "Invalid Java package name: $prefix" }
@@ -97,15 +98,15 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
         }
     }
 
-    protected open fun obfuscate(vararg proguardExtraArgs: String?) {
+   open fun obfuscate(vararg proguardExtraArgs: String?) {
         this.proguardExtraArgs.addAll(proguardExtraArgs)
     }
 
-    protected open fun githubRelease(block: GithubReleaseConfig.() -> Unit) {
+   open fun githubRelease(block: GithubReleaseConfig.() -> Unit) {
         githubRelease = GithubReleaseConfig().apply(block)
     }
 
-    protected open fun dockerBuild(block: DockerBuildConfig.() -> Unit) {
+   open fun dockerBuild(block: DockerBuildConfig.() -> Unit) {
         this.project.registerDockerTasks(DockerBuildConfig().apply(block))
     }
 

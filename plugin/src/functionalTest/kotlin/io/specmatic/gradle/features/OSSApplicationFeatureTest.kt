@@ -85,7 +85,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             assertThat(projectDir.resolve("build/example-project").exists()).isTrue
             assertThat(projectDir.resolve("build/example-project").readText().lines())
                 .contains("""#!/usr/bin/env bash""")
-                .contains("""exec java ${'$'}JAVA_OPTS -jar /usr/local/share/example-project/example-project.jar "${'$'}@"""")
+                .contains($$"""exec java $JAVA_OPTS -jar /usr/local/share/example-project/example-project.jar "$@"""")
         }
 
         @Test
@@ -301,7 +301,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             assertThat(projectDir.resolve("executable/build/specmatic-foo").exists()).isTrue
             assertThat(projectDir.resolve("executable/build/specmatic-foo").readText().lines())
                 .contains("""#!/usr/bin/env bash""")
-                .contains("""exec java ${'$'}JAVA_OPTS -jar /usr/local/share/specmatic-foo/specmatic-foo.jar "${'$'}@"""")
+                .contains($$"""exec java $JAVA_OPTS -jar /usr/local/share/specmatic-foo/specmatic-foo.jar "$@"""")
         }
 
         @Test

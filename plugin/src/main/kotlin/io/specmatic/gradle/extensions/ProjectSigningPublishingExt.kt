@@ -69,11 +69,10 @@ private fun Project.setupPublishingTargets() {
                     setupCommericalJavadocAndSources()
                 }
             } else if (publishTarget is MavenInternal) {
-                val repo = publishTarget
-                project.pluginInfo("Configuring publishing to ${repo.repoName} with url ${repo.url} and type ${repo.type}")
+                project.pluginInfo("Configuring publishing to ${publishTarget.repoName} with url ${publishTarget.url} and type ${publishTarget.type}")
                 publishing.repositories.maven {
-                    name = repo.repoName
-                    url = repo.url
+                    name = publishTarget.repoName
+                    url = publishTarget.url
                     if (url.scheme != "file") {
                         credentials(PasswordCredentials::class.java)
                     }

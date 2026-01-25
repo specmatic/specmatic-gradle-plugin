@@ -53,7 +53,7 @@ class ConfigureExecTaskPlugin : Plugin<Project> {
                         cliArgs.addAll(task.commandLine)
                     }
 
-                    target.pluginInfo("[$workingDir]\$ ${shellEscapedArgs(cliArgs)}")
+                    target.pluginInfo($$"[$$workingDir]$ $${shellEscapedArgs(cliArgs)}")
                 }
             }
         }
@@ -83,7 +83,7 @@ fun shellEscape(word: String): String {
     }
     for (ii in 0 until len) {
         val c = word[ii]
-        // We do this positively so as to be sure we don't inadvertently forget
+        // We do this positively to be sure we don't inadvertently forget
         // any unsafe characters.
         if (!Character.isLetterOrDigit(c) && SAFE_PUNCTUATION.indexOf(c) == -1) {
             // replace() actually means "replace all".

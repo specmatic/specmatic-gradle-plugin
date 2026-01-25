@@ -90,7 +90,7 @@ private fun Project.postReleaseBumpTask(dependentTask: TaskProvider<*>): TaskPro
         postReleaseVersion.set(project.provider { project.property("release.newVersion").toString() })
     }
 
-private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvider<*>,): TaskProvider<*> =
+private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvider<*>): TaskProvider<*> =
     if (project.hasProperty("functionalTestingHack") && project.property("functionalTestingHack") == "true") {
         project.tasks.register("runReleaseLifecycleHooks") {
             dependsOn(removeSnapshotTask)

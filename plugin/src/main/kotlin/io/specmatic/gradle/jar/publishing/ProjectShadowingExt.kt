@@ -121,7 +121,7 @@ private fun Project.dependOnUpstreamObfuscationTasks(shadowJarTask: TaskProvider
     }
 }
 
-private fun Project.applyProjectSpecifiedConfigurations(shadowJarTask: ShadowJar, shadowActions: MutableList<Action<ShadowJar>>,) {
+private fun Project.applyProjectSpecifiedConfigurations(shadowJarTask: ShadowJar, shadowActions: MutableList<Action<ShadowJar>>) {
     shadowActions.forEach {
         project.pluginInfo("Applying custom shadow jar configuration")
         it.execute(shadowJarTask)
@@ -226,7 +226,7 @@ private fun ShadowJar.maybeRelocateIfConfigured(project: Project, shadowPrefix: 
     }
 }
 
-private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePackages: List<String>,): MutableSet<String> {
+private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePackages: List<String>): MutableSet<String> {
     val packagesToRelocate = mutableSetOf<String>()
     runtimeClasspathFiles.forEach { eachFile ->
         if (eachFile.name.lowercase().endsWith(".jar")) {

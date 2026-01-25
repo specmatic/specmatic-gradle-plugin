@@ -1,4 +1,4 @@
-# Specmatic gradle convention plugin
+# Specmatic Gradle convention plugin
 
 > **NOTE:** This plugin contains plugin conventions for building specmatic tools. This is only to be used by the
 > specmatic core
@@ -14,11 +14,11 @@ projects.
 1. Auto signing/publishing of artifacts
     - maven central
     - maven local
-    - specmatic private repository (on github)
+    - specmatic private repository (on GitHub)
     - any other supported URLs/repositories
 2. License checks
-    - Ensure that dependencies have a license that allows commecial use of specmatic software (i.e. no copy left
-      licenses) without any incumberance.
+    - Ensure that dependencies have a license that allows commercial use of specmatic software (i.e. no copy left
+      licenses) without any encumbrance.
     - Generate a license report that can be packaged in the distributable jar. This is legal requirement from licenses
       like Apache, BSD-3-Clause. These licenses have a clause that requires distributions of software to carry a notice,
       or attribution specified in the license.
@@ -34,7 +34,7 @@ projects.
 11. Auto-upgrade/migrated deprecated dependencies to newer dependencies.
 12. Better integration with sample repositories
     - Run a build against sample projects and validate changes.
-    - Bummp version of dependency in sample project. Ensure that the appropriate jar is checked into the sample repo.
+    - Bump version of dependency in sample project. Ensure that the appropriate jar is checked into the sample repo.
 13. Conflict detection and resolution using a combination of `io.fuchs.gradle.classpath-collision-detector`,
     `org.gradlex.jvm-dependency-conflict-detection`, `org.gradlex.jvm-dependency-conflict-resolution`.
     See https://github.com/REPLicated/classpath-collision-detector
@@ -44,7 +44,7 @@ projects.
 
 1. The following environment variables containing secrets are needed based on the
    requirements. [This script](https://github.com/specmatic/specmatic-github-workflows/blob/main/bin/upload-secrets) will
-   help you upload the relevant secrets by scanning your github workflows.
+   help you upload the relevant secrets by scanning your GitHub workflows.
 
    | Variable(s)                                                                                                                                 | Purpose                                                                                                        | 
    |---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
@@ -232,8 +232,8 @@ jvmDependencyConflicts {
 
 This plugin ensures that the published application variants use slf4j and logback as the default logging mechanism.
 Logback dependencies are automatically added by the plugin. A default `logback.xml` is packaged that turns off all
-logging by default. In addition, you should setup your application's `main()` function to call `JULForwarder.forward()`
-to setup appropriate forwarding of JUL logging to SLF4J.
+logging by default. In addition, you should set up your application's `main()` function to call `JULForwarder.forward()`
+to set up appropriate forwarding of JUL logging to SLF4J.
 
 ```kotlin
 import io.specmatic.yourpackage.JULForwarder

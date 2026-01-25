@@ -1,6 +1,5 @@
 package io.specmatic.gradle.features
 
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.specmatic.gradle.jar.publishing.SHADOW_OBFUSCATED_JAR
 import io.specmatic.gradle.jar.publishing.createObfuscatedOriginalJar
 import io.specmatic.gradle.jar.publishing.createObfuscatedOriginalJarPublication
@@ -9,7 +8,6 @@ import io.specmatic.gradle.jar.publishing.createShadowedObfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createShadowedUnobfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createUnobfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createUnobfuscatedShadowJar
-import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
@@ -62,18 +60,6 @@ class CommercialApplicationAndLibraryFeature(project: Project) :
                 )
             }
         }
-    }
-
-    override fun shadow(prefix: String?, action: Action<ShadowJar>?) {
-        super.shadow(prefix, action)
-    }
-
-    override fun obfuscate(vararg proguardExtraArgs: String?) {
-        super.obfuscate(*proguardExtraArgs)
-    }
-
-    override fun githubRelease(block: GithubReleaseConfig.() -> Unit) {
-        super.githubRelease(block)
     }
 
     override fun dockerBuild(block: DockerBuildConfig.() -> Unit) {

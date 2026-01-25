@@ -42,7 +42,7 @@ private fun Project.defineTasks() {
 
     val cloneGithubWorkflowsRepo = cloneOrUpdateRepoTask("specmatic-github-workflows")
 
-    specmaticExtension.downstreamDependentProjects.map { eachProject ->
+    specmaticExtension.downstreamDependentProjects.forEach { eachProject ->
         val cloneRepoIfNotExists = cloneOrUpdateRepoTask(eachProject)
 
         val validateTask = validateDownstreamProjectTask(eachProject, cloneRepoIfNotExists)
@@ -122,7 +122,7 @@ internal fun replacePropertyValue(file: File, key: String, value: Any?): String 
     }
 }
 
-private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<Exec> =
+private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>): TaskProvider<Exec> =
     tasks.register("fetchArtifacts-$eachProject", Exec::class.java) {
         onlyIf("$specmaticModulePropertyKey is set") {
             project.hasProperty(specmaticModulePropertyKey)
@@ -153,13 +153,13 @@ private fun Project.validateDownstreamProjectTask(
 
     dir = getDownstreamProjectDir(eachRepo)
     tasks = listOf("check")
-    startParameter.projectProperties.put(specmaticModulePropertyKey, version.toString())
+    startParameter.projectProperties[specmaticModulePropertyKey] = version.toString()
     doFirst {
         println("Validating $eachRepo using ./gradlew check -P$specmaticModulePropertyKey=$version")
     }
 }
 
-private fun Project.cloneOrUpdateRepoTask(eachRepo: String,): TaskProvider<Exec> = tasks.register("clone-$eachRepo", Exec::class.java) {
+private fun Project.cloneOrUpdateRepoTask(eachRepo: String): TaskProvider<Exec> = tasks.register("clone-$eachRepo", Exec::class.java) {
     doFirst {
         val downstreamProjectDir = getDownstreamProjectDir(eachRepo)
 

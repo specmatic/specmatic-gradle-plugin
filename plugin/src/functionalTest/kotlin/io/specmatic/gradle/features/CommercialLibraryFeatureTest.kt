@@ -273,7 +273,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 projectDir.resolve("build/all-artifacts").getPublishedArtifactCoordinates(),
             ).containsExactlyInAnyOrder(*allArtifacts)
 
-            assertPublishedWithoutSourcesAndJavadocs(*arrayOf(*allArtifacts))
+            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
             arrayOf(*allArtifacts).filter { it.contains("min") || it.contains("dont-use-this") }.forEach {
                 assertThat(getDependencies(it)).containsExactlyInAnyOrder(
                     "org.slf4j:slf4j-api:2.0.17",

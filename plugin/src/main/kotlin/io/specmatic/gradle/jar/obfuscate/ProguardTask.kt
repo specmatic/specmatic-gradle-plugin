@@ -117,7 +117,7 @@ abstract class ProguardTask
                     .get()
                     .metadata.installationPath
                     .dir("jmods")
-            return dir.asFile.listFiles { _, name -> name.endsWith(".jmod") }?.toList() ?: emptyList<File>()
+            return dir.asFile.listFiles { _, name -> name.endsWith(".jmod") }?.toList() ?: emptyList()
         }
 
         @InputFiles

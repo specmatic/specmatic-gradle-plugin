@@ -67,7 +67,7 @@ gradlePlugin {
     vcsUrl = "https://github.com/specmatic/specmatic-gradle-plugin"
 }
 
-val functionalTestSourceSet =
+val functionalTestSourceSet: SourceSet =
     sourceSets.create("functionalTest") {
         compileClasspath += sourceSets["main"].output
         runtimeClasspath += sourceSets["main"].output
@@ -108,7 +108,7 @@ tasks.withType<Test> {
     }
 }
 
-val stagingRepo = layout.buildDirectory.dir("mvn-repo").get()
+val stagingRepo: Directory = layout.buildDirectory.dir("mvn-repo").get()
 
 publishing {
     repositories {

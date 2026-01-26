@@ -26,7 +26,6 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
-@Suppress("unused")
 class SpecmaticGradlePlugin : Plugin<Project> {
     override fun apply(target: Project) {
         target.extensions.create("specmatic", SpecmaticGradleExtension::class.java)

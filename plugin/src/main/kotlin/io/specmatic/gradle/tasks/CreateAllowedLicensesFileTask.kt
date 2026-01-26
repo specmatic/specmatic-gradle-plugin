@@ -70,14 +70,12 @@ internal fun Project.createDefaultAllowedLicensesFile(): File =
 
 fun createDefaultAllowedLicensesFile(allowedLicensesFile: File, allowedLicenses: Set<String>): File {
     val allowedLicensesDocument =
-        allowedLicenses.map(
-            { eachLicense ->
-                mapOf(
-                    "moduleLicense" to eachLicense,
-                    "moduleName" to ".*",
-                )
-            },
-        )
+        allowedLicenses.map { eachLicense ->
+            mapOf(
+                "moduleLicense" to eachLicense,
+                "moduleName" to ".*",
+            )
+        }
 
     allowedLicensesFile.writeText(
         JsonBuilder(mapOf("allowedLicenses" to allowedLicensesDocument)).toPrettyString(),

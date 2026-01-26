@@ -141,7 +141,7 @@ class SpecmaticLicenseReportingPlugin : Plugin<Project> {
 }
 
 fun Project.pluginInfo(string: String) {
-    logger.warn("[SGP - ${this.path}]: $string")
+    logger.info("[SGP - ${this.path}]: $string")
 }
 
 fun Project.pluginWarn(string: String) {

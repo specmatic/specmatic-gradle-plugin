@@ -221,7 +221,7 @@ open class AbstractFunctionalTest {
 
         val pomFiles =
             publishedPomFiles.filter {
-                val model = it.inputStream().use { MavenXpp3Reader().read(it) }
+                val model = it.inputStream().use { pom -> MavenXpp3Reader().read(pom) }
                 "${model.groupId}:${model.artifactId}:${model.version}" == coordinates
             }
 
@@ -339,9 +339,9 @@ open class AbstractFunctionalTest {
     fun File.artifactDir(coordinates: String): File =
         this.artifactDir(coordinates.groupId(), coordinates.artifactId(), coordinates.version())
 
-    private fun String.version() = split(":").get(2)
+    private fun String.version() = split(":")[2]
 
-    private fun String.artifactId() = split(":").get(1)
+    private fun String.artifactId() = split(":")[1]
 
-    private fun String.groupId() = split(":").get(0)
+    private fun String.groupId() = split(":")[0]
 }

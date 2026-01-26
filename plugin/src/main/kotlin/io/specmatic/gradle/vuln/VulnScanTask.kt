@@ -62,21 +62,21 @@ abstract class AbstractVulnScanTask
         abstract val trivyHomeDir: Property<File>
 
         private fun runScan(format: String, output: File): Boolean {
-            try {
+            return try {
                 output.outputStream().use { outputStream: FileOutputStream ->
                     val cliArgs = getCommandLine(format)
                     project.pluginInfo("$ ${shellEscapedArgs(cliArgs)}")
 
-                    execLauncher.exec {
+                    val result = execLauncher.exec {
                         standardOutput = outputStream
                         errorOutput = System.err
                         commandLine = cliArgs
                     }
+                    result.exitValue == 0
                 }
             } catch (e: Exception) {
                 throw GradleException("Failed to run Trivy scan", e)
             }
-            return true
         }
 
         abstract fun getCommandLine(format: String): List<String>

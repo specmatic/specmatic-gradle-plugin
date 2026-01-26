@@ -53,7 +53,7 @@ class ConfigureExecTaskPlugin : Plugin<Project> {
                         cliArgs.addAll(task.commandLine)
                     }
 
-                    target.pluginInfo("[$workingDir]\$ ${shellEscapedArgs(cliArgs)}")
+                    target.pluginInfo($$"[$$workingDir]$ $${shellEscapedArgs(cliArgs)}")
                 }
             }
         }

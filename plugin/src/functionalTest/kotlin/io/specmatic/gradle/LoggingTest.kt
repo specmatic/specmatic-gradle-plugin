@@ -24,7 +24,7 @@ class LoggingTest : AbstractFunctionalTest() {
             
                 plugins {
                     id("java")
-                    kotlin("jvm") version "1.9.25"
+                    kotlin("jvm") version "2.3.0"
                     id("io.specmatic.gradle")
                 }
 
@@ -89,7 +89,7 @@ class LoggingTest : AbstractFunctionalTest() {
         assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
             "io.specmatic.logger:log-all:3.4.5-SNAPSHOT",
             *loggingDependencies,
-            "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+            "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
         )
         assertThat(getDependencies("io.specmatic.example:example-project-all:1.2.3")).isEmpty()
 
@@ -124,7 +124,7 @@ class LoggingTest : AbstractFunctionalTest() {
                 plugins {
                     id("java")
                     id("maven-publish")
-                    kotlin("jvm") version "1.9.25"
+                    kotlin("jvm") version "2.3.0"
                 }
             
                 repositories {

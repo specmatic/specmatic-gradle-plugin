@@ -18,7 +18,7 @@ class MiscTest : AbstractFunctionalTest() {
             """
             plugins {
                 id("java")
-                kotlin("jvm") version "1.9.25"
+                kotlin("jvm") version "2.3.0"
                 id("io.specmatic.gradle")
             }
             
@@ -72,11 +72,11 @@ class MiscTest : AbstractFunctionalTest() {
         )
 
         assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
-            "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+            "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
             "org.slf4j:slf4j-api:2.0.17",
         )
         assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).containsExactlyInAnyOrder(
-            "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+            "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
             "org.slf4j:slf4j-api:2.0.17",
             "io.specmatic.example:core:1.2.3",
         )

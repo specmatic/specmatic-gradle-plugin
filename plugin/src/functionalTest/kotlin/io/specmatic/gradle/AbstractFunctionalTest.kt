@@ -261,6 +261,10 @@ open class AbstractFunctionalTest {
         return publishedArtifacts.toSet()
     }
 
+    fun assertPublishedWithoutSourcesAndJavadocs(coordinates: Collection<String>) {
+        assertPublishedWithoutSourcesAndJavadocs(*coordinates.toTypedArray())
+    }
+
     fun assertPublishedWithoutSourcesAndJavadocs(vararg coordinates: String) {
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         stagingRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)

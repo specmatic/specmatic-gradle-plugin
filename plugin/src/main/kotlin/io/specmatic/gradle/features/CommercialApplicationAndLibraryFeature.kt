@@ -9,6 +9,7 @@ import io.specmatic.gradle.jar.publishing.createShadowedObfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createShadowedUnobfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createUnobfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createUnobfuscatedShadowJar
+import io.specmatic.gradle.jar.publishing.generateAllJars
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
@@ -33,33 +34,35 @@ class CommercialApplicationAndLibraryFeature(project: Project) :
 
         project.plugins.withType(JavaPlugin::class.java) {
             val obfuscatedOriginalJar = project.createObfuscatedOriginalJar(proguardExtraArgs)
-            val unobfuscatedShadowJar = project.createUnobfuscatedShadowJar(shadowActions, shadowPrefix, true)
             val obfuscatedShadowJar =
                 project.createObfuscatedShadowJar(obfuscatedOriginalJar, shadowActions, shadowPrefix, true)
 
-            project.createRunObfuscatedFatJarTask(
-                obfuscatedShadowJar,
-                mainClass,
-            )
-
-            project.createRunFatJarTask(unobfuscatedShadowJar, mainClass)
+            project.createRunObfuscatedFatJarTask(obfuscatedShadowJar, mainClass)
+            project.createQuickRunObfuscatedTask(obfuscatedOriginalJar, mainClass)
 
             project.plugins.withType(MavenPublishPlugin::class.java) {
-                project.createUnobfuscatedJarPublication(
-                    "${project.name}-dont-use-this-unless-you-know-what-you-are-doing",
-                )
                 project.createShadowedObfuscatedJarPublication(
                     obfuscatedShadowJar,
                     "${project.name}-all",
                 )
+
+                
+                if (project.generateAllJars()) {
+                    val unobfuscatedShadowJar = project.createUnobfuscatedShadowJar(shadowActions, shadowPrefix, true)
+                    project.createRunFatJarTask(unobfuscatedShadowJar, mainClass)
+                    project.createUnobfuscatedJarPublication(
+                        "${project.name}-dont-use-this-unless-you-know-what-you-are-doing",
+                    )
+                    project.createShadowedUnobfuscatedJarPublication(
+                        unobfuscatedShadowJar,
+                        "${project.name}-all-debug",
+                    )
+                }
                 project.createObfuscatedOriginalJarPublication(
                     obfuscatedOriginalJar,
                     project.name,
                 )
-                project.createShadowedUnobfuscatedJarPublication(
-                    unobfuscatedShadowJar,
-                    "${project.name}-all-debug",
-                )
+
             }
         }
     }

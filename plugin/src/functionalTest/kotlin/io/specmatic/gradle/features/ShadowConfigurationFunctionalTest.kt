@@ -2,6 +2,7 @@ package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -85,32 +86,22 @@ class ShadowConfigurationFunctionalTest : AbstractFunctionalTest() {
     fun `it should shadow packages`() {
         runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
         assertPublishedWithoutSourcesAndJavadocs(
-            "io.specmatic.example:core-all-debug:1.2.3",
-            "io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
             "io.specmatic.example:core-min:1.2.3",
-            "io.specmatic.example:core:1.2.3",
-            "io.specmatic.example:executable-all-debug:1.2.3",
-            "io.specmatic.example:executable-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
             "io.specmatic.example:executable-min:1.2.3",
-            "io.specmatic.example:executable:1.2.3",
         )
 
-        Assertions.assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
-        Assertions.assertThat(getDependencies("io.specmatic.example:core:1.2.3")).isEmpty()
-
-        Assertions
-            .assertThat(
-                listJarContents("io.specmatic.example:executable:1.2.3"),
-            ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
+        assertThat(
+            listJarContents("io.specmatic.example:executable-min:1.2.3"),
+        ).contains("io/specmatic/example/core/VersionInfo.class") // from the core dependency
             .contains("io/specmatic/example/core/version.properties") // from the core dependency
             .contains("io/specmatic/example/executable/VersionInfo.class") // from the executable dependency
             .contains("io/specmatic/example/executable/version.properties") // from the executable dependency
             .contains("io/specmatic/example/executable/VersionInfo.class")
             .contains("io/specmatic/example/executable/version.properties")
-            .contains("blah/org/slf4j/Logger.class") // slf4j dependency is also packaged
-            .doesNotContain("blah/kotlin/Metadata.class") // kotlin is also packaged
-            .doesNotContain("blah/org/jetbrains/annotations/Contract.class") // kotlin is also packaged
-            .doesNotContain("blah/org/intellij/lang/annotations/Language.class") // kotlin is also packaged
+            .contains("org/slf4j/Logger.class") // slf4j dependency is also packaged
+            .doesNotContain("kotlin/Metadata.class") // kotlin is also packaged
+            .doesNotContain("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
+            .doesNotContain("org/intellij/lang/annotations/Language.class") // kotlin is also packaged
             .doesNotContain("kotlin/Metadata.class") // kotlin is also packaged
             .doesNotContain("org/jetbrains/annotations/Contract.class") // kotlin is also packaged
             .doesNotContain("org/intellij/lang/annotations/Language.class") // kotlin is also packaged

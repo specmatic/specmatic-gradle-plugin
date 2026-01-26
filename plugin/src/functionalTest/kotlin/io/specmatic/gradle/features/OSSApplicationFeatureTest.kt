@@ -15,7 +15,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "1.9.25"
+                    kotlin("jvm") version "2.3.0"
                     id("io.specmatic.gradle")
                 }
 
@@ -110,7 +110,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "1.9.25"
+                    kotlin("jvm") version "2.3.0"
                     id("io.specmatic.gradle")
                 }
 
@@ -200,7 +200,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "1.9.25"
+                    kotlin("jvm") version "2.3.0"
                     id("io.specmatic.gradle")
                 }
                 
@@ -214,7 +214,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                     
                     dependencies {
                         // tiny jar, with no deps
-                        implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.25")
+                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
                         implementation("org.slf4j:slf4j-api:2.0.17")
                     }
                 }
@@ -267,7 +267,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
-                "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+                "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
                 "org.slf4j:slf4j-api:2.0.17",
             )
 
@@ -337,7 +337,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "1.9.25"
+                    kotlin("jvm") version "2.3.0"
                     id("io.specmatic.gradle")
                 }
                 
@@ -351,7 +351,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                     
                     dependencies {
                         // tiny jar, with no deps
-                        implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.25")
+                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
                         implementation("org.slf4j:slf4j-api:2.0.17")
                     }
                 }
@@ -399,7 +399,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
-                "org.jetbrains.kotlin:kotlin-stdlib:1.9.25",
+                "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
                 "org.slf4j:slf4j-api:2.0.17",
             )
 

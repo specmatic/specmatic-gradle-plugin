@@ -7,6 +7,7 @@ import io.specmatic.gradle.jar.publishing.createObfuscatedShadowJar
 import io.specmatic.gradle.jar.publishing.createShadowedObfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createShadowedUnobfuscatedJarPublication
 import io.specmatic.gradle.jar.publishing.createUnobfuscatedShadowJar
+import io.specmatic.gradle.jar.publishing.generateAllJars
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
@@ -31,29 +32,30 @@ class CommercialApplicationFeature(project: Project) :
 
         project.plugins.withType(JavaPlugin::class.java) {
             val obfuscatedOriginalJar = project.createObfuscatedOriginalJar(proguardExtraArgs)
-            val unobfuscatedShadowJar = project.createUnobfuscatedShadowJar(shadowActions, shadowPrefix, true)
+
             val obfuscatedShadowJar =
                 project.createObfuscatedShadowJar(obfuscatedOriginalJar, shadowActions, shadowPrefix, true)
 
-            project.createRunObfuscatedFatJarTask(
-                obfuscatedShadowJar,
-                mainClass,
-            )
-
-            project.createRunFatJarTask(unobfuscatedShadowJar, mainClass)
+            project.createQuickRunObfuscatedTask(obfuscatedOriginalJar, mainClass)
+            project.createRunObfuscatedFatJarTask(obfuscatedShadowJar, mainClass)
 
             project.plugins.withType(MavenPublishPlugin::class.java) {
                 project.createShadowedObfuscatedJarPublication(
                     obfuscatedShadowJar,
                     project.name,
                 )
-                project.createShadowedUnobfuscatedJarPublication(
-                    unobfuscatedShadowJar,
-                    "${project.name}-all-debug",
-                )
+                if (project.generateAllJars()) {
+                    val unobfuscatedShadowJar = project.createUnobfuscatedShadowJar(shadowActions, shadowPrefix, true)
+                    project.createRunFatJarTask(unobfuscatedShadowJar, mainClass)
+                    project.createShadowedUnobfuscatedJarPublication(
+                        unobfuscatedShadowJar,
+                        "${project.name}-all-debug",
+                    )
+                }
             }
         }
     }
+
 
     override fun shadow(prefix: String?, action: Action<ShadowJar>?) {
         super.shadow(prefix, action)

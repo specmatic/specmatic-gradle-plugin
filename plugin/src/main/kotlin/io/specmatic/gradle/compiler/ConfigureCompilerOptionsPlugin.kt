@@ -30,11 +30,7 @@ class ConfigureCompilerOptionsPlugin : Plugin<Project> {
                 apiVersion.set(kotlinApiVersion)
                 languageVersion.set(kotlinApiVersion)
 
-                if (kotlinApiVersion <= org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2) {
-                    freeCompilerArgs.add("-Xjvm-default=all")
-                } else {
-                    freeCompilerArgs.add("-Xjvm-default=all-compatibility")
-                }
+                freeCompilerArgs.add("-jvm-default=enable")
             }
         }
     }

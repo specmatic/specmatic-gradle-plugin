@@ -26,7 +26,7 @@ open class SpecmaticGradleExtension {
             field = value
         }
 
-    var kotlinVersion = "1.9.25"
+    var kotlinVersion = "2.3.0"
     var downstreamDependentProjects = listOf<String>()
 
     var kotlinApiVersion: KotlinVersion = KotlinVersion.KOTLIN_1_9

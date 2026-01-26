@@ -24,6 +24,8 @@ import org.gradle.jvm.tasks.Jar
 
 internal const val SHADOW_OBFUSCATED_JAR = "shadowObfuscatedJar"
 
+internal fun Project.generateAllJars(): Boolean = this.properties["generateAllJars"] == "true"
+
 internal fun Project.createUnobfuscatedShadowJar(
     shadowActions: MutableList<Action<ShadowJar>>,
     shadowPrefix: String,
@@ -121,7 +123,7 @@ private fun Project.dependOnUpstreamObfuscationTasks(shadowJarTask: TaskProvider
     }
 }
 
-private fun Project.applyProjectSpecifiedConfigurations(shadowJarTask: ShadowJar, shadowActions: MutableList<Action<ShadowJar>>,) {
+private fun Project.applyProjectSpecifiedConfigurations(shadowJarTask: ShadowJar, shadowActions: MutableList<Action<ShadowJar>>) {
     shadowActions.forEach {
         project.pluginInfo("Applying custom shadow jar configuration")
         it.execute(shadowJarTask)
@@ -180,7 +182,7 @@ internal fun Project.applyShadowConfigs() {
                         .get()
                         .files
                         .map { zipTree(it) }
-                }
+                },
             ) {
                 excludePackages.forEach {
                     exclude("$it/**")
@@ -226,7 +228,7 @@ private fun ShadowJar.maybeRelocateIfConfigured(project: Project, shadowPrefix: 
     }
 }
 
-private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePackages: List<String>,): MutableSet<String> {
+private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePackages: List<String>): MutableSet<String> {
     val packagesToRelocate = mutableSetOf<String>()
     runtimeClasspathFiles.forEach { eachFile ->
         if (eachFile.name.lowercase().endsWith(".jar")) {
@@ -245,13 +247,13 @@ private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePacka
 }
 
 private fun shouldRelocatePackage(entryName: String, excludePackages: List<String>): Boolean = entryName.endsWith(".class") &&
-    entryName.contains("/") &&
-    excludePackages.none {
-        entryName.startsWith(
-            "$it/",
-        )
-    } &&
-    !entryName.startsWith("META-INF/")
+        entryName.contains("/") &&
+        excludePackages.none {
+            entryName.startsWith(
+                "$it/",
+            )
+        } &&
+        !entryName.startsWith("META-INF/")
 
 internal fun ShadowJar.configureCommonShadowConfigs(
     jarTask: TaskProvider<Jar>,

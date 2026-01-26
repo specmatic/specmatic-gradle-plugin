@@ -29,7 +29,12 @@ class ConfigureCompilerOptionsPlugin : Plugin<Project> {
                 jvmTarget.set(JvmTarget.fromTarget(jvmVersion.asInt().toString()))
                 apiVersion.set(kotlinApiVersion)
                 languageVersion.set(kotlinApiVersion)
-                freeCompilerArgs.add("-jvm-default=all")
+
+                if (kotlinApiVersion <= org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2) {
+                    freeCompilerArgs.add("-Xjvm-default=all")
+                } else {
+                    freeCompilerArgs.add("-Xjvm-default=all-compatibility")
+                }
             }
         }
     }

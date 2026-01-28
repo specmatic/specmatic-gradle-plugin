@@ -122,7 +122,7 @@ internal fun replacePropertyValue(file: File, key: String, value: Any?): String 
     }
 }
 
-private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<Exec> =
+private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>): TaskProvider<Exec> =
     tasks.register("fetchArtifacts-$eachProject", Exec::class.java) {
         onlyIf("$specmaticModulePropertyKey is set") {
             project.hasProperty(specmaticModulePropertyKey)
@@ -143,7 +143,7 @@ private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotEx
 private fun Project.validateDownstreamProjectTask(
     eachRepo: String,
     cloneRepoIfNotExists: TaskProvider<out Task>,
-): TaskProvider<GradleBuild> = tasks.register("validate-$eachRepo", GradleBuild::class.java) {
+): TaskProvider<Exec> = tasks.register("validate-$eachRepo", Exec::class.java) {
     subprojects.forEach { subproject ->
         dependsOn("${subproject.path}:publishAllPublicationsToStagingRepository")
         dependsOn("${subproject.path}:publishToMavenLocal")
@@ -151,15 +151,44 @@ private fun Project.validateDownstreamProjectTask(
 
     dependsOn(cloneRepoIfNotExists)
 
-    dir = getDownstreamProjectDir(eachRepo)
-    tasks = listOf("check")
-    startParameter.projectProperties.put(specmaticModulePropertyKey, version.toString())
+    workingDir = getDownstreamProjectDir(eachRepo)
+
     doFirst {
-        println("Validating $eachRepo using ./gradlew check -P$specmaticModulePropertyKey=$version")
+        val projectDir = workingDir ?: getDownstreamProjectDir(eachRepo)
+        val hasGradleBuild = File(projectDir, "build.gradle").exists() || File(projectDir, "build.gradle.kts").exists()
+        val hasMavenPom = File(projectDir, "pom.xml").exists()
+
+        when {
+            hasGradleBuild -> {
+                val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+                println(
+                    "Validating $eachRepo using ${
+                        if (isWindows) "`gradlew.bat`" else "`./gradlew`"
+                    } check -P$specmaticModulePropertyKey=$version",
+                )
+                commandLine = if (isWindows)
+                    listOf("cmd", "/c", "gradlew.bat", "check", "-P$specmaticModulePropertyKey=$version")
+                else
+                    listOf("./gradlew", "check", "-P$specmaticModulePropertyKey=$version")
+            }
+
+            hasMavenPom -> {
+                println("Validating $eachRepo using mvn test")
+                commandLine = listOf("mvn", "test", "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}")
+            }
+
+            else -> {
+                throw org.gradle.api.GradleException("No build file found in ${projectDir.absolutePath}: expected build.gradle, build.gradle.kts or pom.xml")
+            }
+        }
     }
 }
 
-private fun Project.cloneOrUpdateRepoTask(eachRepo: String,): TaskProvider<Exec> = tasks.register("clone-$eachRepo", Exec::class.java) {
+private fun Project.cloneOrUpdateRepoTask(eachRepo: String): TaskProvider<Exec> = tasks.register("clone-$eachRepo", Exec::class.java) {
+    onlyIf("skipDownstreamClone not set") {
+        !project.hasProperty("skipDownstreamClone")
+    }
+
     doFirst {
         val downstreamProjectDir = getDownstreamProjectDir(eachRepo)
 

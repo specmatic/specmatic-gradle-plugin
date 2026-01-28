@@ -37,8 +37,10 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             dependsOn(dockerBuildConfig.mainJarTaskName!!)
             group = "docker"
             description = "Creates the Dockerfile and other files needed to build the docker image"
-            val targetJarPath = "/usr/local/share/${project.dockerImage(dockerBuildConfig)}/${project.dockerImage(dockerBuildConfig)}.jar"
-            val targetSbomPath = "/usr/local/share/${project.dockerImage(dockerBuildConfig)}/sbom.cyclonedx.json"
+            val targetJarPath = "/usr/local/share/${project.dockerShellScriptExecutable(dockerBuildConfig)}/${
+                project.dockerShellScriptExecutable(dockerBuildConfig)
+            }.jar"
+            val targetSbomPath = "/usr/local/share/${project.dockerShellScriptExecutable(dockerBuildConfig)}/sbom.cyclonedx.json"
 
             createDockerfile(
                 dockerBuildConfig = dockerBuildConfig,
@@ -59,11 +61,11 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
     val commonDockerBuildArgs =
         annotationArgs(primaryOrg, imageName) +
-            dockerTags
-                .flatMap { listOf("--tag", it) }
-                .toTypedArray() +
-            arrayOf("--file", "Dockerfile") +
-            dockerBuildConfig.extraDockerArgs
+                dockerTags
+                    .flatMap { listOf("--tag", it) }
+                    .toTypedArray() +
+                arrayOf("--file", "Dockerfile") +
+                dockerBuildConfig.extraDockerArgs
 
     tasks.register("dockerBuild", Exec::class.java) {
         dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(BaseCyclonedxTask::class.java))
@@ -148,10 +150,10 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 }
 
 fun Task.createSpecmaticShellScript(dockerBuildConfig: DockerBuildConfig, targetJarPath: String) {
-    val imageName = project.dockerImage(dockerBuildConfig)
+    val executable = project.dockerShellScriptExecutable(dockerBuildConfig)
     val specmaticShellScript =
         project.layout.buildDirectory
-            .file(imageName)
+            .file(executable)
             .get()
             .asFile
 
@@ -169,6 +171,7 @@ fun Task.createSpecmaticShellScript(dockerBuildConfig: DockerBuildConfig, target
         specmaticShellScript.setExecutable(true)
     }
 }
+
 
 private fun Task.createDockerfile(
     dockerBuildConfig: DockerBuildConfig,
@@ -218,10 +221,18 @@ private fun Task.createDockerfile(
                 .replace("%SOURCE_JAR_PATH%", sourceJarPath)
                 .replace("%SOURCE_SBOM_PATH%", sourceSbomPath)
                 .replace("%TARGET_SBOM_PATH%", targetSbomPath)
-                .replace("%IMAGE_NAME%", project.dockerImage(dockerBuildConfig))
+                .replace("%EXECUTABLE_NAME%", project.dockerShellScriptExecutable(dockerBuildConfig))
                 .replace("%EXTRA_APK_DEPS%", extraDependencies)
 
         dockerFile.writeText(dockerFileContent)
+    }
+}
+
+private fun Project.dockerShellScriptExecutable(dockerBuildConfig: DockerBuildConfig): String {
+    return if (dockerBuildConfig.executableName.isNullOrEmpty()) {
+        dockerImage(dockerBuildConfig)
+    } else {
+        dockerBuildConfig.executableName!!
     }
 }
 

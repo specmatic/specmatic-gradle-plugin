@@ -158,9 +158,10 @@ private fun Project.validateDownstreamProjectTask(
         val hasGradleBuild = File(projectDir, "build.gradle").exists() || File(projectDir, "build.gradle.kts").exists()
         val hasMavenPom = File(projectDir, "pom.xml").exists()
 
+        val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+
         when {
             hasGradleBuild -> {
-                val isWindows = System.getProperty("os.name").lowercase().contains("windows")
                 println(
                     "Validating $eachRepo using ${
                         if (isWindows) "`gradlew.bat`" else "`./gradlew`"
@@ -174,7 +175,20 @@ private fun Project.validateDownstreamProjectTask(
 
             hasMavenPom -> {
                 println("Validating $eachRepo using mvn test")
-                commandLine = listOf("mvn", "test", "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}")
+                val wrapperUnix = File(projectDir, "mvnw")
+                val wrapperWin = File(projectDir, "mvnw.bat")
+
+                commandLine = if (isWindows)
+                    listOf(
+                        "cmd",
+                        "/c",
+                        if (wrapperWin.exists()) "mvnw.bat" else "mvn",
+                        "test",
+                        "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}",
+                    )
+                else
+                    if (wrapperUnix.exists()) listOf("./mvnw", "test", "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}")
+                    else listOf("mvn", "test", "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}")
             }
 
             else -> {
@@ -193,7 +207,7 @@ private fun Project.cloneOrUpdateRepoTask(eachRepo: String): TaskProvider<Exec> 
         val downstreamProjectDir = getDownstreamProjectDir(eachRepo)
 
         if (!downstreamProjectDir.exists()) {
-            commandLine("git", "clone", "https://github.com/specmatic/$eachRepo.git", downstreamProjectDir)
+            commandLine("git", "clone", "https://github.com/specmatic/$eachRepo.git", downstreamProjectDir, "--recursive")
         } else {
             // pull the latest changes if the repo already exists
             commandLine("git", "pull", "--ff-only", "--no-rebase")

@@ -33,7 +33,10 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                     kotlinVersion = "1.9.20"
                     withCommercialApplication(rootProject) {
                         mainClass = "io.specmatic.example.Main"
-                        dockerBuild()
+                        dockerBuild {
+                            imageName = "foo-bar-image"
+                            extraExecutableNames = listOf("foo", "bar", "baz")
+                        }
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                         
@@ -123,15 +126,20 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertThat(projectDir.resolve("build/Dockerfile").exists()).isTrue
             assertThat(projectDir.resolve("build/Dockerfile").readText().lines())
-                .contains("ADD reports/cyclonedx/bom.json /usr/local/share/example-project/sbom.cyclonedx.json")
-                .contains("ADD libs/example-project-1.2.3-all-obfuscated.jar /usr/local/share/example-project/example-project.jar")
-                .contains("ADD example-project /usr/local/bin/example-project")
-                .contains("""ENTRYPOINT ["/usr/local/bin/example-project"]""")
+                .contains("ADD reports/cyclonedx/bom.json /usr/local/share/foo-bar-image/sbom.cyclonedx.json")
+                .contains("ADD libs/example-project-1.2.3-all-obfuscated.jar /usr/local/share/foo-bar-image/foo-bar-image.jar")
+                .contains("ADD foo-bar-image /usr/local/bin/foo-bar-image")
+                .contains(
+                    "RUN ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/foo && " +
+                            "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/bar && " +
+                            "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/baz",
+                )
+                .contains("""ENTRYPOINT ["/usr/local/bin/foo-bar-image"]""")
 
-            assertThat(projectDir.resolve("build/example-project").exists()).isTrue
-            assertThat(projectDir.resolve("build/example-project").readText().lines())
+            assertThat(projectDir.resolve("build/foo-bar-image").exists()).isTrue
+            assertThat(projectDir.resolve("build/foo-bar-image").readText().lines())
                 .contains("""#!/usr/bin/env bash""")
-                .contains($$"""exec java $JAVA_OPTS -jar /usr/local/share/example-project/example-project.jar "$@"""")
+                .contains($$"""exec java $JAVA_OPTS -jar /usr/local/share/foo-bar-image/foo-bar-image.jar "$@"""")
         }
     }
 

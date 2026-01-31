@@ -37,10 +37,11 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             dependsOn(dockerBuildConfig.mainJarTaskName!!)
             group = "docker"
             description = "Creates the Dockerfile and other files needed to build the docker image"
-            val targetJarPath = "/usr/local/share/${project.dockerShellScriptExecutable(dockerBuildConfig)}/${
-                project.dockerShellScriptExecutable(dockerBuildConfig)
-            }.jar"
-            val targetSbomPath = "/usr/local/share/${project.dockerShellScriptExecutable(dockerBuildConfig)}/sbom.cyclonedx.json"
+
+            val primaryExecutable = project.dockerImage(dockerBuildConfig)
+
+            val targetJarPath = "/usr/local/share/$primaryExecutable/$primaryExecutable.jar"
+            val targetSbomPath = "/usr/local/share/$primaryExecutable/sbom.cyclonedx.json"
 
             createDockerfile(
                 dockerBuildConfig = dockerBuildConfig,
@@ -102,8 +103,10 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 "--platform",
                 "linux/amd64,linux/arm64",
                 "--push",
-                *arrayOf("--attest", "type=provenance,mode=max"),
-                *arrayOf("--attest", "type=sbom"),
+                "--attest",
+                "type=provenance,mode=max",
+                "--attest",
+                "type=sbom",
                 ".",
             )
 
@@ -150,10 +153,11 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 }
 
 fun Task.createSpecmaticShellScript(dockerBuildConfig: DockerBuildConfig, targetJarPath: String) {
-    val executable = project.dockerShellScriptExecutable(dockerBuildConfig)
+    val primaryExecutable = project.dockerImage(dockerBuildConfig)
+
     val specmaticShellScript =
         project.layout.buildDirectory
-            .file(executable)
+            .file(primaryExecutable)
             .get()
             .asFile
 
@@ -171,7 +175,6 @@ fun Task.createSpecmaticShellScript(dockerBuildConfig: DockerBuildConfig, target
         specmaticShellScript.setExecutable(true)
     }
 }
-
 
 private fun Task.createDockerfile(
     dockerBuildConfig: DockerBuildConfig,
@@ -215,32 +218,37 @@ private fun Task.createDockerfile(
                 .replace("\\", "/")
 
         val extraDependencies = extraApkDependencies.joinToString(" ")
+
+        val extraExecutables = dockerBuildConfig.extraExecutableNames
+        val primaryExecutable = project.dockerImage(dockerBuildConfig)
+
+        val aliasCommands =
+            extraExecutables
+                .joinToString(separator = " && ") { alias ->
+                    // Create a symlink so `/usr/local/bin/<alias>` points to the primary executable
+                    "ln -sf /usr/local/bin/$primaryExecutable /usr/local/bin/$alias"
+                }
+
         val dockerFileContent =
             templateContent
                 .replace("%TARGET_JAR_PATH%", targetJarPath)
                 .replace("%SOURCE_JAR_PATH%", sourceJarPath)
                 .replace("%SOURCE_SBOM_PATH%", sourceSbomPath)
                 .replace("%TARGET_SBOM_PATH%", targetSbomPath)
-                .replace("%EXECUTABLE_NAME%", project.dockerShellScriptExecutable(dockerBuildConfig))
+                .replace("%EXECUTABLE_NAME%", primaryExecutable)
                 .replace("%EXTRA_APK_DEPS%", extraDependencies)
+                .replace("%EXTRA_COMMANDS%", if (aliasCommands.isEmpty()) "" else "RUN $aliasCommands")
 
         dockerFile.writeText(dockerFileContent)
     }
 }
 
-private fun Project.dockerShellScriptExecutable(dockerBuildConfig: DockerBuildConfig): String {
-    return if (dockerBuildConfig.executableName.isNullOrEmpty()) {
-        dockerImage(dockerBuildConfig)
+private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String =
+    if (dockerBuildConfig.imageName.isNullOrBlank()) {
+        this.name
     } else {
-        dockerBuildConfig.executableName!!
+        dockerBuildConfig.imageName!!
     }
-}
-
-private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String = if (dockerBuildConfig.imageName.isNullOrBlank()) {
-    this.name
-} else {
-    dockerBuildConfig.imageName!!
-}
 
 private fun Project.annotationArgs(primaryOrg: String, imageName: String): Array<String> = arrayOf(
     "org.opencontainers.image.created=${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(Date())}",

@@ -7,7 +7,7 @@ plugins {
 }
 
 specmatic {
-    kotlinVersion = "2.3.0"
+    kotlinVersion = "2.3.10"
     kotlinApiVersion = KotlinVersion.KOTLIN_2_3
 
     downstreamDependentProjects =
@@ -101,7 +101,7 @@ specmatic {
     }
     licenseData {
         name = "org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin"
-        version = "2.3.0"
+        version = "2.3.10"
         projectUrl = "https://github.com/CycloneDX/cyclonedx-gradle-plugin"
         license = "Apache-2.0"
     }

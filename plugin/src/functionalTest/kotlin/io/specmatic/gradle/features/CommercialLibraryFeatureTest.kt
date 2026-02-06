@@ -15,7 +15,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.0"
+                    kotlin("jvm") version "2.3.10"
                     id("io.specmatic.gradle")
                 }
 
@@ -159,7 +159,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.0"
+                    kotlin("jvm") version "2.3.10"
                     id("io.specmatic.gradle")
                 }
 
@@ -224,7 +224,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
             arrayOf(*allArtifacts).filter { it.contains("min") }.forEach {
                 assertThat(getDependencies(it)).containsExactlyInAnyOrder(
                     "org.slf4j:slf4j-api:2.0.17",
-                    "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
+                    "org.jetbrains.kotlin:kotlin-stdlib:2.3.10",
                 )
             }
 
@@ -266,7 +266,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.0"
+                    kotlin("jvm") version "2.3.10"
                     id("io.specmatic.gradle")
                 }
                 
@@ -280,7 +280,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     
                     dependencies {
                         // tiny jar, with no deps
-                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
+                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.10")
                         implementation("org.slf4j:slf4j-api:2.0.17")
                     }
                 }
@@ -369,7 +369,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 ).containsExactlyInAnyOrder(*allArtifacts)
 
                 assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
-                    "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
+                    "org.jetbrains.kotlin:kotlin-stdlib:2.3.10",
                     "org.slf4j:slf4j-api:2.0.17",
                 )
             }
@@ -401,7 +401,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 ).containsExactlyInAnyOrder(*allArtifacts)
 
                 assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
-                    "org.jetbrains.kotlin:kotlin-stdlib:2.3.0",
+                    "org.jetbrains.kotlin:kotlin-stdlib:2.3.10",
                     "org.slf4j:slf4j-api:2.0.17",
                 )
             }
@@ -424,7 +424,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.0"
+                    kotlin("jvm") version "2.3.10"
                     id("io.specmatic.gradle")
                 }
                 
@@ -438,7 +438,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     
                     dependencies {
                         // tiny jar, with no deps
-                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
+                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.10")
                         implementation("org.slf4j:slf4j-api:2.0.17")
                     }
                 }

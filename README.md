@@ -17,8 +17,8 @@ projects.
     - specmatic private repository (on github)
     - any other supported URLs/repositories
 2. License checks
-    - Ensure that dependencies have a license that allows commecial use of specmatic software (i.e. no copy left
-      licenses) without any incumberance.
+    - Ensure that dependencies have a license that allows commercial use of Specmatic software (i.e. no copyleft
+      licenses) without any encumbrance.
     - Generate a license report that can be packaged in the distributable jar. This is legal requirement from licenses
       like Apache, BSD-3-Clause. These licenses have a clause that requires distributions of software to carry a notice,
       or attribution specified in the license.
@@ -34,7 +34,7 @@ projects.
 11. Auto-upgrade/migrated deprecated dependencies to newer dependencies.
 12. Better integration with sample repositories
     - Run a build against sample projects and validate changes.
-    - Bummp version of dependency in sample project. Ensure that the appropriate jar is checked into the sample repo.
+    - Bump version of dependency in sample project. Ensure that the appropriate jar is checked into the sample repo.
 13. Conflict detection and resolution using a combination of `io.fuchs.gradle.classpath-collision-detector`,
     `org.gradlex.jvm-dependency-conflict-detection`, `org.gradlex.jvm-dependency-conflict-resolution`.
     See https://github.com/REPLicated/classpath-collision-detector
@@ -46,22 +46,22 @@ projects.
    requirements. [This script](https://github.com/specmatic/specmatic-github-workflows/blob/main/bin/upload-secrets) will
    help you upload the relevant secrets by scanning your github workflows.
 
-   | Variable(s)                                                                                                                                 | Purpose                                                                                                        | 
-   |---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-   | **Maven Central**                                                                                                                           |                                                                                                                |
-   | `ORG_GRADLE_PROJECT_mavenCentralUsername`                                                                                                   | Username for Maven Central                                                                                     |
-   | `ORG_GRADLE_PROJECT_mavenCentralPassword`                                                                                                   | Password for Maven Central                                                                                     |
-   | **Signing**                                                                                                                                 |                                                                                                                |
-   | `ORG_GRADLE_PROJECT_signingInMemoryKey`                                                                                                     | GPG private key for signing (ascii armoured/base64 encoded, without the leading/trailing -----BEGIN/END lines) |
-   | `ORG_GRADLE_PROJECT_signingInMemoryKeyId`                                                                                                   | GPG key ID (last 8 chars of hex hex key without the leading `0x`)                                              |
-   | `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword`                                                                                             | Passphrase for the GPG key                                                                                     |
-   | **Specmatic Private Repo**                                                                                                                  |                                                                                                                |
-   | `SPECMATIC_REPOSILITE_USERNAME`                                                                                                             | Username for Specmatic private repository                                                                      |
-   | `SPECMATIC_REPOSILITE_TOKEN`                                                                                                                | Password for Specmatic private repository                                                                      |
-   | `ORG_GRADLE_PROJECT_${REPOSITORY_NAME}Username`                                                                                             | Username for repository with specified name                                                                    |
-   | `ORG_GRADLE_PROJECT_${REPOSITORY_NAME}Password`                                                                                             | Password for repository with specified name                                                                    |
-   | **Docker Hub**                                                                                                                              |                                                                                                                |
-   | No variables are needed, but you are required to perform a docker login yourself. The plugin will simply execute a `docker push` equivalent |                                                                                                                |
+   | Variable(s)                                                                                                                                                                                                   | Purpose                                                                                                        | 
+   |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+   | **Maven Central**                                                                                                                                                                                             |                                                                                                                |
+   | `ORG_GRADLE_PROJECT_mavenCentralUsername`                                                                                                                                                                     | Username for Maven Central                                                                                     |
+   | `ORG_GRADLE_PROJECT_mavenCentralPassword`                                                                                                                                                                     | Password for Maven Central                                                                                     |
+   | **Signing**                                                                                                                                                                                                   |                                                                                                                |
+   | `ORG_GRADLE_PROJECT_signingInMemoryKey`                                                                                                                                                                       | GPG private key for signing (ascii armoured/base64 encoded, without the leading/trailing -----BEGIN/END lines) |
+   | `ORG_GRADLE_PROJECT_signingInMemoryKeyId`                                                                                                                                                                     | GPG key ID (last 8 chars of hex hex key without the leading `0x`)                                              |
+   | `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword`                                                                                                                                                               | Passphrase for the GPG key                                                                                     |
+   | **Specmatic Private Repo**                                                                                                                                                                                    |                                                                                                                |
+   | `SPECMATIC_REPOSILITE_USERNAME`                                                                                                                                                                               | Username for Specmatic private repository                                                                      |
+   | `SPECMATIC_REPOSILITE_TOKEN`                                                                                                                                                                                  | Password for Specmatic private repository                                                                      |
+   | `ORG_GRADLE_PROJECT_${REPOSITORY_NAME}Username`                                                                                                                                                               | Username for repository with specified name                                                                    |
+   | `ORG_GRADLE_PROJECT_${REPOSITORY_NAME}Password`                                                                                                                                                               | Password for repository with specified name                                                                    |
+   | **Docker Hub**                                                                                                                                                                                                |                                                                                                                |
+   | No variables are needed for image publishing (after `docker login`). If `readme.docker.md` exists, set `SPECMATIC_DOCKER_HUB_USERNAME` and `SPECMATIC_DOCKER_HUB_TOKEN` to publish Docker Hub README content. |                                                                                                                |
 
 ## Installation, usage and configuration
 
@@ -118,8 +118,8 @@ projects.
     specmatic {
         // Set the JVM version. Currently defaults to 17
         jvmVersion = JavaLanguageVersion.of(17)
-        // Set the kotlin version to be used. Currently defaults to 1.9.25
-        kotlinVersion = "1.9.25"
+        // Set the kotlin version to be used. Currently defaults to 2.3.10
+        kotlinVersion = "2.3.10"
         // Set the kotlin compiler version. Currently defaults to 1.9
         kotlinApiVersion = KotlinVersion.KOTLIN_1_9
         // List of sample projects that need validation before release, and bumping post release
@@ -133,10 +133,6 @@ projects.
             "org.example.foo:deprecated" to "org.example.foo:shiny-thing:1.2.3"
         )    
     
-        // Publish this to some repositories. Can be invoked multiple times
-        publishTo("internalRepo", "https://internal.repo.url/repository/maven-releases/")
-        // Publish this to maven central. Only use this on open source code
-        publishToMavenCentral()
     
         // Provide license details for any libraries that don't have license information in their POM.
         // if using groovy, you may need to prefix below lines with `it.XXX` instead
@@ -147,9 +143,16 @@ projects.
             license = "MIT"
         }
     
-        `with<Commercial|OSS><Library|Application|ApplicationLibrary>`(project(":bar")) {
+        // Choose one of: withOSSLibrary, withOSSApplication, withOSSApplicationLibrary,
+        // withCommercialLibrary, withCommercialApplication, withCommercialApplicationLibrary
+        withOSSApplication(rootProject) {
             // The main class, if publishing an application variant
             mainClass = "io.specmatic.ExampleApp"
+
+            // Publish this to some repositories. Can be invoked multiple times.
+            publishTo("internalRepo", "https://internal.repo.url/repository/maven-releases/", io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+            // Publish this to maven central. Only use this on open source code.
+            publishToMavenCentral()
     
             // Create a GitHub release. Upload any files generated by specified tasks.
             githubRelease {
@@ -165,7 +168,8 @@ projects.
                 extraDockerArgs = listOf("...")
                 // publish to docker hub under these orgs. First one will be considered the primary org, and a readme will be generated
                 dockerOrgNames = listOf("specmatic", "znsio")
-                dockerOrgNames = listOf("ghcr.io/specmatic") // for GitHub Container Registry
+                // For GitHub Container Registry:
+                // dockerOrgNames = listOf("ghcr.io/specmatic")
             }
     
             // Obfuscation is enabled by default, but you may pass additional proguard args https://www.guardsquare.com/manual/configuration/usage
@@ -193,11 +197,30 @@ projects.
 5. Setup your `.gitignore`
     ```gitignore
     # Add the following to the .gitignore file
-    gen-kt/
-    gen-resources/
+    src/main/gen-kt/
+    src/main/gen-resources/
     ```
 
 6. Setup GitHub workflows. Best to copy/paste from existing workflows.
+
+## Project properties (`-P...`)
+
+The plugin also supports the following Gradle project properties:
+
+| Property | Values | Used by | Effect |
+|---|---|---|---|
+| `release.releaseVersion` | Version string (for example `1.2.3`) | Release pipeline tasks (`release`, `preReleaseBump`, `createReleaseTag`, `createGithubRelease`) that need the exact release tag/version. | Release version to tag and publish. |
+| `release.newVersion` | Version string (for example `1.2.4-SNAPSHOT`) | Post-release bump tasks (`release`, `postReleaseBump`) that move the repo back to the next development version. | Version to set after release completes. |
+| `allowSnapshotDependencies` | `true` / `false` | `validateSnapshotDependencies` in release lifecycle, when you intentionally release while still depending on snapshots. | When `true`, snapshot dependency check warns instead of failing. |
+| `skipBranchCheck` | `true` / `false` | Release git safety checks (pre-release validation in `GitOperations`) that normally enforce running from `main`. | Skip "must be on main branch" validation. |
+| `skipRepoDirtyCheck` | `true` / `false` | Release git safety checks before bump/tag operations; useful only for exceptional/manual flows. | Skip clean working tree validation. |
+| `skipIncomingOutgoingCheck` | `true` / `false` | Release git safety checks that verify local and remote branches are in sync before tagging/pushing. | Skip ahead/behind remote validation. |
+| `disableMavenCentralAutoPublish` | `true` / `false` | Maven Central publish configuration (`publishToMavenCentral(...)`) during publication setup. | When `true`, disables automatic Maven Central release finalization. |
+| `skipVulnValidation` | `true` / `false` | Vulnerability scanning tasks (`vulnScanSBOMScan`, `vulnScanJarScan`, `vulnScanDockerScan`) when you want reports without failing the build. | When `true`, still scans but does not fail build for `HIGH`/`CRITICAL` findings. |
+| `skipDownstreamClone` | `true` / `false` | Downstream integration tasks (`validateDownstreamProjects`, `bumpVersionsInDownstreamProjects`, `fetchArtifactsInDownstreamProjects`) in environments where repos are already present. | Skip cloning/pulling downstream repositories. |
+| `specmatic.jar.timestamp` | Present / absent | Version-info generation used by packaged artifacts (`VersionInfo`/`version.properties`) when build-time metadata is desired. | When present, embeds build timestamp metadata in generated version info. |
+| `<moduleName>Version` | Version string (dynamic key) | Downstream integration tasks that need a module version to write/fetch/validate in dependent repos. | Version used for bump/fetch/validate downstream projects. Key is lower camel case of root project name + `Version` (for example `specmaticGradlePluginVersion`). |
+| `functionalTestingHack` | `true` / `false` | Release plugin test path (`runReleaseLifecycleHooks`) used by functional tests to avoid nested GradleBuild release hooks. | Internal testing switch; bypasses normal release lifecycle hook execution. Avoid in real releases. |
 
 ## Handling conflict resolution
 
@@ -257,34 +280,34 @@ java -Dlogback.configurationFile=logback.xml -jar <jar-file>
 
 Here is a list of available tasks
 
-| Task                                                 | Description                                                                                                                                                   |
-|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Other checks**                                     |                                                                                                                                                               |
-| `detectCollisions`                                   | Detects dependency collisions and prints a report.                                                                                                            |
-| **License Checks**                                   |                                                                                                                                                               |
-| `checkLicense`                                       | Check if License could be used                                                                                                                                |
-| `generateLicenseReport`                              | Generates license report for all dependencies of this project and its subprojects.                                                                            |
-| **Publishing tasks**                                 |                                                                                                                                                               |
-| `publishAllPublicationsToMavenCentralRepository`     | Publishes all Maven publications produced by this project to the mavenCentral repository.                                                                     |
-| `publishAllPublicationsToSpecmaticPrivateRepository` | Publishes all Maven publications produced by this project to the specmaticPrivate repository.                                                                 |
-| `publishAllPublicationsToStagingRepository`          | Publishes all Maven publications produced by this project to the staging repository.                                                                          |
-| `publishToMavenCentral`                              | Publishes to a staging repository on Sonatype OSS.                                                                                                            |
-| **Release tasks**                                    |                                                                                                                                                               |
-| `release`                                            | Verify project, release, and update version to next.                                                                                                          |
-| **Vulnerability tasks**                              |                                                                                                                                                               |
-| `vulnScanSBOM`                                       | Scan for and print vulnerabilities in just dependency tree.                                                                                                   |
-| `vulnScanJar`                                        | Scan for and print vulnerabilities by deep scanning inside each generated jar.                                                                                |
-| `vulnScanDocker`                                     | Scan for and Print vulnerabilities in docker image.                                                                                                           |
-| **Docker tasks**                                     |                                                                                                                                                               |
-| `dockerBuild`                                        | Builds the docker image (for local use)                                                                                                                       |
-| `dockerBuildxPublish`                                | Builds and publishes `linux/amd64,linux/arm64` variants of the docker image                                                                                   | 
-| **Downstream Project Validation**                    |                                                                                                                                                               |
-| `validateDownstreamProjects`                         | Validate downstream project(s)                                                                                                                                |
-| `bumpVersionsInDownstreamProjects`                   | Bump versions in downstream project(s)                                                                                                                        | 
-| `fetchArtifactsInDownstreamProjects`                 | Fetch artifacts downstream project(s)                                                                                                                         | 
-| **Internal tasks**                                   |                                                                                                                                                               |
-| `createGithubRelease`                                | Create a Github release. This is already wired up when publishing a release.                                                                                  |
-| `cyclonedxBom`                                       | Generates a CycloneDX compliant Software Bill of Materials (SBOM).                                                                                            |
+| Task                                                 | Description                                                                                    |
+|------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| **Other checks**                                     |                                                                                                |
+| `detectCollisions`                                   | Detects dependency collisions and prints a report.                                             |
+| **License Checks**                                   |                                                                                                |
+| `checkLicense`                                       | Check if License could be used                                                                 |
+| `generateLicenseReport`                              | Generates license report for all dependencies of this project and its subprojects.             |
+| **Publishing tasks**                                 |                                                                                                |
+| `publishAllPublicationsToMavenCentralRepository`     | Publishes all Maven publications produced by this project to the mavenCentral repository.      |
+| `publishAllPublicationsToSpecmaticPrivateRepository` | Publishes all Maven publications produced by this project to the specmaticPrivate repository.  |
+| `publishAllPublicationsToStagingRepository`          | Publishes all Maven publications produced by this project to the staging repository.           |
+| `publishToMavenCentral`                              | Publishes to a staging repository on Sonatype OSS.                                             |
+| **Release tasks**                                    |                                                                                                |
+| `release`                                            | Verify project, release, and update version to next.                                           |
+| **Vulnerability tasks**                              |                                                                                                |
+| `vulnScanSBOMScan`                                   | Scan for and print vulnerabilities in dependency tree (SBOM).                                  |
+| `vulnScanJarScan`                                    | Scan for and print vulnerabilities by deep scanning inside each generated jar.                 |
+| `vulnScanDockerScan`                                 | Scan for and print vulnerabilities in docker image (created when `dockerBuild` is configured). |
+| **Docker tasks**                                     |                                                                                                |
+| `dockerBuild`                                        | Builds the docker image (for local use)                                                        |
+| `dockerBuildxPublish`                                | Builds and publishes `linux/amd64,linux/arm64` variants of the docker image                    | 
+| **Downstream Project Validation**                    |                                                                                                |
+| `validateDownstreamProjects`                         | Validate downstream project(s)                                                                 |
+| `bumpVersionsInDownstreamProjects`                   | Bump versions in downstream project(s)                                                         | 
+| `fetchArtifactsInDownstreamProjects`                 | Fetch artifacts downstream project(s)                                                          | 
+| **Internal tasks**                                   |                                                                                                |
+| `createGithubRelease`                                | Create a Github release. This is already wired up when publishing a release.                   |
+| `cyclonedxBom`                                       | Generates a CycloneDX compliant Software Bill of Materials (SBOM).                             |
 
 ## Available distribution flavours and the artifacts they generate
 

@@ -34,7 +34,7 @@ open class PrettyPrintLicenseCheckFailures : DefaultTask() {
 
             unsupportedLicensesGroupedByLicense.forEach { (license, modules) ->
                 messages.add("License: $license")
-                (modules as List<*>).forEach { module ->
+                modules.forEach { module ->
                     if (module is Map<*, *>) {
                         messages.add("   - ${module["moduleName"]} (${module["moduleVersion"]})")
                     } else {

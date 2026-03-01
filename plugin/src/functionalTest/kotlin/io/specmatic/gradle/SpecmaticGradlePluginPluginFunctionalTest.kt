@@ -3,6 +3,7 @@ package io.specmatic.gradle
 import java.util.regex.Pattern
 import kotlin.test.Test
 import org.assertj.core.api.Assertions.assertThat
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Nested
 
@@ -317,6 +318,33 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
     inner class JarVulnScan {
         @Test
         fun `should flag vulnerable dependencies in jars`() {
+            val result = runJarVulnScanWithFailure()
+
+            assertThat(result.output).matches(
+                Pattern.compile(
+                    ".*gson\\s+2.8.8\\s+2.8.9\\s+java-archive\\s+GHSA-4jrv-ppp4-jm57\\s+High.*",
+                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
+                ),
+            )
+
+            assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
+        }
+
+        @Test
+        fun `should flag vulnerable dependencies in jars using trivy scanner`() {
+            val result = runJarVulnScanWithFailure("-PvulnScanner=trivy")
+
+            assertThat(result.output).matches(
+                Pattern.compile(
+                    ".* com.google.code.gson:gson .* CVE-2022-25647 .* 2.8.8 .*",
+                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
+                ),
+            )
+
+            assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
+        }
+
+        private fun runJarVulnScanWithFailure(vararg extraArgs: String): BuildResult {
             // Set up the test build
             settingsFile.writeText("rootProject.name = \"fooBar\"")
             buildFile.writeText(
@@ -337,16 +365,10 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 """.trimIndent(),
             )
-
-            val result = runWithFailure("check")
-            assertThat(result.output).matches(
-                Pattern.compile(
-                    ".* com.google.code.gson:gson .* CVE-2022-25647 .* 2.8.8 .*",
-                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
-                ),
+            return runWithFailure(
+                "check",
+                *extraArgs,
             )
-
-            assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
         }
     }
 }

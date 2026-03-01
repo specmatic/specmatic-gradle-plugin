@@ -1,19 +1,17 @@
 package io.specmatic.gradle.vuln
 
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.specmatic.gradle.exec.shellEscapedArgs
 import io.specmatic.gradle.license.pluginInfo
-import io.specmatic.gradle.utils.okHttpConnector
-import io.specmatic.gradle.vuln.dto.VulnerabilityReport
+import io.specmatic.gradle.vuln.scanner.ScanTarget
+import io.specmatic.gradle.vuln.scanner.ScannerContext
+import io.specmatic.gradle.vuln.scanner.VulnerabilitySeverity
+import io.specmatic.gradle.vuln.scanner.VulnScannerType
+import io.specmatic.gradle.vuln.scanners.GrypeScanner
+import io.specmatic.gradle.vuln.scanners.TrivyScanner
+import io.specmatic.gradle.vuln.scanners.VulnerabilityScanner
 import java.io.File
 import java.io.FileOutputStream
-import java.io.RandomAccessFile
-import java.net.URL
 import javax.inject.Inject
-import org.apache.commons.io.FileUtils
-import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -24,203 +22,98 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
-import org.kohsuke.github.GitHubBuilder
 
 @CacheableTask
 abstract class AbstractVulnScanTask
-    @Inject
-    constructor(private val execLauncher: ExecOperations) : DefaultTask() {
-        @TaskAction
-        fun vulnScan() {
-            maybeDownloadTrivy()
+@Inject
+constructor(private val execLauncher: ExecOperations) : DefaultTask() {
+    @TaskAction
+    fun vulnScan() {
+        val scanner = scannerStrategy(scannerTool.get())
+        val scannerContext = scannerContext(scanner)
+        scanner.ensureInstalled(scannerContext)
 
-            reportsDir.get().mkdirs()
+        reportsDir.get().mkdirs()
 
-            val formats =
-                mapOf(
-                    "table" to getTextTableReportFile(),
-                    "json" to getJsonReportFile(),
-                )
+        val formats =
+            mapOf(
+                "table" to getTextTableReportFile(),
+                "json" to getJsonReportFile(),
+            )
 
-            formats.map { (format, output) -> runScan(format, output) }
-
-            printReportFile(project, getTextTableReportFile())
-
-            breakOnVulnerability(project, getJsonReportFile(), setOf("CRITICAL", "HIGH"))
+        formats.forEach { (format, output) ->
+            runScan(scanner.commandFor(scannerContext, scanTarget(), format), output)
         }
 
-        @get:OutputDirectory
-        abstract val reportsDir: Property<File>
+        printReportFile(project, getTextTableReportFile())
 
-        @OutputFile
-        fun getJsonReportFile(): File = reportsDir.get().resolve("report.json")
-
-        @OutputFile
-        fun getTextTableReportFile(): File = reportsDir.get().resolve("report.txt")
-
-        @get:OutputDirectory
-        abstract val trivyHomeDir: Property<File>
-
-        private fun runScan(format: String, output: File): Boolean {
-            try {
-                output.outputStream().use { outputStream: FileOutputStream ->
-                    val cliArgs = getCommandLine(format)
-                    project.pluginInfo("$ ${shellEscapedArgs(cliArgs)}")
-
-                    execLauncher.exec {
-                        standardOutput = outputStream
-                        errorOutput = System.err
-                        commandLine = cliArgs
-                    }
-                }
-            } catch (e: Exception) {
-                throw GradleException("Failed to run Trivy scan", e)
-            }
-            return true
-        }
-
-        abstract fun getCommandLine(format: String): List<String>
-
-        private fun maybeDownloadTrivy() {
-            trivyHomeDir.get().mkdirs()
-
-            // acquire a file lock to prevent multiple tasks from trying to download trivy at the same time
-            val lockFile = trivyHomeDir.get().resolve("trivy-download.lock")
-            RandomAccessFile(lockFile, "rw").channel.use { channel ->
-                channel.lock().use {
-                    val lastModified = if (trivyExecutableFile().exists()) trivyExecutableFile().lastModified() else 0L
-                    val oneWeekInMillis = 7 * 24 * 60 * 60 * 1000L
-                    val isOlderThanOneWeek = System.currentTimeMillis() - lastModified > oneWeekInMillis
-                    if (isOlderThanOneWeek) {
-                        downloadTrivy()
-                    }
-                }
-            }
-        }
-
-        private fun trivyInstallDir(): File = trivyHomeDir.get().resolve("trivy")
-
-        private fun trivyVersionFile(): File = trivyHomeDir.get().resolve("trivy.version")
-
-        private fun downloadTrivy() {
-            project.pluginInfo("Checking if trivy is up to date")
-
-            try {
-                val gitHubBuilder = GitHubBuilder().withConnector(okHttpConnector)
-                if (System.getenv("SPECMATIC_GITHUB_USER") != null && System.getenv("SPECMATIC_GITHUB_TOKEN") != null) {
-                    gitHubBuilder.withPassword(System.getenv("SPECMATIC_GITHUB_USER"), System.getenv("SPECMATIC_GITHUB_TOKEN"))
-                }
-                val gitHub = gitHubBuilder.build()
-                val repository = gitHub.getRepository("aquasecurity/trivy")
-                val release = repository.latestRelease
-
-                val currentVersion = if (trivyVersionFile().exists()) trivyVersionFile().readText() else "unknown"
-
-                if (currentVersion != release.name) {
-                    val asset =
-                        release.listAssets().find {
-                            it.name.lowercase().contains("_$os-$arch") &&
-                                (
-                                    it.name
-                                        .lowercase()
-                                        .endsWith(".zip") ||
-                                        it.name.lowercase().endsWith(".tar.gz")
-                                )
-                        } ?: throw RuntimeException("No asset found for trivy for $os $arch")
-                    val trivyCompressedDownloadPath = temporaryDir.resolve(asset.name)
-                    val downloadUrl = asset.browserDownloadUrl
-
-                    project.pluginInfo(
-                        "Currently installed trivy version($currentVersion) is not up-to-date. Downloading version ${release.name} from $downloadUrl to $trivyCompressedDownloadPath",
-                    )
-                    FileUtils.copyURLToFile(URL(downloadUrl), trivyCompressedDownloadPath)
-                    project.delete(trivyInstallDir())
-                    trivyInstallDir().mkdirs()
-                    project.copy {
-                        if (trivyCompressedDownloadPath.extension == "zip") {
-                            from(project.zipTree(trivyCompressedDownloadPath))
-                        } else {
-                            from(project.tarTree(trivyCompressedDownloadPath))
-                        }
-                        into(trivyInstallDir())
-                    }
-
-                    trivyVersionFile().writeText(release.name)
-                }
-            } catch (e: Exception) {
-                if (trivyExecutableFile().exists()) {
-                    project.pluginInfo("Unable to check latest Trivy version: ${e.message}. Using existing trivy executable.")
-                    return
-                } else {
-                    throw RuntimeException("Failed to check or download Trivy", e)
-                }
-            }
-        }
-
-        @get:Input
-        val os: String
-            get() =
-                when {
-                    SystemUtils.IS_OS_WINDOWS -> "windows"
-                    SystemUtils.IS_OS_MAC -> "macos"
-                    SystemUtils.IS_OS_LINUX -> "linux"
-                    else -> throw RuntimeException("Unsupported operating system for trivy: ${SystemUtils.OS_NAME}")
-                }
-
-        @get:Input
-        val arch: String
-            get() {
-                val osArch = SystemUtils.OS_ARCH.lowercase()
-
-                return when {
-                    (osArch.contains("x86") || osArch.contains("amd64")) && osArch.contains("64") -> "64bit"
-                    osArch.contains("aarch") && osArch.contains("64") -> "arm64"
-                    else -> throw GradleException("Unsupported architecture for trivy: $osArch")
-                }
-            }
-
-        protected fun trivyExecutable(): String = trivyExecutableFile().path
-
-        private fun trivyExecutableFile(): File {
-            val extension = if (os == "windows") ".exe" else ""
-            return trivyInstallDir().resolve("trivy$extension")
-        }
-
-        @get:Input
-        protected val commonArgs: Array<String>
-            get() =
-                arrayOf(
-                    "--ignore-unfixed",
-                    "--quiet",
-                    "--no-progress",
-                )
+        validateNoHighOrCriticalVulnerabilities(scanner, getJsonReportFile())
     }
 
-internal fun trivyHomeDir(): File = SystemUtils.getUserHome().resolve(".specmatic-trivy")
+    @get:OutputDirectory
+    abstract val reportsDir: Property<File>
+
+    @OutputFile
+    fun getJsonReportFile(): File = reportsDir.get().resolve("report.json")
+
+    @OutputFile
+    fun getTextTableReportFile(): File = reportsDir.get().resolve("report.txt")
+
+    @get:Input
+    abstract val scannerTool: Property<VulnScannerType>
+
+    private fun runScan(cliArgs: List<String>, output: File) {
+        try {
+            output.outputStream().use { outputStream: FileOutputStream ->
+                project.pluginInfo("$ ${shellEscapedArgs(cliArgs)}")
+
+                execLauncher.exec {
+                    standardOutput = outputStream
+                    errorOutput = System.err
+                    commandLine = cliArgs
+                }
+            }
+        } catch (e: Exception) {
+            throw GradleException("Failed to run ${scannerTool.get().name.lowercase()} scan", e)
+        }
+    }
+
+    private fun validateNoHighOrCriticalVulnerabilities(
+        scanner: VulnerabilityScanner,
+        jsonReportFile: File,
+    ) {
+        if (project.properties["skipVulnValidation"] == "true") {
+            project.pluginInfo("Skipping vulnerability severity validation as per project properties.")
+            return
+        }
+
+        val severities = setOf(VulnerabilitySeverity.CRITICAL, VulnerabilitySeverity.HIGH)
+        if (scanner.hasVulnerabilities(jsonReportFile = jsonReportFile, severities = severities)) {
+            throw GradleException("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
+        }
+    }
+
+    abstract fun scanTarget(): ScanTarget
+
+    private fun scannerContext(scanner: VulnerabilityScanner): ScannerContext =
+        ScannerContext(
+            project = project,
+            scannerHomeDir = scanner.homeDir(),
+            temporaryDir = temporaryDir,
+        )
+
+    private fun scannerStrategy(type: VulnScannerType): VulnerabilityScanner =
+        when (type) {
+            VulnScannerType.TRIVY -> TrivyScanner()
+            VulnScannerType.GRYPE -> GrypeScanner()
+        }
+
+}
+
+
+internal fun Project.vulnScannerType(): VulnScannerType = VulnScannerType.from(findProperty("vulnScanner")?.toString())
 
 internal fun printReportFile(project: Project, reportFile: File) {
     project.logger.warn(reportFile.readText())
     project.logger.warn("Vulnerability report file: ${reportFile.toURI()}")
-}
-
-private fun breakOnVulnerability(project: Project, jsonReportFile: File, severity: Set<String>) {
-    if (project.properties["skipVulnValidation"] == "true") {
-        project.pluginInfo("Skipping vulnerability severity validation as per project properties.")
-        return
-    }
-
-    val mapper =
-        jacksonObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            .configure(JsonParser.Feature.INCLUDE_SOURCE_IN_LOCATION, true)
-
-    val report: VulnerabilityReport = mapper.readValue(jsonReportFile, VulnerabilityReport::class.java)
-
-    report.results.forEach { result ->
-        result.vulnerabilities.forEach { vulnerability ->
-            if (vulnerability.severity in severity) {
-                throw GradleException("Vulnerabilities with severity $severity found in the scan.")
-            }
-        }
-    }
 }

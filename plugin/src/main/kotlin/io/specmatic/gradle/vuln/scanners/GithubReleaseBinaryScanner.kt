@@ -83,7 +83,7 @@ abstract class GithubReleaseBinaryScanner(
                 "Currently installed $executableName version($currentVersion) is not up-to-date. Downloading version $latestVersion from $downloadUrl to $archivePath",
             )
 
-            FileUtils.copyURLToFile(URL(downloadUrl), archivePath)
+            FileUtils.copyURLToFile(URL(downloadUrl), archivePath, 10000, 10000)
             context.project.delete(installDir(context))
             installDir(context).mkdirs()
 

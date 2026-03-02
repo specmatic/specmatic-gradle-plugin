@@ -1,24 +1,36 @@
 package io.specmatic.gradle.tests
 
 import com.adarshr.gradle.testlogger.TestLoggerPlugin
+import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.DetektPlugin
 import io.specmatic.gradle.license.pluginInfo
+import kotlinx.kover.gradle.plugin.KoverGradlePlugin
+import kotlinx.kover.gradle.plugin.dsl.tasks.KoverReport
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.testing.Test
-import org.gradle.testing.jacoco.plugins.JacocoPlugin
-import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.kotlin.dsl.withType
 
 internal class SpecmaticTestReportingPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        target.pluginInfo("Apply test logger, jacoco and setup junit")
+        target.pluginInfo("Apply test logger and setup junit")
         target.plugins.apply(TestLoggerPlugin::class.java)
-        target.plugins.apply(JacocoPlugin::class.java)
+        target.plugins.apply(DetektPlugin::class.java)
+        target.plugins.apply(KoverGradlePlugin::class.java)
 
         target.plugins.withType(JavaPlugin::class.java) {
-            target.plugins.withType(JacocoPlugin::class.java) {
-                configureJunit(target)
-                configureJacoco(target)
+            configureJunit(target)
+
+            target.plugins.withType(KoverGradlePlugin::class.java) {
+                configureKover(target)
+            }
+        }
+
+        target.plugins.withType(DetektPlugin::class.java) {
+            target.tasks.withType<Detekt> {
+                ignoreFailures = true
+                parallel = true
             }
         }
     }
@@ -32,19 +44,14 @@ internal class SpecmaticTestReportingPlugin : Plugin<Project> {
         }
     }
 
-    private fun configureJacoco(eachProject: Project) {
+    private fun configureKover(eachProject: Project) {
+        eachProject.tasks.withType<KoverReport> {
+            dependsOn(project.tasks.withType<Test>())
+        }
         eachProject.tasks.withType(Test::class.java) {
-            eachProject.pluginInfo("Ensure that ${this.path} is finalized by jacocoTestReport")
-            finalizedBy(eachProject.tasks.named("jacocoTestReport"))
+            eachProject.pluginInfo("Ensure that ${this.path} is finalized by koverXmlReport")
+            finalizedBy(eachProject.tasks.withType<KoverReport>())
         }
 
-        eachProject.tasks.withType(JacocoReport::class.java) {
-            eachProject.pluginInfo("Configuring jacocoTestReport on ${this.path}")
-            reports {
-                xml.required.set(true)
-                csv.required.set(true)
-                html.required.set(true)
-            }
-        }
     }
 }

@@ -8,6 +8,7 @@ plugins {
 repositories {
     mavenCentral()
     gradlePluginPortal()
+    mavenLocal()
 }
 
 dependencies {
@@ -39,6 +40,9 @@ dependencies {
     implementation("com.diffplug.spotless:com.diffplug.spotless.gradle.plugin:8.2.1")
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("org.zeroturnaround:zt-exec:1.12")
+    implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
+    implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.7")
+    implementation("io.specmatic.priospot:gradle-plugin:0.99.2")
 
     testImplementation("org.apache.maven:maven-model:3.9.12")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

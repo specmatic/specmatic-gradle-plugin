@@ -1,5 +1,6 @@
 package io.specmatic.gradle
 
+import io.github.priospot.gradle.PriospotPlugin
 import io.specmatic.gradle.artifacts.EnsureJarsAreStampedPlugin
 import io.specmatic.gradle.artifacts.EnsureReproducibleArtifactsPlugin
 import io.specmatic.gradle.collision.CollisionDetectorPluginWrapper
@@ -38,6 +39,8 @@ class SpecmaticGradlePlugin : Plugin<Project> {
             afterEvaluate {
                 baseSetup()
             }
+
+            plugins.apply(PriospotPlugin::class.java)
         }
 
         target.rootProject.versionInfo()

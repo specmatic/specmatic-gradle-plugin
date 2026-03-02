@@ -78,26 +78,6 @@ class SpecmaticGradlePluginTest {
     @Nested
     inner class Testing {
         @Test
-        fun `should add jacoco plugin`() {
-            val project = createProject("org.example", "1.2.3")
-            project.plugins.apply("io.specmatic.gradle")
-            assertThat(project.plugins.hasPlugin("jacoco")).isTrue()
-        }
-
-        @Test
-        fun `test tasks should be finalized by jacocoTestReport task`() {
-            val project = createProject("org.example", "1.2.3")
-            project.plugins.apply("java")
-            project.plugins.apply("io.specmatic.gradle")
-            project.evaluationDependsOn(":") // force execution of `afterEvaluate` block
-
-            val testTask = project.tasks.named("test").get()
-            val jacocoTestReportTask = project.tasks.named("jacocoTestReport").get()
-
-            assertThat(testTask.finalizedBy.getDependencies(null)).contains(jacocoTestReportTask)
-        }
-
-        @Test
         fun `configures junit platform extension`() {
             val project = createProject("org.example", "1.2.3")
             project.plugins.apply("java")

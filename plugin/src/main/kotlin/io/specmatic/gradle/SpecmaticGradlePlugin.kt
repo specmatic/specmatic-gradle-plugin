@@ -84,6 +84,10 @@ fun Project.specmaticExtension(): SpecmaticGradleExtension {
     throw GradleException("SpecmaticGradleExtension not found in project $this, or any of its parents")
 }
 
-fun Project.projectDependencies(): List<ProjectDependency> = project.configurations.flatMap { config ->
-    config.dependencies.filterIsInstance<ProjectDependency>()
-}
+fun Project.projectDependencies(): List<ProjectDependency> =
+    project.configurations
+        .asSequence()
+        .flatMap { config -> config.dependencies.filterIsInstance<ProjectDependency>().asSequence() }
+        .filter { dependency -> dependency.dependencyProject.path != project.path }
+        .distinctBy { dependency -> dependency.dependencyProject.path }
+        .toList()

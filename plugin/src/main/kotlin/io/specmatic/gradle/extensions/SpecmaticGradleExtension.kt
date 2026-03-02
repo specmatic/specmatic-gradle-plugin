@@ -29,7 +29,7 @@ open class SpecmaticGradleExtension {
     var kotlinVersion = "2.3.10"
     var downstreamDependentProjects = listOf<String>()
 
-    var kotlinApiVersion: KotlinVersion = KotlinVersion.KOTLIN_1_9
+    var kotlinApiVersion: KotlinVersion = KotlinVersion.KOTLIN_2_3
 
     internal val licenseData = mutableListOf<ModuleLicenseData>()
     internal val projectConfigurations: MutableMap<Project, BaseDistribution> = mutableMapOf()

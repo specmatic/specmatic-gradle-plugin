@@ -4,12 +4,14 @@ import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.utils.okHttpConnector
 import io.specmatic.gradle.vuln.scanner.ScannerContext
 import java.io.File
+import java.io.FileOutputStream
 import java.io.RandomAccessFile
-import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.time.Duration.Companion.days
-import org.apache.commons.io.FileUtils
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.GradleException
 import org.kohsuke.github.GHAsset
@@ -83,7 +85,7 @@ abstract class GithubReleaseBinaryScanner(
                 "Currently installed $executableName version($currentVersion) is not up-to-date. Downloading version $latestVersion from $downloadUrl to $archivePath",
             )
 
-            FileUtils.copyURLToFile(URL(downloadUrl), archivePath, 10000, 10000)
+            downloadArchive(downloadUrl, archivePath)
             context.project.delete(installDir(context))
             installDir(context).mkdirs()
 
@@ -103,6 +105,38 @@ abstract class GithubReleaseBinaryScanner(
                 return
             }
             throw RuntimeException("Failed to check or download $executableName", e)
+        }
+    }
+
+    private fun downloadArchive(downloadUrl: String, archivePath: File) {
+        archivePath.parentFile?.mkdirs()
+        if (archivePath.exists()) {
+            archivePath.delete()
+        }
+
+        val requestBuilder =
+            Request
+                .Builder()
+                .url(downloadUrl)
+
+        System.getenv("SPECMATIC_GITHUB_TOKEN")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { requestBuilder.header("Authorization", "Bearer $it") }
+
+        downloadClient.newCall(requestBuilder.build()).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw RuntimeException("Failed to download $executableName archive. HTTP ${response.code}: ${response.message}")
+            }
+
+            val body =
+                response.body
+                    ?: throw RuntimeException("Failed to download $executableName archive: empty response body")
+
+            body.byteStream().use { input ->
+                FileOutputStream(archivePath).use { output ->
+                    input.copyTo(output, bufferSize = 1024 * 256)
+                }
+            }
         }
     }
 
@@ -160,6 +194,16 @@ abstract class GithubReleaseBinaryScanner(
 
     private companion object {
         val inProcessLocks = ConcurrentHashMap<String, ReentrantLock>()
+        val downloadClient: OkHttpClient =
+            OkHttpClient
+                .Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .callTimeout(30, TimeUnit.MINUTES)
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .retryOnConnectionFailure(true)
+                .build()
     }
 }
 

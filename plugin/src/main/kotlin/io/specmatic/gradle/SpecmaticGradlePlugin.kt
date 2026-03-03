@@ -39,8 +39,6 @@ class SpecmaticGradlePlugin : Plugin<Project> {
             afterEvaluate {
                 baseSetup()
             }
-
-            plugins.apply(PriospotPlugin::class.java)
         }
 
         target.rootProject.versionInfo()
@@ -51,6 +49,7 @@ class SpecmaticGradlePlugin : Plugin<Project> {
         target.plugins.apply(SpecmaticLicenseReportingPlugin::class.java)
         target.allprojects {
             plugins.apply(SpecmaticTestReportingPlugin::class.java)
+            plugins.apply(PriospotPlugin::class.java)
         }
         target.plugins.apply(SpecmaticReleasePlugin::class.java)
         target.plugins.apply(SpecmaticSpotlessPlugin::class.java)

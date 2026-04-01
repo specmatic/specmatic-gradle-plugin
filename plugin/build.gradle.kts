@@ -29,7 +29,7 @@ dependencies {
     implementation("org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin:2.2.1")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.20")
     implementation("commons-codec:commons-codec:1.21.0")
-    implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.4.0")
+    implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.4.1")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.36.0")
     implementation("org.kohsuke:github-api:1.330")
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.2.2")

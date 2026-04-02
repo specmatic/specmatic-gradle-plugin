@@ -35,7 +35,7 @@ dependencies {
     implementation("org.codehaus.plexus:plexus-utils:4.0.3")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.36.0")
     implementation("org.kohsuke:github-api:1.330")
-    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.2.2")
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.2.3")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
     implementation("org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin:2.5")
     implementation("org.gradlex.java-ecosystem-capabilities:org.gradlex.java-ecosystem-capabilities.gradle.plugin:1.5.3")

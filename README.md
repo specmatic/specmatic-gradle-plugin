@@ -118,8 +118,8 @@ projects.
     specmatic {
         // Set the JVM version. Currently defaults to 17
         jvmVersion = JavaLanguageVersion.of(17)
-        // Set the kotlin version to be used. Currently defaults to 2.3.10
-        kotlinVersion = "2.3.10"
+        // Set the kotlin version to be used. Currently defaults to 2.3.20
+        kotlinVersion = "2.3.20"
         // Set the kotlin compiler version. Currently defaults to 1.9
         kotlinApiVersion = KotlinVersion.KOTLIN_1_9
         // List of sample projects that need validation before release, and bumping post release

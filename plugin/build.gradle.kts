@@ -47,7 +47,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.8")
     implementation("io.specmatic.priospot:gradle-plugin:0.99.2")
 
-    testImplementation("org.apache.maven:maven-model:3.9.14")
+    testImplementation("org.apache.maven:maven-model:3.9.15")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation("org.junit.jupiter:junit-jupiter-params:6.0.3")

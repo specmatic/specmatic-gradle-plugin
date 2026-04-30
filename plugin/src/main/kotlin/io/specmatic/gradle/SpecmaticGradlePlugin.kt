@@ -25,6 +25,7 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 @Suppress("unused")
@@ -49,7 +50,9 @@ class SpecmaticGradlePlugin : Plugin<Project> {
         target.plugins.apply(SpecmaticLicenseReportingPlugin::class.java)
         target.allprojects {
             plugins.apply(SpecmaticTestReportingPlugin::class.java)
-            plugins.apply(PriospotPlugin::class.java)
+            plugins.withType(JavaPlugin::class.java) {
+                plugins.apply(PriospotPlugin::class.java)
+            }
         }
         target.plugins.apply(SpecmaticReleasePlugin::class.java)
         target.plugins.apply(SpecmaticSpotlessPlugin::class.java)

@@ -50,8 +50,12 @@ class SpecmaticGradlePlugin : Plugin<Project> {
         target.plugins.apply(SpecmaticLicenseReportingPlugin::class.java)
         target.allprojects {
             plugins.apply(SpecmaticTestReportingPlugin::class.java)
-            plugins.withType(JavaPlugin::class.java) {
+            if (this == rootProject) {
                 plugins.apply(PriospotPlugin::class.java)
+            } else {
+                plugins.withType(JavaPlugin::class.java) {
+                    plugins.apply(PriospotPlugin::class.java)
+                }
             }
         }
         target.plugins.apply(SpecmaticReleasePlugin::class.java)

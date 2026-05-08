@@ -38,9 +38,21 @@ class PriospotMixedProjectFunctionalTest : AbstractFunctionalTest() {
         )
 
         val result = runWithSuccess("priospot")
+        val rootReportsDir = projectDir.resolve("build/reports/priospot")
+        val webReportsDir = projectDir.resolve("web/build/reports/priospot")
 
         assertThat(result.output).contains("BUILD SUCCESSFUL")
         assertThat(result.output).contains(":web:priospot")
         assertThat(result.output).doesNotContain(":frontend:koverBinaryReport")
+        assertPriospotArtifactsExist(rootReportsDir)
+        assertPriospotArtifactsExist(webReportsDir)
+    }
+
+    private fun assertPriospotArtifactsExist(reportsDir: java.io.File) {
+        assertThat(reportsDir.resolve("priospot.json")).exists()
+        assertThat(reportsDir.resolve("priospot-interactive-treemap.svg")).exists()
+        assertThat(reportsDir.resolve("coverage-interactive-treemap.svg")).exists()
+        assertThat(reportsDir.resolve("complexity-interactive-treemap.svg")).exists()
+        assertThat(reportsDir.resolve("churn-interactive-treemap.svg")).exists()
     }
 }

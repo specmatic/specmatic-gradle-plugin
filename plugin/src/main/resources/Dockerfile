@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 # Install OpenJDK 17, git, curl and any extra dependencies in a single RUN command
 RUN apk upgrade && \
-    apk add --no-cache openjdk-17-default-jvm git curl bash jq %EXTRA_APK_DEPS% && \
+    apk add --no-cache openjdk-17-default-jvm git curl wget bash jq %EXTRA_APK_DEPS% && \
     rm -rf /var/cache/apk/*
 
 SHELL ["/bin/bash", "-c"]

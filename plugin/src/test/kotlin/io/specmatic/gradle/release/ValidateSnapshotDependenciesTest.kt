@@ -19,6 +19,13 @@ class ValidateSnapshotDependenciesTest {
         dependencies.add(configuration, notation)
     }
 
+    private fun Project.declareProjectDependency(dependencyProject: Project, configuration: String = "implementation") {
+        if (configurations.findByName(configuration) == null) {
+            configurations.create(configuration)
+        }
+        dependencies.add(configuration, dependencyProject)
+    }
+
     private fun ValidateSnapshotDependencies.assertFailsWithMessage(expectedMessage: String) {
         val thrown = catchThrowable { assertNoSnapshotDependencies() }
         assertThat(thrown).isInstanceOf(GradleException::class.java)
@@ -91,6 +98,37 @@ class ValidateSnapshotDependenciesTest {
 
             Project $subProject uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:child-lib:1.0.0-SNAPSHOT
+            Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
+            """.trimIndent(),
+        )
+    }
+
+    @Test
+    fun `ignores snapshot internal project dependencies`() {
+        val rootProject = ProjectBuilder.builder().withName("root").build()
+        val subProject = ProjectBuilder.builder().withName("child").withParent(rootProject).build()
+        subProject.version = "1.0.0-SNAPSHOT"
+        rootProject.declareProjectDependency(subProject)
+        val task = rootProject.validateSnapshotDependenciesTask()
+
+        assertThatCode { task.assertNoSnapshotDependencies() }.doesNotThrowAnyException()
+    }
+
+    @Test
+    fun `ignores snapshot project dependencies but still fails on external snapshot dependencies`() {
+        val rootProject = ProjectBuilder.builder().withName("root").build()
+        val subProject = ProjectBuilder.builder().withName("child").withParent(rootProject).build()
+        subProject.version = "1.0.0-SNAPSHOT"
+        rootProject.declareProjectDependency(subProject)
+        rootProject.declareDependency("io.specmatic.example:external-lib:2.0.0-SNAPSHOT")
+        val task = rootProject.validateSnapshotDependenciesTask()
+
+        task.assertFailsWithMessage(
+            """
+            The following projects have dependencies with SNAPSHOT versions:
+
+            Project $rootProject uses dependencies with SNAPSHOT versions:
+            - io.specmatic.example:external-lib:2.0.0-SNAPSHOT
             Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
             """.trimIndent(),
         )

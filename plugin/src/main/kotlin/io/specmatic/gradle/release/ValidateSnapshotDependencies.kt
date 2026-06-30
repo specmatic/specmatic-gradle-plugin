@@ -3,6 +3,7 @@ package io.specmatic.gradle.release
 import io.specmatic.gradle.license.pluginWarn
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.tasks.TaskAction
 
 abstract class ValidateSnapshotDependencies : DefaultTask() {
@@ -15,7 +16,7 @@ abstract class ValidateSnapshotDependencies : DefaultTask() {
             project.allprojects.associateWith { project ->
                 (project.configurations + project.buildscript.configurations).flatMap { cfg ->
                     cfg.dependencies.matching { dep ->
-                        dep.version?.contains("SNAPSHOT") == true
+                        dep !is ProjectDependency && dep.version?.contains("SNAPSHOT") == true
                     }
                 }
             }

@@ -65,7 +65,7 @@ class ValidateSnapshotDependenciesFunctionalTest : AbstractFunctionalTest() {
     }
 
     @Test
-    fun `validateSnapshotDependencies fails on internal project dependencies while build is still SNAPSHOT`() {
+    fun `validateSnapshotDependencies passes when the only SNAPSHOT dependencies are internal project dependencies`() {
         settingsFile.writeText(
             """
             rootProject.name = "example-project"
@@ -111,9 +111,64 @@ class ValidateSnapshotDependenciesFunctionalTest : AbstractFunctionalTest() {
             """.trimIndent(),
         )
 
+        val result = runWithSuccess("validateSnapshotDependencies")
+
+        assertThat(result.output).contains("BUILD SUCCESSFUL")
+        assertThat(result.output).contains("No SNAPSHOT dependencies found.")
+        assertThat(result.output).doesNotContain("io.specmatic.example:lib-a:2.3.4-SNAPSHOT")
+    }
+
+    @Test
+    fun `validateSnapshotDependencies fails on external snapshot dependencies even when internal project dependencies are also SNAPSHOT`() {
+        settingsFile.writeText(
+            """
+            rootProject.name = "example-project"
+            include("lib-a")
+            include("lib-b")
+            """.trimIndent(),
+        )
+
+        projectDir.resolve("lib-a").mkdirs()
+        projectDir.resolve("lib-b").mkdirs()
+
+        buildFile.writeText(
+            """
+            plugins {
+                id("io.specmatic.gradle")
+            }
+
+            allprojects {
+                group = "io.specmatic.example"
+                version = "2.3.4-SNAPSHOT"
+            }
+
+            project(":lib-a") {
+                apply(plugin = "java")
+
+                repositories {
+                    mavenCentral()
+                }
+            }
+
+            project(":lib-b") {
+                apply(plugin = "java")
+
+                repositories {
+                    mavenCentral()
+                }
+
+                dependencies {
+                    "implementation"(project(":lib-a"))
+                    "implementation"("io.specmatic.example:snapshot-lib:1.0.0-SNAPSHOT")
+                }
+            }
+            """.trimIndent(),
+        )
+
         val result = runWithFailure("validateSnapshotDependencies")
 
         assertThat(result.output).contains("dependencies with SNAPSHOT versions")
-        assertThat(result.output).contains("io.specmatic.example:lib-a:2.3.4-SNAPSHOT")
+        assertThat(result.output).contains("io.specmatic.example:snapshot-lib:1.0.0-SNAPSHOT")
+        assertThat(result.output).doesNotContain("io.specmatic.example:lib-a:2.3.4-SNAPSHOT")
     }
 }

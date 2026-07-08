@@ -3,6 +3,7 @@ package io.specmatic.gradle
 import com.github.jk1.license.LicenseReportPlugin
 import io.mockk.every
 import io.mockk.mockk
+import io.specmatic.gradle.extensions.MavenInternal
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.release.execGit
@@ -101,6 +102,36 @@ class SpecmaticGradlePluginTest {
         val project = createProject()
         project.plugins.apply("io.specmatic.gradle")
         assertThat(project.extensions.findByType(SpecmaticGradleExtension::class.java)).isNotNull()
+    }
+
+    @Test
+    fun `allows configuring promotion dsl`() {
+        val project = createProject()
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            targetMavenRepository("mavenCentral", "https://central.example.com/repository/releases")
+            dockerImage("specmatic/example", "acme/example")
+        }
+
+        assertThat(extension.promotion.canonicalMavenRepository)
+            .hasToString("https://repo.specmatic.io/releases")
+        assertThat(extension.promotion.targetMavenRepositories)
+            .singleElement()
+            .satisfies({
+                assertThat(it).isInstanceOf(MavenInternal::class.java)
+                val repo = it as MavenInternal
+                assertThat(repo.repoName).isEqualTo("mavenCentral")
+                assertThat(repo.url).hasToString("https://central.example.com/repository/releases")
+            })
+        assertThat(extension.promotion.dockerImagePromotions)
+            .singleElement()
+            .satisfies({
+                assertThat(it.sourceImage).isEqualTo("specmatic/example")
+                assertThat(it.targetImage).isEqualTo("acme/example")
+            })
     }
 
     @Test

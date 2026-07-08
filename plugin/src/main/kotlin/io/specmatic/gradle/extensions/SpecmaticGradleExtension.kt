@@ -18,6 +18,26 @@ class MavenCentral : PublishTarget
 
 data class MavenInternal(val repoName: String, val url: URI, val type: RepoType) : PublishTarget
 
+data class PromotionDockerImage(val sourceImage: String, val targetImage: String)
+
+open class PromotionConfig {
+    var canonicalMavenRepository: URI? = null
+    val targetMavenRepositories = mutableListOf<PublishTarget>()
+    val dockerImagePromotions = mutableListOf<PromotionDockerImage>()
+
+    fun canonicalMavenRepository(url: String) {
+        canonicalMavenRepository = URI.create(url)
+    }
+
+    fun targetMavenRepository(name: String, url: String, type: RepoType = RepoType.PUBLISH_ALL) {
+        targetMavenRepositories.add(MavenInternal(name, URI.create(url), type))
+    }
+
+    fun dockerImage(sourceImage: String, targetImage: String) {
+        dockerImagePromotions.add(PromotionDockerImage(sourceImage, targetImage))
+    }
+}
+
 open class SpecmaticGradleExtension {
     var releasePublishTasks = listOf<String>()
     var jvmVersion: JavaLanguageVersion = JavaLanguageVersion.of(17)
@@ -34,9 +54,14 @@ open class SpecmaticGradleExtension {
     internal val licenseData = mutableListOf<ModuleLicenseData>()
     internal val projectConfigurations: MutableMap<Project, BaseDistribution> = mutableMapOf()
     var versionReplacements = mutableMapOf<String, String>()
+    val promotion = PromotionConfig()
 
     fun licenseData(block: ModuleLicenseData.() -> Unit) {
         licenseData.add(ModuleLicenseData().apply(block))
+    }
+
+    fun promotion(block: PromotionConfig.() -> Unit) {
+        promotion.apply(block)
     }
 
     fun withOSSLibrary(project: Project, block: OSSLibraryFeature.() -> Unit) {

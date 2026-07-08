@@ -15,6 +15,11 @@ ADD %EXECUTABLE_NAME% /usr/local/bin/%EXECUTABLE_NAME%
 
 %EXTRA_COMMANDS%
 
+LABEL org.opencontainers.image.revision="%GIT_SHA%"
+LABEL org.opencontainers.image.version="%IMAGE_VERSION%"
+LABEL org.opencontainers.image.url="%IMAGE_URL%"
+LABEL org.opencontainers.image.vendor="specmatic.io"
+
 ENV SPECMATIC_EXECUTOR=docker
 
 ENTRYPOINT ["/usr/local/bin/%EXECUTABLE_NAME%"]

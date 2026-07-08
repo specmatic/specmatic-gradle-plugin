@@ -134,6 +134,10 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                             "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/bar && " +
                             "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/baz",
                 )
+                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
+                .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/foo-bar-image"""")
+                .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")
                 .contains("""ENTRYPOINT ["/usr/local/bin/foo-bar-image"]""")
 
             assertThat(projectDir.resolve("build/foo-bar-image").exists()).isTrue
@@ -424,6 +428,10 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 .contains("ADD reports/cyclonedx/bom.json /usr/local/share/specmatic-foo/sbom.cyclonedx.json")
                 .contains("ADD libs/executable-1.2.3-all-obfuscated.jar /usr/local/share/specmatic-foo/specmatic-foo.jar")
                 .contains("ADD specmatic-foo /usr/local/bin/specmatic-foo")
+                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
+                .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/specmatic-foo"""")
+                .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")
                 .contains("""ENTRYPOINT ["/usr/local/bin/specmatic-foo"]""")
 
             assertThat(projectDir.resolve("executable/build/specmatic-foo").exists()).isTrue

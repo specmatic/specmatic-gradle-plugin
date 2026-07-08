@@ -10,6 +10,7 @@ import io.specmatic.gradle.exec.ConfigureExecTaskPlugin
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.extensions.baseSetup
 import io.specmatic.gradle.jar.massage.applyToRootProjectOrSubprojects
+import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.publishing.applyShadowConfigs
 import io.specmatic.gradle.license.SpecmaticLicenseReportingPlugin
 import io.specmatic.gradle.plugin.VersionInfo
@@ -26,6 +27,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 @Suppress("unused")
@@ -55,6 +57,14 @@ class SpecmaticGradlePlugin : Plugin<Project> {
             } else {
                 plugins.withType(JavaPlugin::class.java) {
                     plugins.apply(PriospotPlugin::class.java)
+                }
+            }
+
+            plugins.withType(MavenPublishPlugin::class.java) {
+                project.mavenPublications {
+                    pom {
+                        project.versionInfo().addToPom(this)
+                    }
                 }
             }
         }

@@ -2,9 +2,10 @@ package io.specmatic.gradle
 
 import io.specmatic.gradle.release.execGit
 import java.io.File
+import java.util.Properties
 import java.util.jar.JarFile
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.assertj.core.api.Assertions.assertThat
-import org.gradle.internal.impldep.org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.BeforeEach
@@ -268,17 +269,21 @@ open class AbstractFunctionalTest {
     fun assertPublishedWithoutSourcesAndJavadocs(vararg coordinates: String) {
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         stagingRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
+        stagingRepo.assertSpecmaticPomProperties(*coordinates)
 
         assertThat(localMavenRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         localMavenRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
+        localMavenRepo.assertSpecmaticPomProperties(*coordinates)
     }
 
     fun assertPublishedWithSourcesAndJavadocs(vararg coordinates: String, isEmptySourceAndJavadoc: Boolean = false) {
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         stagingRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates, isEmptySourceAndJavadoc = isEmptySourceAndJavadoc)
+        stagingRepo.assertSpecmaticPomProperties(*coordinates)
 
         localMavenRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates, isEmptySourceAndJavadoc = isEmptySourceAndJavadoc)
         assertThat(localMavenRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
+        localMavenRepo.assertSpecmaticPomProperties(*coordinates)
     }
 
     fun File.assertOnlyJarPublishedWithoutSourcesAndJavadocs(vararg coordinates: String) {
@@ -323,6 +328,22 @@ open class AbstractFunctionalTest {
                 assertThat(JarFile(javadocJar).listJarContents()).containsExactlyInAnyOrder("META-INF/MANIFEST.MF", "README.md")
             }
         }
+    }
+
+    fun File.assertSpecmaticPomProperties(vararg coordinates: String) {
+        coordinates.forEach { coordinatesString ->
+            val pomProperties = pomProperties(coordinatesString)
+
+            assertThat(pomProperties).containsEntry("x-specmatic-git-sha", "unknown - no git repo found")
+            assertThat(pomProperties).containsEntry("x-specmatic-git-short-sha", "unknown")
+        }
+    }
+
+    fun File.pomProperties(coordinates: String): Properties {
+        val pomFile = artifactDir(coordinates).resolve("${coordinates.artifactId()}-${coordinates.version()}.pom")
+        assertThat(pomFile).exists()
+        val model = pomFile.inputStream().use { MavenXpp3Reader().read(it) }
+        return model.properties
     }
 
     fun assertNothingPublished() {

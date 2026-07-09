@@ -48,6 +48,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 targetJarPath = targetJarPath,
                 sourceSbomFile = sourceSbomPath,
                 targetSbomPath = targetSbomPath,
+                primaryOrg = primaryOrg,
                 extraApkDependencies = dockerBuildConfig.extraApkDependencies,
             )
             createSpecmaticShellScript(dockerBuildConfig, targetJarPath)
@@ -62,11 +63,11 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
     val commonDockerBuildArgs =
         annotationArgs(primaryOrg, imageName) +
-                dockerTags
-                    .flatMap { listOf("--tag", it) }
-                    .toTypedArray() +
-                arrayOf("--file", "Dockerfile") +
-                dockerBuildConfig.extraDockerArgs
+            dockerTags
+                .flatMap { listOf("--tag", it) }
+                .toTypedArray() +
+            arrayOf("--file", "Dockerfile") +
+            dockerBuildConfig.extraDockerArgs
 
     tasks.register("dockerBuild", Exec::class.java) {
         dependsOn(createDockerfilesTask, dockerBuildConfig.mainJarTaskName!!, project.tasks.withType(BaseCyclonedxTask::class.java))
@@ -75,8 +76,13 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
 
         commandLine(
             "docker",
+            "buildx",
             "build",
             *commonDockerBuildArgs,
+            "--attest",
+            "type=provenance,mode=max",
+            "--attest",
+            "type=sbom",
             ".",
         )
         environment("DOCKER_BUILDKIT", "1")
@@ -181,6 +187,7 @@ private fun Task.createDockerfile(
     targetJarPath: String,
     sourceSbomFile: File,
     targetSbomPath: String,
+    primaryOrg: String,
     extraApkDependencies: List<String>,
 ) {
     val dockerFile =
@@ -236,6 +243,9 @@ private fun Task.createDockerfile(
                 .replace("%SOURCE_SBOM_PATH%", sourceSbomPath)
                 .replace("%TARGET_SBOM_PATH%", targetSbomPath)
                 .replace("%EXECUTABLE_NAME%", primaryExecutable)
+                .replace("%GIT_SHA%", project.versionInfo().gitCommit)
+                .replace("%IMAGE_VERSION%", project.version.toString())
+                .replace("%IMAGE_URL%", "https://hub.docker.com/u/$primaryOrg/$primaryExecutable")
                 .replace("%EXTRA_APK_DEPS%", extraDependencies)
                 .replace("%EXTRA_COMMANDS%", if (aliasCommands.isEmpty()) "" else "RUN $aliasCommands")
 
@@ -243,18 +253,28 @@ private fun Task.createDockerfile(
     }
 }
 
-private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String =
-    if (dockerBuildConfig.imageName.isNullOrBlank()) {
-        this.name
-    } else {
-        dockerBuildConfig.imageName!!
-    }
+private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String = if (dockerBuildConfig.imageName.isNullOrBlank()) {
+    this.name
+} else {
+    dockerBuildConfig.imageName!!
+}
 
-private fun Project.annotationArgs(primaryOrg: String, imageName: String): Array<String> = arrayOf(
-    "org.opencontainers.image.created=${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(Date())}",
-    "org.opencontainers.image.authors=Specmatic Team <info@specmatic.io>",
-    "org.opencontainers.image.url=https://hub.docker.com/u/$primaryOrg/$imageName",
-    "org.opencontainers.image.version=$version",
-    "org.opencontainers.image.revision=${project.versionInfo().gitCommit}",
-    "org.opencontainers.image.vendor=specmatic.io",
-).flatMap { listOf("--annotation", it) }.toTypedArray()
+private fun Project.annotationArgs(primaryOrg: String, imageName: String): Array<String> {
+    val keys =
+        listOf(
+            "org.opencontainers.image.created" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(Date()),
+            "org.opencontainers.image.authors" to "Specmatic Team <info@specmatic.io>",
+            "org.opencontainers.image.url" to "https://hub.docker.com/u/$primaryOrg/$imageName",
+            "org.opencontainers.image.version" to this.project.version.toString(),
+            "org.opencontainers.image.revision" to this.project.versionInfo().gitCommit,
+            "org.opencontainers.image.vendor" to "specmatic.io",
+        )
+
+    val prefixes = listOf("", "index:", "manifest-descriptor:")
+
+    return prefixes
+        .flatMap { prefix ->
+            keys.map { (k, v) -> "--annotation" to "$prefix$k=$v" }
+        }.flatMap { listOf(it.first, it.second) }
+        .toTypedArray()
+}

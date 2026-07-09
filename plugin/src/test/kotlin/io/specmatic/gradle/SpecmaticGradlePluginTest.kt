@@ -4,7 +4,11 @@ import com.github.jk1.license.LicenseReportPlugin
 import io.mockk.every
 import io.mockk.mockk
 import io.specmatic.gradle.extensions.MavenInternal
+import io.specmatic.gradle.extensions.RepoType
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
+import io.specmatic.gradle.promotion.DownloadPromotionMavenArtifactsTask
+import io.specmatic.gradle.promotion.InspectPromotionDockerImagesTask
+import io.specmatic.gradle.promotion.VerifyPromotionMavenArtifactsTask
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.release.execGit
 import java.io.File
@@ -132,6 +136,80 @@ class SpecmaticGradlePluginTest {
                 assertThat(it.sourceImage).isEqualTo("specmatic/example")
                 assertThat(it.targetImage).isEqualTo("acme/example")
             })
+    }
+
+    @Test
+    fun `registers docker promotion inspect task from configured source images`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        project.extensions.getByType(SpecmaticGradleExtension::class.java).promotion {
+            dockerImage("specmatic/example", "acme/example")
+            dockerImage("specmatic/example", "acme/example-2")
+        }
+
+        project.evaluationDependsOn(":")
+
+        val task = project.tasks.named("inspectPromotionDockerImages").get() as InspectPromotionDockerImagesTask
+        assertThat(task.images.get()).containsExactly("specmatic/example")
+        assertThat(task.version.get()).isEqualTo("1.2.3")
+        assertThat(task.platforms.get()).containsExactly("linux/amd64", "linux/arm64")
+    }
+
+    @Test
+    fun `registers maven promotion download task from configured publications`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+
+        val task = project.tasks.named("downloadPromotionMavenArtifacts").get() as DownloadPromotionMavenArtifactsTask
+        val artifactBasePath = "org/example/${project.name}/1.2.3/${project.name}-1.2.3"
+        assertThat(task.canonicalRepository.get()).isEqualTo("https://repo.specmatic.io/releases")
+        assertThat(task.artifactRelativePaths.get())
+            .contains("$artifactBasePath.pom")
+            .contains("$artifactBasePath.jar")
+            .contains("$artifactBasePath-sources.jar")
+            .contains("$artifactBasePath-javadoc.jar")
+            .contains("$artifactBasePath.pom.asc")
+            .contains("$artifactBasePath.pom.asc.sha256")
+            .contains("$artifactBasePath.jar.asc")
+            .contains("$artifactBasePath.jar.asc.sha256")
+            .contains("$artifactBasePath.jar.sha256")
+        assertThat(task.outputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+    }
+
+    @Test
+    fun `registers maven promotion verify task from configured publications`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+
+        val downloadTask = project.tasks.named("downloadPromotionMavenArtifacts").get()
+        val verifyTask = project.tasks.named("verifyPromotionMavenArtifacts").get() as VerifyPromotionMavenArtifactsTask
+
+        assertThat(verifyTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(verifyTask.expectedVersion.get()).isEqualTo("1.2.3")
+        assertThat(verifyTask.taskDependencies.getDependencies(verifyTask)).contains(downloadTask)
     }
 
     @Test

@@ -14,6 +14,7 @@ import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.publishing.applyShadowConfigs
 import io.specmatic.gradle.license.SpecmaticLicenseReportingPlugin
 import io.specmatic.gradle.plugin.VersionInfo
+import io.specmatic.gradle.promotion.configurePromotionTasks
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.spotless.SpecmaticSpotlessPlugin
 import io.specmatic.gradle.tests.SpecmaticTestReportingPlugin
@@ -68,10 +69,15 @@ class SpecmaticGradlePlugin : Plugin<Project> {
                 }
             }
         }
+
         target.plugins.apply(SpecmaticReleasePlugin::class.java)
         target.plugins.apply(SpecmaticSpotlessPlugin::class.java)
 
         target.plugins.apply(GradleTaskInfoPlugin::class.java)
+
+        target.gradle.projectsEvaluated {
+            target.configurePromotionTasks()
+        }
 
         target.applyToRootProjectOrSubprojects {
             plugins.apply(LifecycleBasePlugin::class.java)

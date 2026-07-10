@@ -1,5 +1,6 @@
 package io.specmatic.gradle.promotion
 
+import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
 import io.specmatic.gradle.extensions.PublishTarget
 import io.specmatic.gradle.extensions.RepoType
@@ -37,7 +38,7 @@ internal fun Project.configurePromotionTasks() {
 
     val canonicalRepositoryUri = promotionConfig.canonicalMavenRepository
     if (canonicalRepositoryUri != null && mavenArtifactPaths.isNotEmpty()) {
-        val targetRepositories = promotionConfig.targetMavenRepositories.filterIsInstance<MavenInternal>()
+        val targetRepositories = promotionConfig.targetMavenRepositories
         val downloadTask =
             tasks.register(DOWNLOAD_PROMOTION_MAVEN_ARTIFACTS_TASK, DownloadPromotionMavenArtifactsTask::class.java) {
                 group = "promotion"
@@ -61,14 +62,15 @@ internal fun Project.configurePromotionTasks() {
                 group = "promotion"
                 description = "Promotes verified Maven artifacts to configured target repositories"
                 dependsOn(VERIFY_PROMOTION_MAVEN_ARTIFACTS_TASK)
+                automaticMavenCentralRelease.set(provider { project.properties["disableMavenCentralAutoPublish"] != "true" })
                 inputDirectory.set(layout.buildDirectory.dir("promotion/maven"))
                 targets.set(
                     targetRepositories.map { repo ->
                         objects.promotionTarget(
                             repo = repo,
                             artifactPaths = promotionMavenArtifactPaths(listOf(repo)),
-                            username = providers.gradleProperty("${repo.repoName}Username").orNull.orEmpty(),
-                            password = providers.gradleProperty("${repo.repoName}Password").orNull.orEmpty(),
+                            username = providers.gradleProperty("${repo.repoName()}Username").orNull.orEmpty(),
+                            password = providers.gradleProperty("${repo.repoName()}Password").orNull.orEmpty(),
                         )
                     },
                 )
@@ -78,13 +80,14 @@ internal fun Project.configurePromotionTasks() {
 }
 
 private fun ObjectFactory.promotionTarget(
-    repo: MavenInternal,
+    repo: PublishTarget,
     artifactPaths: List<String>,
     username: String,
     password: String,
 ): PromotionMavenTargetInput = newInstance(PromotionMavenTargetInput::class.java).apply {
-    repoName.set(repo.repoName)
-    url.set(repo.url.toString())
+    repoName.set(repo.repoName())
+    kind.set(repo.promotionKind().name)
+    url.set(repo.urlOrBlank())
     this.username.set(username)
     this.password.set(password)
     this.artifactPaths.set(artifactPaths)
@@ -117,7 +120,7 @@ private fun Project.publishedMavenRelativePaths(publishTargets: List<PublishTarg
         return emptyList()
     }
 
-    val includeNonObfuscatedArtifacts = publishTargets.any { target -> target !is MavenInternal || target.type == RepoType.PUBLISH_ALL }
+    val includeNonObfuscatedArtifacts = publishTargets.any { target -> target.repoType() == RepoType.PUBLISH_ALL }
 
     return publications
         .filter { publication -> includeNonObfuscatedArtifacts || publication.isObfuscatedPublication() }
@@ -146,6 +149,30 @@ private fun MavenPublication.isObfuscatedPublication(): Boolean = artifacts
     }
 
 private fun gavPath(groupId: String, artifactId: String, version: String): String = "${groupId.replace('.', '/')}/$artifactId/$version"
+
+private fun PublishTarget.repoType(): RepoType = when (this) {
+    is MavenInternal -> type
+    is MavenCentral -> type
+    else -> RepoType.PUBLISH_ALL
+}
+
+private fun PublishTarget.repoName(): String = when (this) {
+    is MavenInternal -> repoName
+    is MavenCentral -> repoName
+    else -> throw IllegalArgumentException("Unsupported publish target $this")
+}
+
+private fun PublishTarget.urlOrBlank(): String = when (this) {
+    is MavenInternal -> url.toString()
+    is MavenCentral -> "https://central.sonatype.com"
+    else -> ""
+}
+
+private fun PublishTarget.promotionKind(): PromotionMavenTargetKind = when (this) {
+    is MavenInternal -> PromotionMavenTargetKind.REPOSITORY
+    is MavenCentral -> PromotionMavenTargetKind.MAVEN_CENTRAL
+    else -> throw IllegalArgumentException("Unsupported publish target $this")
+}
 
 private fun MavenArtifact.fileName(artifactId: String, version: String): String {
     val classifierSuffix = if (classifier.isNullOrBlank()) "" else "-$classifier"

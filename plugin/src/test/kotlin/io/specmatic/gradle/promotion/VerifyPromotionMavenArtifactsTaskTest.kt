@@ -15,6 +15,6 @@ class VerifyPromotionMavenArtifactsTaskTest {
         Files.writeString(file.toPath(), "specmatic")
 
         assertThat(file.digest("SHA-256"))
-            .isEqualTo("79775f8db9f00f11de528c4946472be8f52d4e9632e425263550a8bb78d0acfd")
+            .isEqualTo("cbb913d8c428b4540c3de3e77b8245eae900d0bc5a6377097f85abd5dd80a92f")
     }
 }

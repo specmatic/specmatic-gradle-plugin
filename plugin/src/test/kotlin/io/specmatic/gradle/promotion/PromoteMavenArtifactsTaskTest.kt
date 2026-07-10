@@ -241,8 +241,6 @@ class PromoteMavenArtifactsTaskTest {
                 routeRequests(
                     server.url("/"),
                     mapOf(
-                        "POST /api/v1/publisher/upload?publishingType=AUTOMATIC" to
-                            MockResponse().setResponseCode(201).setBody("deployment-123"),
                         "POST /api/v1/publisher/status?id=deployment-123" to
                             MockResponse()
                                 .setResponseCode(200)
@@ -258,7 +256,16 @@ class PromoteMavenArtifactsTaskTest {
                                     """.trimIndent(),
                                 ),
                     ),
-                )
+                ) { request ->
+                    when {
+                        request.method == "POST" &&
+                            request.path?.startsWith("/api/v1/publisher/upload?") == true &&
+                            request.path?.contains("publishingType=AUTOMATIC") == true ->
+                            MockResponse().setResponseCode(201).setBody("deployment-123")
+
+                        else -> null
+                    }
+                }
 
             val task = task()
             task.inputDirectory.set(stagingDir.toFile())
@@ -280,7 +287,10 @@ class PromoteMavenArtifactsTaskTest {
 
             val requests = requestsByPath(server)
 
-            val uploadRequest = requests.singleRequest("POST", "/api/v1/publisher/upload?publishingType=AUTOMATIC")
+            val uploadRequest =
+                requests.entries.single { (key, _) ->
+                    key.startsWith("POST /api/v1/publisher/upload?") && key.contains("publishingType=AUTOMATIC")
+                }.value.single()
             assertThat(uploadRequest.getHeader("Authorization")).isEqualTo("Bearer Y2VudHJhbFVzZXI6Y2VudHJhbFBhc3M=")
             val uploadBody = uploadRequest.body.readUtf8()
             assertThat(uploadBody).contains("example-1.0.0.pom")
@@ -316,10 +326,14 @@ class PromoteMavenArtifactsTaskTest {
         this.artifactPaths.set(artifactPaths)
     }
 
-    private fun routeRequests(baseUrl: HttpUrl, responses: Map<String, MockResponse>): Dispatcher = object : Dispatcher() {
+    private fun routeRequests(
+        baseUrl: HttpUrl,
+        responses: Map<String, MockResponse>,
+        dynamicResponse: (RecordedRequest) -> MockResponse? = { null },
+    ): Dispatcher = object : Dispatcher() {
         override fun dispatch(request: RecordedRequest): MockResponse {
             val key = "${request.method} ${request.path}"
-            return responses[key] ?: MockResponse()
+            return responses[key] ?: dynamicResponse(request) ?: MockResponse()
                 .setResponseCode(500)
                 .setBody("Unexpected request for ${baseUrl.encodedPath}: $key")
         }

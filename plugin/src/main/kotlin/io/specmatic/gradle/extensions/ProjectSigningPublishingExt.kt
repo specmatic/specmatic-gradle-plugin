@@ -64,10 +64,6 @@ private fun Project.setupPublishingTargets() {
             if (publishTarget is MavenCentral) {
                 val enableAutoPublish = project.properties["disableMavenCentralAutoPublish"] != "true"
                 publishToMavenCentral(automaticRelease = enableAutoPublish, validateDeployment = false)
-
-                if (project.isCommercial()) {
-                    setupCommericalJavadocAndSources()
-                }
             } else if (publishTarget is MavenInternal) {
                 val repo = publishTarget
                 project.pluginInfo("Configuring publishing to ${repo.repoName} with url ${repo.url} and type ${repo.type}")
@@ -77,6 +73,7 @@ private fun Project.setupPublishingTargets() {
                     if (url.scheme != "file") {
                         credentials(PasswordCredentials::class.java)
                     }
+                    isAllowInsecureProtocol = url.scheme == "http"
                 }
             } else {
                 project.pluginInfo("publishToMavenCentral is not set. Not publishing to Maven Central")
@@ -113,7 +110,7 @@ private fun Project.setupPublishingTargets() {
     }
 }
 
-private fun Project.setupCommericalJavadocAndSources() {
+internal fun Project.setupCommericalJavadocAndSources() {
     val dummyReadme =
         project.layout.buildDirectory
             .file("generated/dummy-readme/README.md")

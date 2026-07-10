@@ -1,5 +1,6 @@
 package io.specmatic.gradle.promotion
 
+import io.specmatic.gradle.utils.httpClient
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.Callable
@@ -41,16 +42,6 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
 
     @TaskAction
     fun downloadArtifacts() {
-        val client =
-            OkHttpClient
-                .Builder()
-                .followRedirects(true)
-                .followSslRedirects(true)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .callTimeout(30, TimeUnit.SECONDS)
-                .build()
-
         val baseUri = ensureTrailingSlash(canonicalRepository.get())
         val outputDir = outputDirectory.get().asFile
         outputDir.deleteRecursively()
@@ -63,7 +54,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                     executor.submit(
                         Callable {
                             downloadWithRetries(
-                                client = client,
+                                client = httpClient,
                                 uri = "$baseUri$relativePath",
                                 targetFile = outputDir.resolve(relativePath),
                                 maxRetries = maxRetries.get(),

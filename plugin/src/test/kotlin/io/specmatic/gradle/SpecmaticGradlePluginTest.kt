@@ -8,6 +8,7 @@ import io.specmatic.gradle.extensions.RepoType
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.promotion.DownloadPromotionMavenArtifactsTask
 import io.specmatic.gradle.promotion.InspectPromotionDockerImagesTask
+import io.specmatic.gradle.promotion.PromoteMavenArtifactsTask
 import io.specmatic.gradle.promotion.VerifyPromotionMavenArtifactsTask
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.release.execGit
@@ -210,6 +211,36 @@ class SpecmaticGradlePluginTest {
         assertThat(verifyTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
         assertThat(verifyTask.expectedVersion.get()).isEqualTo("1.2.3")
         assertThat(verifyTask.taskDependencies.getDependencies(verifyTask)).contains(downloadTask)
+    }
+
+    @Test
+    fun `registers maven promotion task from configured target repositories`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            targetMavenRepository("reposilite", "https://repo.example.com/releases", RepoType.PUBLISH_ALL)
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+
+        val verifyTask = project.tasks.named("verifyPromotionMavenArtifacts").get()
+        val promoteTask = project.tasks.named("promoteMaven").get() as PromoteMavenArtifactsTask
+
+        assertThat(promoteTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(promoteTask.targets.get()).singleElement().satisfies({
+            assertThat(it.repoName.get()).isEqualTo("reposilite")
+            assertThat(it.url.get()).isEqualTo("https://repo.example.com/releases")
+            assertThat(it.artifactPaths.get())
+            .contains("org/example/${project.name}/1.2.3/${project.name}-1.2.3.jar")
+        })
+        assertThat(promoteTask.taskDependencies.getDependencies(promoteTask)).contains(verifyTask)
     }
 
     @Test

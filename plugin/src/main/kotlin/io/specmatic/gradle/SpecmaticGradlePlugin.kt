@@ -13,6 +13,7 @@ import io.specmatic.gradle.jar.massage.applyToRootProjectOrSubprojects
 import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.publishing.applyShadowConfigs
 import io.specmatic.gradle.license.SpecmaticLicenseReportingPlugin
+import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.plugin.VersionInfo
 import io.specmatic.gradle.promotion.configurePromotionTasks
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
@@ -22,6 +23,7 @@ import io.specmatic.gradle.versioninfo.VersionInfoPlugin
 import io.specmatic.gradle.versioninfo.versionInfo
 import io.specmatic.gradle.versions.ForceVersionConstraintsPlugin
 import io.specmatic.gradle.vuln.SpecmaticVulnScanPlugin
+import java.util.concurrent.TimeUnit
 import org.barfuin.gradle.taskinfo.GradleTaskInfoPlugin
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -58,6 +60,21 @@ class SpecmaticGradlePlugin : Plugin<Project> {
             } else {
                 plugins.withType(JavaPlugin::class.java) {
                     plugins.apply(PriospotPlugin::class.java)
+                }
+            }
+
+            plugins.withType(JavaPlugin::class.java) {
+                project.dependencies.components.all {
+                    if (id.group.startsWith("io.specmatic")) {
+                        pluginInfo("Setting dependency ${id.group}:${id.name}:${id.version} as always changing")
+                        isChanging = true
+                    }
+                }
+
+                configurations.all {
+                    resolutionStrategy {
+                        cacheChangingModulesFor(30, TimeUnit.SECONDS)
+                    }
                 }
             }
 
@@ -106,10 +123,9 @@ fun Project.specmaticExtension(): SpecmaticGradleExtension {
     throw GradleException("SpecmaticGradleExtension not found in project $this, or any of its parents")
 }
 
-fun Project.projectDependencies(): List<ProjectDependency> =
-    project.configurations
-        .asSequence()
-        .flatMap { config -> config.dependencies.filterIsInstance<ProjectDependency>().asSequence() }
-        .filter { dependency -> dependency.dependencyProject.path != project.path }
-        .distinctBy { dependency -> dependency.dependencyProject.path }
-        .toList()
+fun Project.projectDependencies(): List<ProjectDependency> = project.configurations
+    .asSequence()
+    .flatMap { config -> config.dependencies.filterIsInstance<ProjectDependency>().asSequence() }
+    .filter { dependency -> dependency.dependencyProject.path != project.path }
+    .distinctBy { dependency -> dependency.dependencyProject.path }
+    .toList()

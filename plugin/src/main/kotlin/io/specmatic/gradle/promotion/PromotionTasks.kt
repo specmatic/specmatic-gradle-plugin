@@ -7,6 +7,7 @@ import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.specmaticExtension
 import io.specmatic.gradle.versioninfo.versionInfo
 import org.gradle.api.Project
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenArtifact
 import org.gradle.api.publish.maven.MavenPublication
@@ -15,6 +16,7 @@ import org.gradle.jvm.tasks.Jar
 private const val INSPECT_PROMOTION_DOCKER_IMAGES_TASK = "inspectPromotionDockerImages"
 private const val DOWNLOAD_PROMOTION_MAVEN_ARTIFACTS_TASK = "downloadPromotionMavenArtifacts"
 private const val VERIFY_PROMOTION_MAVEN_ARTIFACTS_TASK = "verifyPromotionMavenArtifacts"
+private const val PROMOTE_MAVEN_TASK = "promoteMaven"
 private val CHECKSUM_SUFFIXES = listOf(".md5", ".sha1", ".sha256", ".sha512")
 
 internal fun Project.configurePromotionTasks() {
@@ -35,6 +37,7 @@ internal fun Project.configurePromotionTasks() {
 
     val canonicalRepositoryUri = promotionConfig.canonicalMavenRepository
     if (canonicalRepositoryUri != null && mavenArtifactPaths.isNotEmpty()) {
+        val targetRepositories = promotionConfig.targetMavenRepositories.filterIsInstance<MavenInternal>()
         val downloadTask =
             tasks.register(DOWNLOAD_PROMOTION_MAVEN_ARTIFACTS_TASK, DownloadPromotionMavenArtifactsTask::class.java) {
                 group = "promotion"
@@ -52,16 +55,57 @@ internal fun Project.configurePromotionTasks() {
             expectedGitSha.set(provider { project.versionInfo().gitCommit })
             expectedVersion.set(provider { project.version.toString() })
         }
+
+        if (targetRepositories.isNotEmpty()) {
+            tasks.register(PROMOTE_MAVEN_TASK, PromoteMavenArtifactsTask::class.java) {
+                group = "promotion"
+                description = "Promotes verified Maven artifacts to configured target repositories"
+                dependsOn(VERIFY_PROMOTION_MAVEN_ARTIFACTS_TASK)
+                inputDirectory.set(layout.buildDirectory.dir("promotion/maven"))
+                targets.set(
+                    targetRepositories.map { repo ->
+                        objects.promotionTarget(
+                            repo = repo,
+                            artifactPaths = promotionMavenArtifactPaths(listOf(repo)),
+                            username = providers.gradleProperty("${repo.repoName}Username").orNull.orEmpty(),
+                            password = providers.gradleProperty("${repo.repoName}Password").orNull.orEmpty(),
+                        )
+                    },
+                )
+            }
+        }
     }
+}
+
+private fun ObjectFactory.promotionTarget(
+    repo: MavenInternal,
+    artifactPaths: List<String>,
+    username: String,
+    password: String,
+): PromotionMavenTargetInput = newInstance(PromotionMavenTargetInput::class.java).apply {
+    repoName.set(repo.repoName)
+    url.set(repo.url.toString())
+    this.username.set(username)
+    this.password.set(password)
+    this.artifactPaths.set(artifactPaths)
 }
 
 private fun Project.promotionMavenArtifactPaths(): List<String> {
     val extension = specmaticExtension()
-
     return extension.projectConfigurations
         .filter { (_, distribution) -> distribution.publishTo.isNotEmpty() }
         .flatMap { (configuredProject, distribution) ->
             configuredProject.publishedMavenRelativePaths(distribution.publishTo)
+        }.distinct()
+        .sorted()
+}
+
+private fun Project.promotionMavenArtifactPaths(targets: List<PublishTarget>): List<String> {
+    val extension = specmaticExtension()
+    return extension.projectConfigurations
+        .filter { (_, distribution) -> distribution.publishTo.isNotEmpty() }
+        .flatMap { (configuredProject, _) ->
+            configuredProject.publishedMavenRelativePaths(targets)
         }.distinct()
         .sorted()
 }

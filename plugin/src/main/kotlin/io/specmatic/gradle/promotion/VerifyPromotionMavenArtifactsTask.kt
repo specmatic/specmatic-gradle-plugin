@@ -41,13 +41,17 @@ abstract class VerifyPromotionMavenArtifactsTask : DefaultTask() {
 
         pomFiles.forEach { pomFile ->
             val model = pomFile.inputStream().use { MavenXpp3Reader().read(it) }
-            val artifactId = requireNotNull(model.artifactId) { "POM ${pomFile.absolutePath} is missing artifactId" }
             val groupId = requireNotNull(model.groupId) { "POM ${pomFile.absolutePath} is missing groupId" }
-            val version = requireNotNull(model.version) { "POM ${pomFile.absolutePath} is missing version" }
+            requireNotNull(model.version) { "POM ${pomFile.absolutePath} is missing version" }
             val properties = model.properties
 
+            properties.expect("x-specmatic-version", expectedVersion.get(), pomFile)
+            properties.expect("x-specmatic-group", groupId, pomFile)
             properties.expect("x-specmatic-git-sha", expectedGitSha.get(), pomFile)
             properties.expect("x-specmatic-git-short-sha", expectedGitSha.get().take(8).trim(), pomFile)
+            val stampedName =
+                properties.getProperty("x-specmatic-name")
+                    ?: throw GradleException("POM ${pomFile.absolutePath} is missing x-specmatic-name")
 
             pomFile.parentFile
                 .listFiles()
@@ -58,12 +62,12 @@ abstract class VerifyPromotionMavenArtifactsTask : DefaultTask() {
                         !candidate.name.endsWith("-sources.jar") &&
                         !candidate.name.endsWith("-javadoc.jar")
                 }.forEach { jarFile ->
-                    verifyJarManifest(jarFile, artifactId, groupId, version)
+                    verifyJarManifest(jarFile, stampedName, groupId)
                 }
         }
     }
 
-    private fun verifyJarManifest(jarFile: File, artifactId: String, groupId: String, version: String) {
+    private fun verifyJarManifest(jarFile: File, stampedName: String, groupId: String) {
         val attributes =
             JarFile(jarFile).use { jar ->
                 jar.manifest?.mainAttributes ?: throw GradleException("Jar ${jarFile.absolutePath} has no manifest")
@@ -71,7 +75,7 @@ abstract class VerifyPromotionMavenArtifactsTask : DefaultTask() {
 
         attributes.expect("x-specmatic-version", expectedVersion.get(), jarFile)
         attributes.expect("x-specmatic-group", groupId, jarFile)
-        attributes.expect("x-specmatic-name", artifactId, jarFile)
+        attributes.expect("x-specmatic-name", stampedName, jarFile)
         attributes.expect("x-specmatic-git-sha", expectedGitSha.get(), jarFile)
         attributes.expect("x-specmatic-git-short-sha", expectedGitSha.get().take(8).trim(), jarFile)
     }

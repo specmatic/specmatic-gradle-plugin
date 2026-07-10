@@ -22,7 +22,7 @@ data class PromotionDockerImage(val sourceImage: String, val targetImage: String
 
 open class PromotionConfig {
     var canonicalMavenRepository: URI? = null
-    val targetMavenRepositories = mutableListOf<PublishTarget>()
+    internal val targetMavenRepositories = mutableListOf<PublishTarget>()
     val dockerImagePromotions = mutableListOf<PromotionDockerImage>()
 
     fun canonicalMavenRepository(url: String) {

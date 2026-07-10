@@ -1,16 +1,15 @@
 package io.specmatic.gradle.vuln.scanners
 
 import io.specmatic.gradle.license.pluginInfo
+import io.specmatic.gradle.utils.httpClient
 import io.specmatic.gradle.utils.okHttpConnector
 import io.specmatic.gradle.vuln.scanner.ScannerContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.time.Duration.Companion.days
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.apache.commons.lang3.SystemUtils
 import org.gradle.api.GradleException
@@ -76,8 +75,9 @@ abstract class GithubReleaseBinaryScanner(
             }
 
             val platform = platform()
-            val asset = release.listAssets().find { isCompatibleAsset(it, platform.os, platform.arch) }
-                ?: throw RuntimeException("No asset found for $executableName for ${platform.os} ${platform.arch}")
+            val asset =
+                release.listAssets().find { isCompatibleAsset(it, platform.os, platform.arch) }
+                    ?: throw RuntimeException("No asset found for $executableName for ${platform.os} ${platform.arch}")
             val archivePath = context.temporaryDir.resolve(asset.name)
             val downloadUrl = asset.browserDownloadUrl
 
@@ -119,11 +119,12 @@ abstract class GithubReleaseBinaryScanner(
                 .Builder()
                 .url(downloadUrl)
 
-        System.getenv("SPECMATIC_GITHUB_TOKEN")
+        System
+            .getenv("SPECMATIC_GITHUB_TOKEN")
             ?.takeIf { it.isNotBlank() }
             ?.let { requestBuilder.header("Authorization", "Bearer $it") }
 
-        downloadClient.newCall(requestBuilder.build()).execute().use { response ->
+        httpClient.newCall(requestBuilder.build()).execute().use { response ->
             if (!response.isSuccessful) {
                 throw RuntimeException("Failed to download $executableName archive. HTTP ${response.code}: ${response.message}")
             }
@@ -140,11 +141,7 @@ abstract class GithubReleaseBinaryScanner(
         }
     }
 
-    protected abstract fun isCompatibleAsset(
-        asset: GHAsset,
-        os: String,
-        arch: String,
-    ): Boolean
+    protected abstract fun isCompatibleAsset(asset: GHAsset, os: String, arch: String): Boolean
 
     protected open fun releaseVersion(release: GHRelease): String = release.name.ifBlank { release.tagName }
 
@@ -168,10 +165,7 @@ abstract class GithubReleaseBinaryScanner(
         return Platform(os = os, arch = arch)
     }
 
-    private fun withInProcessLock(
-        lockFile: File,
-        action: () -> Unit,
-    ) {
+    private fun withInProcessLock(lockFile: File, action: () -> Unit) {
         val lock = inProcessLocks.computeIfAbsent(lockFile.absolutePath) { ReentrantLock() }
         lock.lock()
         try {
@@ -181,10 +175,7 @@ abstract class GithubReleaseBinaryScanner(
         }
     }
 
-    private fun withCrossProcessLock(
-        lockFile: File,
-        action: () -> Unit,
-    ) {
+    private fun withCrossProcessLock(lockFile: File, action: () -> Unit) {
         RandomAccessFile(lockFile, "rw").channel.use { channel ->
             channel.lock().use {
                 action()
@@ -194,20 +185,7 @@ abstract class GithubReleaseBinaryScanner(
 
     private companion object {
         val inProcessLocks = ConcurrentHashMap<String, ReentrantLock>()
-        val downloadClient: OkHttpClient =
-            OkHttpClient
-                .Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(0, TimeUnit.SECONDS)
-                .callTimeout(30, TimeUnit.MINUTES)
-                .followRedirects(true)
-                .followSslRedirects(true)
-                .retryOnConnectionFailure(true)
-                .build()
     }
 }
 
-private data class Platform(
-    val os: String,
-    val arch: String,
-)
+private data class Platform(val os: String, val arch: String)

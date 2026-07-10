@@ -1,14 +1,22 @@
 package io.specmatic.gradle.promotion
 
+import java.io.StringReader
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.xpath.XPathConstants
+import javax.xml.xpath.XPathFactory
+import okhttp3.HttpUrl
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.w3c.dom.Document
+import org.xml.sax.InputSource
 
 class PromoteMavenArtifactsTaskTest {
     @TempDir
@@ -17,17 +25,12 @@ class PromoteMavenArtifactsTaskTest {
     @Test
     fun `creates maven metadata when publishing artifact for first time`() {
         val server = MockWebServer()
-        server.enqueue(MockResponse().setResponseCode(201))
-        server.enqueue(MockResponse().setResponseCode(201))
-        server.enqueue(MockResponse().setResponseCode(404))
-        repeat(5) {
-            server.enqueue(MockResponse().setResponseCode(201))
-        }
         server.start()
 
         try {
             val pomPath = "io/specmatic/example/1.0.0/example-1.0.0.pom"
             val artifactPath = "io/specmatic/example/1.0.0/example-1.0.0.jar"
+            val metadataPath = "io/specmatic/example/maven-metadata.xml"
             val stagingDir = tempDir.resolve("staging")
             val pomFile = stagingDir.resolve(pomPath)
             val artifactFile = stagingDir.resolve(artifactPath)
@@ -35,6 +38,25 @@ class PromoteMavenArtifactsTaskTest {
             Files.writeString(pomFile, "<project/>")
             Files.createDirectories(artifactFile.parent)
             Files.writeString(artifactFile, "artifact-bytes")
+
+            server.dispatcher =
+                routeRequests(
+                    server.url("/repository/releases/"),
+                    mapOf(
+                        // allow pom upload
+                        "PUT /repository/releases/$pomPath" to MockResponse().setResponseCode(201),
+                        // allow artifact upload
+                        "PUT /repository/releases/$artifactPath" to MockResponse().setResponseCode(201),
+                        // metadata does not exist - no existing package
+                        "GET /repository/releases/$metadataPath" to MockResponse().setResponseCode(404),
+                        // allow metadata upload (and checksums)
+                        "PUT /repository/releases/$metadataPath" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.md5" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.sha1" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.sha256" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.sha512" to MockResponse().setResponseCode(201),
+                    ),
+                )
 
             val task = task()
             task.inputDirectory.set(stagingDir.toFile())
@@ -54,37 +76,44 @@ class PromoteMavenArtifactsTaskTest {
 
             task.promoteArtifacts()
 
-            val artifactRequest = nextRequest(server)
-            assertThat(artifactRequest.method).isEqualTo("PUT")
-            assertThat(artifactRequest.path).isEqualTo("/repository/releases/$pomPath")
-            assertThat(artifactRequest.getHeader("Authorization")).isEqualTo("Basic dXNlcjpwYXNz")
-            assertThat(artifactRequest.body.readUtf8()).isEqualTo("<project/>")
+            val requests = requestsByPath(server)
 
-            val jarRequest = nextRequest(server)
-            assertThat(jarRequest.method).isEqualTo("PUT")
-            assertThat(jarRequest.path).isEqualTo("/repository/releases/$artifactPath")
+            val pomRequest = requests.singleRequest("PUT", "/repository/releases/$pomPath")
+            assertThat(pomRequest.getHeader("Authorization")).isEqualTo("Basic dXNlcjpwYXNz")
+            assertThat(pomRequest.body.readUtf8()).isEqualTo("<project/>")
+
+            val jarRequest = requests.singleRequest("PUT", "/repository/releases/$artifactPath")
             assertThat(jarRequest.getHeader("Authorization")).isEqualTo("Basic dXNlcjpwYXNz")
             assertThat(jarRequest.body.readUtf8()).isEqualTo("artifact-bytes")
 
-            val metadataGet = nextRequest(server)
-            assertThat(metadataGet.method).isEqualTo("GET")
-            assertThat(metadataGet.path).isEqualTo("/repository/releases/io/specmatic/example/maven-metadata.xml")
+            requests.singleRequest("GET", "/repository/releases/$metadataPath")
 
-            val metadataPut = nextRequest(server)
-            assertThat(metadataPut.method).isEqualTo("PUT")
-            assertThat(metadataPut.path).isEqualTo("/repository/releases/io/specmatic/example/maven-metadata.xml")
-            val metadataBody = metadataPut.body.readUtf8()
-            assertThat(metadataBody).contains("<artifactId>example</artifactId>")
-            assertThat(metadataBody).contains("<version>1.0.0</version>")
-            assertThat(metadataBody).contains("<release>1.0.0</release>")
+            val metadataPut = requests.singleRequest("PUT", "/repository/releases/$metadataPath")
+            val metadataXml = parseXml(metadataPut.body.readUtf8())
+            assertThat(metadataXml.singleValue("/metadata/groupId")).isEqualTo("io.specmatic")
+            assertThat(metadataXml.singleValue("/metadata/artifactId")).isEqualTo("example")
+            assertThat(metadataXml.singleValue("/metadata/versioning/latest")).isEqualTo("1.0.0")
+            assertThat(metadataXml.singleValue("/metadata/versioning/release")).isEqualTo("1.0.0")
+            assertThat(metadataXml.values("/metadata/versioning/versions/version")).containsExactly("1.0.0")
+            assertThat(metadataXml.singleValue("/metadata/versioning/lastUpdated")).matches("\\d{14}")
 
-            val metadataChecksumPaths =
-                List(4) { nextRequest(server).path }
-            assertThat(metadataChecksumPaths).containsExactlyInAnyOrder(
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.md5",
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.sha1",
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.sha256",
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.sha512",
+            assertThat(requests.keys)
+                .contains(
+                    "PUT /repository/releases/$metadataPath.md5",
+                    "PUT /repository/releases/$metadataPath.sha1",
+                    "PUT /repository/releases/$metadataPath.sha256",
+                    "PUT /repository/releases/$metadataPath.sha512",
+                )
+            assertThat(requests).hasSize(8)
+            assertThat(requests.values.flatten().map { it.path }).containsExactlyInAnyOrder(
+                "/repository/releases/$pomPath",
+                "/repository/releases/$artifactPath",
+                "/repository/releases/$metadataPath",
+                "/repository/releases/$metadataPath",
+                "/repository/releases/$metadataPath.md5",
+                "/repository/releases/$metadataPath.sha1",
+                "/repository/releases/$metadataPath.sha256",
+                "/repository/releases/$metadataPath.sha512",
             )
         } finally {
             server.shutdown()
@@ -94,37 +123,12 @@ class PromoteMavenArtifactsTaskTest {
     @Test
     fun `merges existing maven metadata when publishing new version`() {
         val server = MockWebServer()
-        server.enqueue(MockResponse().setResponseCode(201))
-        server.enqueue(MockResponse().setResponseCode(201))
-        server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/xml")
-                .setBody(
-                    """
-                    <metadata>
-                      <groupId>io.specmatic</groupId>
-                      <artifactId>example</artifactId>
-                      <versioning>
-                        <latest>1.0.0</latest>
-                        <release>1.0.0</release>
-                        <versions>
-                          <version>1.0.0</version>
-                        </versions>
-                        <lastUpdated>20260710000000</lastUpdated>
-                      </versioning>
-                    </metadata>
-                    """.trimIndent(),
-                ),
-        )
-        repeat(5) {
-            server.enqueue(MockResponse().setResponseCode(201))
-        }
         server.start()
 
         try {
             val pomPath = "io/specmatic/example/1.1.0/example-1.1.0.pom"
             val artifactPath = "io/specmatic/example/1.1.0/example-1.1.0.jar"
+            val metadataPath = "io/specmatic/example/maven-metadata.xml"
             val stagingDir = tempDir.resolve("staging-existing")
             val pomFile = stagingDir.resolve(pomPath)
             val artifactFile = stagingDir.resolve(artifactPath)
@@ -132,6 +136,44 @@ class PromoteMavenArtifactsTaskTest {
             Files.writeString(pomFile, "<project/>")
             Files.createDirectories(artifactFile.parent)
             Files.writeString(artifactFile, "artifact-bytes")
+
+            server.dispatcher =
+                routeRequests(
+                    server.url("/repository/releases/"),
+                    mapOf(
+                        // allow pom upload
+                        "PUT /repository/releases/$pomPath" to MockResponse().setResponseCode(201),
+                        // allow artifact upload
+                        "PUT /repository/releases/$artifactPath" to MockResponse().setResponseCode(201),
+                        // existing metadata exists
+                        "GET /repository/releases/$metadataPath" to
+                            MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/xml")
+                                .setBody(
+                                    """
+                                    <metadata>
+                                      <groupId>io.specmatic</groupId>
+                                      <artifactId>example</artifactId>
+                                      <versioning>
+                                        <latest>1.0.0</latest>
+                                        <release>1.0.0</release>
+                                        <versions>
+                                          <version>1.0.0</version>
+                                        </versions>
+                                        <lastUpdated>20260710000000</lastUpdated>
+                                      </versioning>
+                                    </metadata>
+                                    """.trimIndent(),
+                                ),
+                        // allow uploading metadata
+                        "PUT /repository/releases/$metadataPath" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.md5" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.sha1" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.sha256" to MockResponse().setResponseCode(201),
+                        "PUT /repository/releases/$metadataPath.sha512" to MockResponse().setResponseCode(201),
+                    ),
+                )
 
             val task = task()
             task.inputDirectory.set(stagingDir.toFile())
@@ -151,30 +193,30 @@ class PromoteMavenArtifactsTaskTest {
 
             task.promoteArtifacts()
 
-            nextRequest(server) // pom PUT
-            nextRequest(server) // jar PUT
+            val requests = requestsByPath(server)
 
-            val metadataGet = nextRequest(server)
-            assertThat(metadataGet.method).isEqualTo("GET")
-            assertThat(metadataGet.path).isEqualTo("/repository/releases/io/specmatic/example/maven-metadata.xml")
+            requests.singleRequest("PUT", "/repository/releases/$pomPath")
+            requests.singleRequest("PUT", "/repository/releases/$artifactPath")
+            requests.singleRequest("GET", "/repository/releases/$metadataPath")
 
-            val metadataPut = nextRequest(server)
-            assertThat(metadataPut.method).isEqualTo("PUT")
-            assertThat(metadataPut.path).isEqualTo("/repository/releases/io/specmatic/example/maven-metadata.xml")
-            val metadataBody = metadataPut.body.readUtf8()
-            assertThat(metadataBody).contains("<version>1.0.0</version>")
-            assertThat(metadataBody).contains("<version>1.1.0</version>")
-            assertThat(metadataBody).contains("<latest>1.1.0</latest>")
-            assertThat(metadataBody).contains("<release>1.1.0</release>")
+            val metadataPut = requests.singleRequest("PUT", "/repository/releases/$metadataPath")
+            val metadataXml = parseXml(metadataPut.body.readUtf8())
+            assertThat(metadataXml.singleValue("/metadata/groupId")).isEqualTo("io.specmatic")
+            assertThat(metadataXml.singleValue("/metadata/artifactId")).isEqualTo("example")
+            assertThat(metadataXml.singleValue("/metadata/versioning/latest")).isEqualTo("1.1.0")
+            assertThat(metadataXml.singleValue("/metadata/versioning/release")).isEqualTo("1.1.0")
+            assertThat(metadataXml.values("/metadata/versioning/versions/version"))
+                .containsExactly("1.0.0", "1.1.0")
+            assertThat(metadataXml.singleValue("/metadata/versioning/lastUpdated")).matches("\\d{14}")
 
-            val metadataChecksumPaths =
-                List(4) { nextRequest(server).path }
-            assertThat(metadataChecksumPaths).containsExactlyInAnyOrder(
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.md5",
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.sha1",
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.sha256",
-                "/repository/releases/io/specmatic/example/maven-metadata.xml.sha512",
-            )
+            assertThat(requests.keys)
+                .contains(
+                    "PUT /repository/releases/$metadataPath.md5",
+                    "PUT /repository/releases/$metadataPath.sha1",
+                    "PUT /repository/releases/$metadataPath.sha256",
+                    "PUT /repository/releases/$metadataPath.sha512",
+                )
+            assertThat(requests).hasSize(8)
         } finally {
             server.shutdown()
         }
@@ -183,22 +225,6 @@ class PromoteMavenArtifactsTaskTest {
     @Test
     fun `uploads deployment bundle to maven central target and checks status`() {
         val server = MockWebServer()
-        server.enqueue(MockResponse().setResponseCode(201).setBody("deployment-123"))
-        server.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody(
-                    """
-                    {
-                      "deploymentId": "deployment-123",
-                      "deploymentName": "bundle.zip",
-                      "deploymentState": "PUBLISHED",
-                      "purls": ["pkg:maven/io.specmatic/example@1.0.0"]
-                    }
-                    """.trimIndent(),
-                ),
-        )
         server.start()
 
         try {
@@ -210,6 +236,29 @@ class PromoteMavenArtifactsTaskTest {
             Files.createDirectories(pomFile.parent)
             Files.writeString(pomFile, "<project/>")
             Files.writeString(jarFile, "jar-bytes")
+
+            server.dispatcher =
+                routeRequests(
+                    server.url("/"),
+                    mapOf(
+                        "POST /api/v1/publisher/upload?publishingType=AUTOMATIC" to
+                            MockResponse().setResponseCode(201).setBody("deployment-123"),
+                        "POST /api/v1/publisher/status?id=deployment-123" to
+                            MockResponse()
+                                .setResponseCode(200)
+                                .setHeader("Content-Type", "application/json")
+                                .setBody(
+                                    """
+                                    {
+                                      "deploymentId": "deployment-123",
+                                      "deploymentName": "bundle.zip",
+                                      "deploymentState": "PUBLISHED",
+                                      "purls": ["pkg:maven/io.specmatic/example@1.0.0"]
+                                    }
+                                    """.trimIndent(),
+                                ),
+                    ),
+                )
 
             val task = task()
             task.inputDirectory.set(stagingDir.toFile())
@@ -229,19 +278,17 @@ class PromoteMavenArtifactsTaskTest {
 
             task.promoteArtifacts()
 
-            val uploadRequest = nextRequest(server)
-            assertThat(uploadRequest.method).isEqualTo("POST")
-            assertThat(uploadRequest.path).contains("/api/v1/publisher/upload")
-            assertThat(uploadRequest.path).contains("publishingType=AUTOMATIC")
+            val requests = requestsByPath(server)
+
+            val uploadRequest = requests.singleRequest("POST", "/api/v1/publisher/upload?publishingType=AUTOMATIC")
             assertThat(uploadRequest.getHeader("Authorization")).isEqualTo("Bearer Y2VudHJhbFVzZXI6Y2VudHJhbFBhc3M=")
             val uploadBody = uploadRequest.body.readUtf8()
             assertThat(uploadBody).contains("example-1.0.0.pom")
             assertThat(uploadBody).contains("example-1.0.0.jar")
 
-            val statusRequest = nextRequest(server)
-            assertThat(statusRequest.method).isEqualTo("POST")
-            assertThat(statusRequest.path).isEqualTo("/api/v1/publisher/status?id=deployment-123")
+            val statusRequest = requests.singleRequest("POST", "/api/v1/publisher/status?id=deployment-123")
             assertThat(statusRequest.getHeader("Authorization")).isEqualTo("Bearer Y2VudHJhbFVzZXI6Y2VudHJhbFBhc3M=")
+            assertThat(requests).hasSize(2)
         } finally {
             server.shutdown()
         }
@@ -260,16 +307,50 @@ class PromoteMavenArtifactsTaskTest {
         username: String,
         password: String,
         artifactPaths: List<String>,
-    ): PromotionMavenTargetInput =
-        task.project.objects.newInstance(PromotionMavenTargetInput::class.java).apply {
-            this.repoName.set(repoName)
-            this.kind.set(kind.name)
-            this.url.set(url)
-            this.username.set(username)
-            this.password.set(password)
-            this.artifactPaths.set(artifactPaths)
-        }
+    ): PromotionMavenTargetInput = task.project.objects.newInstance(PromotionMavenTargetInput::class.java).apply {
+        this.repoName.set(repoName)
+        this.kind.set(kind.name)
+        this.url.set(url)
+        this.username.set(username)
+        this.password.set(password)
+        this.artifactPaths.set(artifactPaths)
+    }
 
-    private fun nextRequest(server: MockWebServer): RecordedRequest =
-        requireNotNull(server.takeRequest(5, TimeUnit.SECONDS)) { "Expected request not received within timeout" }
+    private fun routeRequests(baseUrl: HttpUrl, responses: Map<String, MockResponse>): Dispatcher = object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val key = "${request.method} ${request.path}"
+            return responses[key] ?: MockResponse()
+                .setResponseCode(500)
+                .setBody("Unexpected request for ${baseUrl.encodedPath}: $key")
+        }
+    }
+
+    private fun requestsByPath(server: MockWebServer): Map<String, List<RecordedRequest>> =
+        drainRequests(server).groupBy { "${it.method} ${it.path}" }
+
+    private fun Map<String, List<RecordedRequest>>.singleRequest(method: String, path: String): RecordedRequest = get("$method $path")
+        .also {
+            assertThat(it)
+                .withFailMessage("Expected exactly one request for %s %s but found %s", method, path, it?.size ?: 0)
+                .hasSize(1)
+        }!!
+        .single()
+
+    private fun drainRequests(server: MockWebServer): List<RecordedRequest> = generateSequence {
+        server.takeRequest(100, TimeUnit.MILLISECONDS)
+    }.toList()
+
+    private fun parseXml(xml: String): Document = DocumentBuilderFactory
+        .newInstance()
+        .apply {
+            isNamespaceAware = false
+        }.newDocumentBuilder()
+        .parse(InputSource(StringReader(xml)))
+
+    private fun Document.singleValue(expression: String): String = values(expression).single()
+
+    private fun Document.values(expression: String): List<String> {
+        val nodes = XPathFactory.newInstance().newXPath().evaluate(expression, this, XPathConstants.NODESET) as org.w3c.dom.NodeList
+        return (0 until nodes.length).map { index -> nodes.item(index).textContent.trim() }
+    }
 }

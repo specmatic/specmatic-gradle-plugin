@@ -43,7 +43,7 @@ dependencies {
     implementation("io.fuchs.gradle.classpath-collision-detector:io.fuchs.gradle.classpath-collision-detector.gradle.plugin:1.0.0")
     implementation("com.diffplug.spotless:com.diffplug.spotless.gradle.plugin:8.6.0")
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
-    implementation("org.zeroturnaround:zt-exec:1.12")
+    implementation("org.zeroturnaround:zt-exec:1.13.0")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
     implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.8")
     implementation("io.specmatic.priospot:gradle-plugin:0.99.4")

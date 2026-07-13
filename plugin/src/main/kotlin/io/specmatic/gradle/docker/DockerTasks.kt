@@ -79,6 +79,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             "buildx",
             "build",
             *commonDockerBuildArgs,
+            "--load",
             "--attest",
             "type=provenance,mode=max",
             "--attest",

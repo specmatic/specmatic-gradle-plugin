@@ -1,5 +1,6 @@
 package io.specmatic.gradle.promotion
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
@@ -101,8 +102,11 @@ abstract class InspectPromotionDockerImagesTask : DefaultTask() {
     }
 }
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 private data class DockerManifestList(val manifests: List<DockerManifest> = emptyList(), val annotations: Map<String, String> = emptyMap(),)
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 private data class DockerManifest(val platform: DockerPlatform? = null, val annotations: Map<String, String> = emptyMap())
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 private data class DockerPlatform(val architecture: String = "", val os: String = "")

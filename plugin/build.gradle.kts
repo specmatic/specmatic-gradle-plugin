@@ -29,7 +29,7 @@ dependencies {
     implementation("org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin:2.2.1")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0")
     implementation("commons-codec:commons-codec:1.22.0")
-    implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.4.2") {
+    implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.5.1") {
         exclude(group = "org.codehaus.plexus", module = "plexus-utils")
     }
     implementation("org.codehaus.plexus:plexus-utils:4.0.3")

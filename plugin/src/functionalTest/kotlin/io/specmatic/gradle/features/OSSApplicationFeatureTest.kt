@@ -1,6 +1,9 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL_FAT
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -54,7 +57,9 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             val result = runWithSuccess("publishAllPublicationsToStagingRepository", "runMain", "publishToMavenLocal")
             assertMainJarExecutes(result)
 
-            assertPublishedWithSourcesAndJavadocs("io.specmatic.example:example-project:1.2.3")
+            assertPublishedWithSourcesAndJavadocs(
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL_FAT),
+            )
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).isEmpty()
 
             assertThat(
@@ -154,7 +159,9 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             val result = runWithSuccess("publishAllPublicationsToStagingRepository", "runMain", "publishToMavenLocal")
             assertMainJarExecutes(result)
 
-            assertPublishedWithSourcesAndJavadocs("io.specmatic.example:example-project:1.2.3")
+            assertPublishedWithSourcesAndJavadocs(
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL_FAT),
+            )
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).isEmpty()
 
             assertThat(
@@ -265,8 +272,8 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             assertMainJarExecutes(result)
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:executable:1.2.3",
-                "io.specmatic.example:core:1.2.3",
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL_FAT),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
             )
 
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
@@ -403,7 +410,10 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             val result = runWithSuccess("publishAllPublicationsToStagingRepository", "runMain", "publishToMavenLocal")
             assertMainJarExecutes(result)
 
-            assertPublishedWithSourcesAndJavadocs("io.specmatic.example:executable:1.2.3", "io.specmatic.example:core:1.2.3")
+            assertPublishedWithSourcesAndJavadocs(
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL_FAT),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
+            )
 
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(

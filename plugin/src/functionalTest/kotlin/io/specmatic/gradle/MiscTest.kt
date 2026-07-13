@@ -66,10 +66,17 @@ class MiscTest : AbstractFunctionalTest() {
 
         runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
 
-        assertPublishedWithoutSourcesAndJavadocs(
-            "io.specmatic.example:core:1.2.3",
-            "io.specmatic.example:executable:1.2.3",
-        )
+        val coordinates =
+            arrayOf(
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+            )
+
+        assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
+        stagingRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
+
+        assertThat(localMavenRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
+        localMavenRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
 
         assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
             "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",

@@ -1,6 +1,8 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -45,7 +47,9 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
         fun `it publish jar with all dependencies declared in the pom to staging repository`() {
             runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
 
-            assertPublishedWithSourcesAndJavadocs("io.specmatic.example:example-project:1.2.3")
+            assertPublishedWithSourcesAndJavadocs(
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL),
+            )
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
                 "org.jetbrains.kotlin:kotlin-stdlib:1.9.20",
                 "org.slf4j:slf4j-api:2.0.17",
@@ -185,8 +189,8 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
             runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:executable:1.2.3",
-                "io.specmatic.example:core:1.2.3",
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
             )
 
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).containsExactlyInAnyOrder(

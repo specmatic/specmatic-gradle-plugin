@@ -1,6 +1,9 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL_FAT
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -77,8 +80,8 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:example-project:1.2.3",
-                "io.specmatic.example:example-project-all:1.2.3",
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:example-project-all:1.2.3", ORIGINAL_FAT),
             )
             assertThat(getDependencies("io.specmatic.example:example-project-all:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
@@ -194,8 +197,8 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:example-project:1.2.3",
-                "io.specmatic.example:example-project-all:1.2.3",
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:example-project-all:1.2.3", ORIGINAL_FAT),
             )
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
                 "org.slf4j:slf4j-api:2.0.17",
@@ -322,9 +325,9 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:executable:1.2.3",
-                "io.specmatic.example:executable-all:1.2.3",
-                "io.specmatic.example:core:1.2.3",
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:executable-all:1.2.3", ORIGINAL_FAT),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
             )
 
             assertThat(getDependencies("io.specmatic.example:executable-all:1.2.3")).isEmpty()
@@ -478,9 +481,9 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:executable:1.2.3",
-                "io.specmatic.example:executable-all:1.2.3",
-                "io.specmatic.example:core:1.2.3",
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:executable-all:1.2.3", ORIGINAL_FAT),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
             )
 
             assertThat(getDependencies("io.specmatic.example:executable-all:1.2.3")).isEmpty()

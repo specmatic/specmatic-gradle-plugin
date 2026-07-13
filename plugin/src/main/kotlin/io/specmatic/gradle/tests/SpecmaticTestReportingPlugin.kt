@@ -45,13 +45,14 @@ internal class SpecmaticTestReportingPlugin : Plugin<Project> {
     }
 
     private fun configureKover(eachProject: Project) {
-        eachProject.tasks.withType<KoverReport> {
-            dependsOn(project.tasks.withType<Test>())
-        }
-        eachProject.tasks.withType(Test::class.java) {
-            eachProject.pluginInfo("Ensure that ${this.path} is finalized by koverXmlReport")
-            finalizedBy(eachProject.tasks.withType<KoverReport>())
+        val testTasks = eachProject.tasks.withType<Test>()
+
+        eachProject.tasks.withType<KoverReport>().configureEach {
+            dependsOn(testTasks)
         }
 
+        eachProject.tasks.named("check") {
+            dependsOn(eachProject.tasks.withType<KoverReport>())
+        }
     }
 }

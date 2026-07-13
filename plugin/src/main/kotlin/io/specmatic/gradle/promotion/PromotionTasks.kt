@@ -213,7 +213,7 @@ private fun Project.registerPromotionPostReleaseBumpTask(dependentTask: TaskProv
         group = "promotion"
         description = "Bumps the repo to the next development version after promotion"
         rootDir.set(rootProject.rootDir)
-        postReleaseVersion.set(provider { property("release.newVersion").toString() })
+        postReleaseVersion.set(providers.gradleProperty("release.newVersion"))
     }
 
 private fun Project.registerPromotionGitPushTask(dependentTask: TaskProvider<*>): TaskProvider<*> =

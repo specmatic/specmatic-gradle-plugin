@@ -75,7 +75,6 @@ class SpecmaticGradlePlugin : Plugin<Project> {
                     }
                 }
             }
-
         }
 
         target.plugins.apply(SpecmaticReleasePlugin::class.java)

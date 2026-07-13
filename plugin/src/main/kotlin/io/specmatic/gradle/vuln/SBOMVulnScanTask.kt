@@ -13,15 +13,14 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.process.ExecOperations
 
 abstract class SBOMVulnScanTask
-@Inject
-constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
+    @Inject
+    constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
+        @get:InputFile
+        @get:PathSensitive(PathSensitivity.RELATIVE)
+        abstract val sbomFile: Property<File>
 
-    @get:InputFile
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val sbomFile: Property<File>
-
-    override fun scanTarget(): ScanTarget = ScanTarget(ScanTargetKind.SBOM, sbomFile.get().path)
-}
+        override fun scanTarget(): ScanTarget = ScanTarget(ScanTargetKind.SBOM, sbomFile.get().path)
+    }
 
 internal fun Project.createSBOMVulnScanTask() {
     val scanTaskName = "vulnScanSBOM"

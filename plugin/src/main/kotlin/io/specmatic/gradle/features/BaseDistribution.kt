@@ -1,7 +1,7 @@
 package io.specmatic.gradle.features
 
-import com.vanniktech.maven.publish.MavenPublishBasePlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.vanniktech.maven.publish.MavenPublishBasePlugin
 import io.specmatic.gradle.autogen.createJULLogForwarderClassTask
 import io.specmatic.gradle.autogen.createLogbackXMLFileTask
 import io.specmatic.gradle.docker.registerDockerTasks

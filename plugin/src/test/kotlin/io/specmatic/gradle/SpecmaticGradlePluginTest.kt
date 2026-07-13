@@ -221,7 +221,11 @@ class SpecmaticGradlePluginTest {
             .contains("$artifactBasePath.jar.asc")
             .contains("$artifactBasePath.jar.asc.sha256")
             .contains("$artifactBasePath.jar.sha256")
-        assertThat(task.outputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(
+            task.outputDirectory
+                .get()
+                .asFile.path
+        ).endsWith("build/promotion/maven")
     }
 
     @Test
@@ -245,7 +249,11 @@ class SpecmaticGradlePluginTest {
         val inspectPromotionTask = project.tasks.named("inspectPromotion").get()
         val verifyTask = project.tasks.named("verifyPromotionMavenArtifacts").get() as VerifyPromotionMavenArtifactsTask
 
-        assertThat(verifyTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(
+            verifyTask.inputDirectory
+                .get()
+                .asFile.path
+        ).endsWith("build/promotion/maven")
         assertThat(verifyTask.expectedVersion.get()).isEqualTo("1.2.3")
         assertThat(verifyTask.taskDependencies.getDependencies(verifyTask)).contains(downloadTask)
         assertThat(inspectPromotionTask.taskDependencies.getDependencies(inspectPromotionTask)).contains(verifyTask)
@@ -272,13 +280,17 @@ class SpecmaticGradlePluginTest {
         val inspectPromotionTask = project.tasks.named("inspectPromotion").get()
         val promoteTask = project.tasks.named("promoteMaven").get() as PromoteMavenArtifactsTask
 
-        assertThat(promoteTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(
+            promoteTask.inputDirectory
+                .get()
+                .asFile.path
+        ).endsWith("build/promotion/maven")
         assertThat(promoteTask.targets.get()).singleElement().satisfies({
             assertThat(it.repoName.get()).isEqualTo("reposilite")
             assertThat(it.kind.get()).isEqualTo(PromotionMavenTargetKind.REPOSITORY.name)
             assertThat(it.url.get()).isEqualTo("https://repo.example.com/releases")
             assertThat(it.artifactPaths.get())
-            .contains("org/example/${project.name}/1.2.3/${project.name}-1.2.3.jar")
+                .contains("org/example/${project.name}/1.2.3/${project.name}-1.2.3.jar")
         })
         assertThat(promoteTask.taskDependencies.getDependencies(promoteTask)).contains(inspectPromotionTask)
     }

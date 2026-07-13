@@ -56,7 +56,6 @@ class CommercialApplicationFeature(project: Project) :
         }
     }
 
-
     override fun shadow(prefix: String?, action: Action<ShadowJar>?) {
         super.shadow(prefix, action)
     }

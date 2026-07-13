@@ -10,29 +10,26 @@ import io.specmatic.gradle.vuln.scanner.VulnerabilitySeverity
 import java.io.File
 import org.kohsuke.github.GHAsset
 
-class TrivyScanner : GithubReleaseBinaryScanner(
-    repository = "aquasecurity/trivy",
-    executableName = "trivy",
-    homeDirName = ".specmatic-trivy",
-    lockFileName = "trivy-download.lock",
-    installDirName = "trivy",
-    versionFileName = "trivy.version",
-) {
-    override fun commandFor(context: ScannerContext, target: ScanTarget, format: String): List<String> =
-        commandPrefix(context, target) +
-                listOf(
-                    "--ignore-unfixed",
-                    "--quiet",
-                    "--no-progress",
-                    "--format",
-                    format,
-                ) +
-                target.value
+class TrivyScanner :
+    GithubReleaseBinaryScanner(
+        repository = "aquasecurity/trivy",
+        executableName = "trivy",
+        homeDirName = ".specmatic-trivy",
+        lockFileName = "trivy-download.lock",
+        installDirName = "trivy",
+        versionFileName = "trivy.version",
+    ) {
+    override fun commandFor(context: ScannerContext, target: ScanTarget, format: String): List<String> = commandPrefix(context, target) +
+        listOf(
+            "--ignore-unfixed",
+            "--quiet",
+            "--no-progress",
+            "--format",
+            format,
+        ) +
+        target.value
 
-    override fun hasVulnerabilities(
-        jsonReportFile: File,
-        severities: Set<VulnerabilitySeverity>,
-    ): Boolean {
+    override fun hasVulnerabilities(jsonReportFile: File, severities: Set<VulnerabilitySeverity>,): Boolean {
         val report: VulnerabilityReport =
             jacksonObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -52,21 +49,19 @@ class TrivyScanner : GithubReleaseBinaryScanner(
         val fileName = asset.name.lowercase()
 
         return fileName.contains("_${trivyOs.lowercase()}-$trivyArch") &&
-                (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz"))
+            (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz"))
     }
 
-    private fun trivyTargetCommand(kind: ScanTargetKind): String =
-        when (kind) {
-            ScanTargetKind.IMAGE -> "image"
-            ScanTargetKind.SBOM -> "sbom"
-            ScanTargetKind.ROOTFS -> "rootfs"
-        }
+    private fun trivyTargetCommand(kind: ScanTargetKind): String = when (kind) {
+        ScanTargetKind.IMAGE -> "image"
+        ScanTargetKind.SBOM -> "sbom"
+        ScanTargetKind.ROOTFS -> "rootfs"
+    }
 
-    private fun commandPrefix(context: ScannerContext, target: ScanTarget): List<String> =
-        listOf(
-            executablePath(context),
-            trivyTargetCommand(target.kind),
-        )
+    private fun commandPrefix(context: ScannerContext, target: ScanTarget): List<String> = listOf(
+        executablePath(context),
+        trivyTargetCommand(target.kind),
+    )
 
     private fun severityFrom(raw: String): VulnerabilitySeverity? =
         VulnerabilitySeverity.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }

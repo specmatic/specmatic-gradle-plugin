@@ -7,10 +7,10 @@ import java.io.File
 import java.io.IOException
 import java.io.StringReader
 import java.net.URI
-import java.util.Base64
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import okhttp3.MediaType.Companion.toMediaType
@@ -259,7 +259,8 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
 
     private fun fetchExistingMetadataOverHttp(baseUrl: String, username: String, password: String, metadataPath: String): Metadata? {
         val request =
-            Request.Builder()
+            Request
+                .Builder()
                 .url("${ensureTrailingSlash(baseUrl)}$metadataPath")
                 .get()
                 .header("Authorization", okhttp3.Credentials.basic(username, password))
@@ -267,8 +268,14 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
 
         httpClient.newCall(request).execute().use { response ->
             return when {
-                response.code == 404 -> null
-                !response.isSuccessful -> throw IOException("Failed to fetch $metadataPath with HTTP ${response.code}")
+                response.code == 404 -> {
+                    null
+                }
+
+                !response.isSuccessful -> {
+                    throw IOException("Failed to fetch $metadataPath with HTTP ${response.code}")
+                }
+
                 else -> {
                     val body = response.body.string()
                     MetadataXpp3Reader().read(StringReader(body))
@@ -382,38 +389,32 @@ private val LAST_UPDATED_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss
 private val CHECKSUM_ALGORITHMS = mapOf("md5" to "MD5", "sha1" to "SHA-1", "sha256" to "SHA-256", "sha512" to "SHA-512")
 private val CHECKSUM_EXTENSIONS = CHECKSUM_ALGORITHMS.keys.toList()
 
-private data class ReleaseMetadataEntry(
-    val groupId: String,
-    val artifactId: String,
-    val version: String,
-    val metadataPath: String,
-)
+private data class ReleaseMetadataEntry(val groupId: String, val artifactId: String, val version: String, val metadataPath: String,)
 
-private fun releaseMetadataEntries(artifactPaths: List<String>): List<ReleaseMetadataEntry> =
-    artifactPaths
-        .asSequence()
-        .filter { it.endsWith(".pom") }
-        .mapNotNull { path ->
-            val segments = path.split("/")
-            if (segments.size < 4) {
-                return@mapNotNull null
-            }
+private fun releaseMetadataEntries(artifactPaths: List<String>): List<ReleaseMetadataEntry> = artifactPaths
+    .asSequence()
+    .filter { it.endsWith(".pom") }
+    .mapNotNull { path ->
+        val segments = path.split("/")
+        if (segments.size < 4) {
+            return@mapNotNull null
+        }
 
-            val version = segments[segments.lastIndex - 1]
-            val artifactId = segments[segments.lastIndex - 2]
-            val groupSegments = segments.dropLast(3)
-            if (groupSegments.isEmpty()) {
-                return@mapNotNull null
-            }
+        val version = segments[segments.lastIndex - 1]
+        val artifactId = segments[segments.lastIndex - 2]
+        val groupSegments = segments.dropLast(3)
+        if (groupSegments.isEmpty()) {
+            return@mapNotNull null
+        }
 
-            ReleaseMetadataEntry(
-                groupId = groupSegments.joinToString("."),
-                artifactId = artifactId,
-                version = version,
-                metadataPath = "${groupSegments.joinToString("/")}/$artifactId/maven-metadata.xml",
-            )
-        }.distinct()
-        .toList()
+        ReleaseMetadataEntry(
+            groupId = groupSegments.joinToString("."),
+            artifactId = artifactId,
+            version = version,
+            metadataPath = "${groupSegments.joinToString("/")}/$artifactId/maven-metadata.xml",
+        )
+    }.distinct()
+    .toList()
 
 abstract class PromotionMavenTargetInput {
     @get:Input

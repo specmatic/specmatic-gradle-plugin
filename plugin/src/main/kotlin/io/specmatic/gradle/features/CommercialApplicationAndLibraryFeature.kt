@@ -46,7 +46,6 @@ class CommercialApplicationAndLibraryFeature(project: Project) :
                     "${project.name}-all",
                 )
 
-                
                 if (project.generateAllJars()) {
                     val unobfuscatedShadowJar = project.createUnobfuscatedShadowJar(shadowActions, shadowPrefix, true)
                     project.createRunFatJarTask(unobfuscatedShadowJar, mainClass)
@@ -62,7 +61,6 @@ class CommercialApplicationAndLibraryFeature(project: Project) :
                     obfuscatedOriginalJar,
                     project.name,
                 )
-
             }
         }
     }

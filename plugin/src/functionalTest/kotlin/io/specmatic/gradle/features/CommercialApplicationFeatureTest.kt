@@ -138,10 +138,9 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 .contains("ADD foo-bar-image /usr/local/bin/foo-bar-image")
                 .contains(
                     "RUN ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/foo && " +
-                            "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/bar && " +
-                            "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/baz",
-                )
-                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                        "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/bar && " +
+                        "ln -sf /usr/local/bin/foo-bar-image /usr/local/bin/baz",
+                ).contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
                 .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
                 .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/foo-bar-image"""")
                 .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")

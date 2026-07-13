@@ -68,11 +68,12 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
         projectDir.execGit(logger, "commit", "-m", "Commit after publish")
         val currentGitSha = projectDir.execGit(logger, "rev-parse", "HEAD").outputUTF8().trim()
 
-        val result = runWithFailure(
-            "promoteArtifacts",
-            "-PskipRepoDirtyCheck=true",
-            "-PskipIncomingOutgoingCheck=true",
-        )
+        val result =
+            runWithFailure(
+                "promoteArtifacts",
+                "-PskipRepoDirtyCheck=true",
+                "-PskipIncomingOutgoingCheck=true",
+            )
 
         assertThat(currentGitSha).isNotEqualTo(publishedGitSha)
         assertThat(result.output).contains("Execution failed for task ':verifyPromotionMavenArtifacts'")
@@ -83,9 +84,11 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
     private fun addSignaturesToPublishedArtifacts() {
         val repository = projectDir.resolve("build/mvn-repo")
         val artifacts =
-            repository.walkTopDown().filter { file ->
-                file.isFile && (file.extension == "jar" || file.extension == "pom")
-            }.toList()
+            repository
+                .walkTopDown()
+                .filter { file ->
+                    file.isFile && (file.extension == "jar" || file.extension == "pom")
+                }.toList()
 
         artifacts.forEach { artifact ->
             val signature = File("${artifact.absolutePath}.asc")

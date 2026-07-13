@@ -385,4 +385,5 @@ open class AbstractFunctionalTest {
 
 data class PublishedArtifact(val coordinates: String, val artifactType: SpecmaticArtifactType)
 
-fun publishedArtifact(coordinates: String, artifactType: SpecmaticArtifactType): PublishedArtifact = PublishedArtifact(coordinates, artifactType)
+fun publishedArtifact(coordinates: String, artifactType: SpecmaticArtifactType): PublishedArtifact =
+    PublishedArtifact(coordinates, artifactType)

@@ -247,13 +247,13 @@ private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePacka
 }
 
 private fun shouldRelocatePackage(entryName: String, excludePackages: List<String>): Boolean = entryName.endsWith(".class") &&
-        entryName.contains("/") &&
-        excludePackages.none {
-            entryName.startsWith(
-                "$it/",
-            )
-        } &&
-        !entryName.startsWith("META-INF/")
+    entryName.contains("/") &&
+    excludePackages.none {
+        entryName.startsWith(
+            "$it/",
+        )
+    } &&
+    !entryName.startsWith("META-INF/")
 
 internal fun ShadowJar.configureCommonShadowConfigs(
     jarTask: TaskProvider<Jar>,

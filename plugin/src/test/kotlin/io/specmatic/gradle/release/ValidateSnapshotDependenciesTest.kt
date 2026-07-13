@@ -88,7 +88,12 @@ class ValidateSnapshotDependenciesTest {
     @Test
     fun `detects snapshot dependencies declared in a subproject`() {
         val rootProject = ProjectBuilder.builder().withName("root").build()
-        val subProject = ProjectBuilder.builder().withName("child").withParent(rootProject).build()
+        val subProject =
+            ProjectBuilder
+                .builder()
+                .withName("child")
+                .withParent(rootProject)
+                .build()
         subProject.declareDependency("io.specmatic.example:child-lib:1.0.0-SNAPSHOT")
         val task = rootProject.validateSnapshotDependenciesTask()
 
@@ -106,7 +111,12 @@ class ValidateSnapshotDependenciesTest {
     @Test
     fun `ignores snapshot internal project dependencies`() {
         val rootProject = ProjectBuilder.builder().withName("root").build()
-        val subProject = ProjectBuilder.builder().withName("child").withParent(rootProject).build()
+        val subProject =
+            ProjectBuilder
+                .builder()
+                .withName("child")
+                .withParent(rootProject)
+                .build()
         subProject.version = "1.0.0-SNAPSHOT"
         rootProject.declareProjectDependency(subProject)
         val task = rootProject.validateSnapshotDependenciesTask()
@@ -117,7 +127,12 @@ class ValidateSnapshotDependenciesTest {
     @Test
     fun `ignores snapshot project dependencies but still fails on external snapshot dependencies`() {
         val rootProject = ProjectBuilder.builder().withName("root").build()
-        val subProject = ProjectBuilder.builder().withName("child").withParent(rootProject).build()
+        val subProject =
+            ProjectBuilder
+                .builder()
+                .withName("child")
+                .withParent(rootProject)
+                .build()
         subProject.version = "1.0.0-SNAPSHOT"
         rootProject.declareProjectDependency(subProject)
         rootProject.declareDependency("io.specmatic.example:external-lib:2.0.0-SNAPSHOT")
@@ -138,7 +153,12 @@ class ValidateSnapshotDependenciesTest {
     fun `groups snapshot dependencies by project in the failure message`() {
         val rootProject = ProjectBuilder.builder().withName("root").build()
         rootProject.declareDependency("io.specmatic.example:root-lib:1.0.0-SNAPSHOT")
-        val subProject = ProjectBuilder.builder().withName("child").withParent(rootProject).build()
+        val subProject =
+            ProjectBuilder
+                .builder()
+                .withName("child")
+                .withParent(rootProject)
+                .build()
         subProject.declareDependency("io.specmatic.example:child-lib:2.0.0-SNAPSHOT")
         val task = rootProject.validateSnapshotDependenciesTask()
 

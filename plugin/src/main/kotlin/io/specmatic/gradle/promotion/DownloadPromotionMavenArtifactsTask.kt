@@ -58,15 +58,22 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                         Callable {
                             val targetFile = outputDir.resolve(relativePath)
                             when (repositoryUri.scheme.lowercase()) {
-                                "file" -> copyFromFileRepository(repositoryUri, relativePath, targetFile)
-                                "http", "https" ->
+                                "file" -> {
+                                    copyFromFileRepository(repositoryUri, relativePath, targetFile)
+                                }
+
+                                "http", "https" -> {
                                     downloadWithRetries(
                                         client = httpClient,
                                         uri = repositoryUri.resolve(relativePath).toString(),
                                         targetFile = targetFile,
                                         maxRetries = maxRetries.get(),
                                     )
-                                else -> throw GradleException("Unsupported Maven repository scheme '${repositoryUri.scheme}'")
+                                }
+
+                                else -> {
+                                    throw GradleException("Unsupported Maven repository scheme '${repositoryUri.scheme}'")
+                                }
                             }
                         },
                     )

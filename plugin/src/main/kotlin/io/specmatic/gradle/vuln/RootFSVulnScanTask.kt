@@ -12,14 +12,13 @@ import org.gradle.plugins.signing.Sign
 import org.gradle.process.ExecOperations
 
 abstract class RootFSVulnScanTask
-@Inject
-constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
-    @get:InputDirectory
-    abstract val inputDir: Property<File>
+    @Inject
+    constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
+        @get:InputDirectory
+        abstract val inputDir: Property<File>
 
-    override fun scanTarget(): ScanTarget =
-        ScanTarget(ScanTargetKind.ROOTFS, inputDir.get().path)
-}
+        override fun scanTarget(): ScanTarget = ScanTarget(ScanTargetKind.ROOTFS, inputDir.get().path)
+    }
 
 internal fun Project.createJarVulnScanTask() {
     val scanTaskName = "vulnScanJar"

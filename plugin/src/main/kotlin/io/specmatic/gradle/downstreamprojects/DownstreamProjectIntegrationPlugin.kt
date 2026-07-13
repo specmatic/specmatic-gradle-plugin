@@ -140,63 +140,70 @@ private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotEx
             )
     }
 
-private fun Project.validateDownstreamProjectTask(
-    eachRepo: String,
-    cloneRepoIfNotExists: TaskProvider<out Task>,
-): TaskProvider<Exec> = tasks.register("validate-$eachRepo", Exec::class.java) {
-    subprojects.forEach { subproject ->
-        dependsOn("${subproject.path}:publishAllPublicationsToStagingRepository")
-        dependsOn("${subproject.path}:publishToMavenLocal")
-    }
+private fun Project.validateDownstreamProjectTask(eachRepo: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<Exec> =
+    tasks.register("validate-$eachRepo", Exec::class.java) {
+        subprojects.forEach { subproject ->
+            dependsOn("${subproject.path}:publishAllPublicationsToStagingRepository")
+            dependsOn("${subproject.path}:publishToMavenLocal")
+        }
 
-    dependsOn(cloneRepoIfNotExists)
+        dependsOn(cloneRepoIfNotExists)
 
-    workingDir = getDownstreamProjectDir(eachRepo)
+        workingDir = getDownstreamProjectDir(eachRepo)
 
-    doFirst {
-        val projectDir = workingDir ?: getDownstreamProjectDir(eachRepo)
-        val hasGradleBuild = File(projectDir, "build.gradle").exists() || File(projectDir, "build.gradle.kts").exists()
-        val hasMavenPom = File(projectDir, "pom.xml").exists()
+        doFirst {
+            val projectDir = workingDir ?: getDownstreamProjectDir(eachRepo)
+            val hasGradleBuild = File(projectDir, "build.gradle").exists() || File(projectDir, "build.gradle.kts").exists()
+            val hasMavenPom = File(projectDir, "pom.xml").exists()
 
-        val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+            val isWindows = System.getProperty("os.name").lowercase().contains("windows")
 
-        when {
-            hasGradleBuild -> {
-                println(
-                    "Validating $eachRepo using ${
-                        if (isWindows) "`gradlew.bat`" else "`./gradlew`"
-                    } check -P$specmaticModulePropertyKey=$version",
-                )
-                commandLine = if (isWindows)
-                    listOf("cmd", "/c", "gradlew.bat", "check", "-P$specmaticModulePropertyKey=$version")
-                else
-                    listOf("./gradlew", "check", "-P$specmaticModulePropertyKey=$version")
-            }
-
-            hasMavenPom -> {
-                println("Validating $eachRepo using mvn test")
-                val wrapperUnix = File(projectDir, "mvnw")
-                val wrapperWin = File(projectDir, "mvnw.bat")
-
-                commandLine = if (isWindows)
-                    listOf(
-                        "cmd",
-                        "/c",
-                        if (wrapperWin.exists()) "mvnw.bat" else "mvn",
-                        "test",
-                        "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}",
+            when {
+                hasGradleBuild -> {
+                    println(
+                        "Validating $eachRepo using ${
+                            if (isWindows) "`gradlew.bat`" else "`./gradlew`"
+                        } check -P$specmaticModulePropertyKey=$version",
                     )
-                else
-                    if (wrapperUnix.exists()) listOf("./mvnw", "test", "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}")
-                    else listOf("mvn", "test", "-D${specmaticModulePropertyKey}=${specmaticModuleVersion}")
-            }
+                    commandLine =
+                        if (isWindows) {
+                            listOf("cmd", "/c", "gradlew.bat", "check", "-P$specmaticModulePropertyKey=$version")
+                        } else {
+                            listOf("./gradlew", "check", "-P$specmaticModulePropertyKey=$version")
+                        }
+                }
 
-            else -> {
-                throw org.gradle.api.GradleException("No build file found in ${projectDir.absolutePath}: expected build.gradle, build.gradle.kts or pom.xml")
+                hasMavenPom -> {
+                    println("Validating $eachRepo using mvn test")
+                    val wrapperUnix = File(projectDir, "mvnw")
+                    val wrapperWin = File(projectDir, "mvnw.bat")
+
+                    commandLine =
+                        if (isWindows) {
+                            listOf(
+                                "cmd",
+                                "/c",
+                                if (wrapperWin.exists()) "mvnw.bat" else "mvn",
+                                "test",
+                                "-D$specmaticModulePropertyKey=$specmaticModuleVersion",
+                            )
+                        } else {
+                            if (wrapperUnix.exists()) {
+                                listOf("./mvnw", "test", "-D$specmaticModulePropertyKey=$specmaticModuleVersion")
+                            } else {
+                                listOf("mvn", "test", "-D$specmaticModulePropertyKey=$specmaticModuleVersion")
+                            }
+                        }
+                }
+
+                else -> {
+                    throw org.gradle.api.GradleException(
+                        "No build file found in ${projectDir.absolutePath}: expected build.gradle, build.gradle.kts or pom.xml"
+                    )
+                }
             }
         }
     }
-}
 
 private fun Project.cloneOrUpdateRepoTask(eachRepo: String): TaskProvider<Exec> = tasks.register("clone-$eachRepo", Exec::class.java) {
     onlyIf("skipDownstreamClone not set") {

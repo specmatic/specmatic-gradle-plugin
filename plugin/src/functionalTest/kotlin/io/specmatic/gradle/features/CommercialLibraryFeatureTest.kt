@@ -100,7 +100,6 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                         "org.jetbrains.kotlin:kotlin-stdlib:1.9.20",
                     )
                 }
-
             }
         }
 
@@ -360,7 +359,6 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
             )
 
-
         val allArtifacts = allObfuscatedArtifacts
 
         @Nested
@@ -542,7 +540,6 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
             assertThat(
                 projectDir.resolve("build/all-artifacts").getPublishedArtifactCoordinates(),
             ).containsExactlyInAnyOrder(*allArtifacts)
-
         }
     }
 }

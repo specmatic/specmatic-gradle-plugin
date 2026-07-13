@@ -260,10 +260,13 @@ class PromoteMavenArtifactsTaskTest {
                     when {
                         request.method == "POST" &&
                             request.path?.startsWith("/api/v1/publisher/upload?") == true &&
-                            request.path?.contains("publishingType=AUTOMATIC") == true ->
+                            request.path?.contains("publishingType=AUTOMATIC") == true -> {
                             MockResponse().setResponseCode(201).setBody("deployment-123")
+                        }
 
-                        else -> null
+                        else -> {
+                            null
+                        }
                     }
                 }
 
@@ -288,9 +291,11 @@ class PromoteMavenArtifactsTaskTest {
             val requests = requestsByPath(server)
 
             val uploadRequest =
-                requests.entries.single { (key, _) ->
-                    key.startsWith("POST /api/v1/publisher/upload?") && key.contains("publishingType=AUTOMATIC")
-                }.value.single()
+                requests.entries
+                    .single { (key, _) ->
+                        key.startsWith("POST /api/v1/publisher/upload?") && key.contains("publishingType=AUTOMATIC")
+                    }.value
+                    .single()
             assertThat(uploadRequest.getHeader("Authorization")).isEqualTo("Bearer Y2VudHJhbFVzZXI6Y2VudHJhbFBhc3M=")
             val uploadBody = uploadRequest.body.readUtf8()
             assertThat(uploadBody).contains("example-1.0.0.pom")

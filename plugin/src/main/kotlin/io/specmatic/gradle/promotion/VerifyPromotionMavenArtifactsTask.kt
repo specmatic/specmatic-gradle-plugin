@@ -49,6 +49,7 @@ abstract class VerifyPromotionMavenArtifactsTask : DefaultTask() {
             properties.expect("x-specmatic-group", groupId, pomFile)
             properties.expect("x-specmatic-git-sha", expectedGitSha.get(), pomFile)
             properties.expect("x-specmatic-git-short-sha", expectedGitSha.get().take(8).trim(), pomFile)
+            properties.requirePresent("x-specmatic-artifact-type", pomFile)
             val stampedName =
                 properties.getProperty("x-specmatic-name")
                     ?: throw GradleException("POM ${pomFile.absolutePath} is missing x-specmatic-name")
@@ -146,6 +147,12 @@ private fun Properties.expect(key: String, expected: String, file: File) {
     val actual = getProperty(key)
     if (actual != expected) {
         throw GradleException("File ${file.absolutePath} has $key=$actual, expected $expected")
+    }
+}
+
+private fun Properties.requirePresent(key: String, file: File) {
+    if (getProperty(key).isNullOrBlank()) {
+        throw GradleException("POM ${file.absolutePath} is missing $key")
     }
 }
 

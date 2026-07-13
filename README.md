@@ -330,13 +330,13 @@ Here is a list of available tasks
 | `release`                                            | Verify project, release, and update version to next.                                           |
 | **Promotion tasks**                                  |                                                                                                |
 | `inspectPromotion`                                   | Run promotion pre-flight and validate Maven/Docker provenance before any promotion happens.    |
-| `promoteArtifacts`                                   | Promote configured Maven and Docker artifacts after the inspect phase succeeds.                 |
+| `promoteArtifacts`                                   | Promote configured Maven and Docker artifacts after the inspect phase succeeds.                |
 | `promote`                                            | Run the full promotion flow, update release metadata, create GitHub release, and bump version. |
-| `downloadPromotionMavenArtifacts`                    | Download published Maven artifacts from the canonical repository.                               |
-| `verifyPromotionMavenArtifacts`                      | Verify downloaded Maven artifacts against current version and git SHA.                          |
-| `inspectPromotionDockerImages`                       | Verify canonical multi-platform Docker images and OCI annotations.                              |
-| `promoteMaven`                                       | Promote verified Maven artifacts to configured target repositories.                             |
-| `promoteDocker`                                      | Promote verified Docker images to configured target image names.                                |
+| `downloadPromotionMavenArtifacts`                    | Download published Maven artifacts from the canonical repository.                              |
+| `verifyPromotionMavenArtifacts`                      | Verify downloaded Maven artifacts against current version and git SHA.                         |
+| `inspectPromotionDockerImages`                       | Verify canonical multi-platform Docker images and OCI annotations.                             |
+| `promoteMaven`                                       | Promote verified Maven artifacts to configured target repositories.                            |
+| `promoteDocker`                                      | Promote verified Docker images to configured target image names.                               |
 | **Vulnerability tasks**                              |                                                                                                |
 | `vulnScanSBOMScan`                                   | Scan for and print vulnerabilities in dependency tree (SBOM).                                  |
 | `vulnScanJarScan`                                    | Scan for and print vulnerabilities by deep scanning inside each generated jar.                 |

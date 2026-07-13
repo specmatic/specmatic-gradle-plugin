@@ -14,9 +14,33 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 interface PublishTarget
 
-class MavenCentral : PublishTarget
+data class MavenCentral(val repoName: String = "mavenCentral", val type: RepoType = RepoType.PUBLISH_ALL) : PublishTarget
 
 data class MavenInternal(val repoName: String, val url: URI, val type: RepoType) : PublishTarget
+
+data class PromotionDockerImage(val sourceImage: String, val targetImage: String)
+
+open class PromotionConfig {
+    var canonicalMavenRepository: URI? = null
+    internal val targetMavenRepositories = mutableListOf<PublishTarget>()
+    val dockerImagePromotions = mutableListOf<PromotionDockerImage>()
+
+    fun canonicalMavenRepository(url: String) {
+        canonicalMavenRepository = URI.create(url)
+    }
+
+    fun targetMavenRepository(name: String, url: String, type: RepoType = RepoType.PUBLISH_ALL) {
+        targetMavenRepositories.add(MavenInternal(name, URI.create(url), type))
+    }
+
+    fun targetMavenCentral(name: String = "mavenCentral", type: RepoType = RepoType.PUBLISH_ALL) {
+        targetMavenRepositories.add(MavenCentral(name, type))
+    }
+
+    fun dockerImage(sourceImage: String, targetImage: String) {
+        dockerImagePromotions.add(PromotionDockerImage(sourceImage, targetImage))
+    }
+}
 
 open class SpecmaticGradleExtension {
     var releasePublishTasks = listOf<String>()
@@ -34,9 +58,14 @@ open class SpecmaticGradleExtension {
     internal val licenseData = mutableListOf<ModuleLicenseData>()
     internal val projectConfigurations: MutableMap<Project, BaseDistribution> = mutableMapOf()
     var versionReplacements = mutableMapOf<String, String>()
+    val promotion = PromotionConfig()
 
     fun licenseData(block: ModuleLicenseData.() -> Unit) {
         licenseData.add(ModuleLicenseData().apply(block))
+    }
+
+    fun promotion(block: PromotionConfig.() -> Unit) {
+        promotion.apply(block)
     }
 
     fun withOSSLibrary(project: Project, block: OSSLibraryFeature.() -> Unit) {

@@ -1,7 +1,11 @@
 package io.specmatic.gradle
 
 import io.specmatic.gradle.versioninfo.ProjectVersionInfo
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
 import org.assertj.core.api.Assertions.assertThat
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -200,6 +204,38 @@ class ProjectVersionInfoTest {
                 )
 
             assertThat(projectVersionInfo.toKotlinClass().contains("""fun describe() = "v1.0.0""""))
+        }
+
+        @Test
+        fun `adds specmatic metadata to pom properties`() {
+            val project = ProjectBuilder.builder().withName("Specmatic-License-Generator").build()
+            project.group = "io.specmatic"
+            project.version = "1.0.0"
+            project.plugins.apply("maven-publish")
+
+            val publication =
+                project.extensions
+                    .getByType(PublishingExtension::class.java)
+                    .publications
+                    .create("test", MavenPublication::class.java)
+
+            ProjectVersionInfo(
+                version = "1.0.0",
+                gitCommit = "1234567890abcdef",
+                group = "io.specmatic",
+                name = "Specmatic-License-Generator",
+                kotlinPackageName = "io.specmatic",
+                isRootProject = true,
+                timestamp = "2021-09-01T12:00:00Z",
+            ).addToPom(publication.pom, SpecmaticArtifactType.OBFUSCATED_FAT)
+
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-version", "1.0.0")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-group", "io.specmatic")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-name", "Specmatic-License-Generator")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-git-sha", "1234567890abcdef")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-git-short-sha", "12345678")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-artifact-type", "obfuscated-fat")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-compile-timestamp", "2021-09-01T12:00:00Z")
         }
     }
 }

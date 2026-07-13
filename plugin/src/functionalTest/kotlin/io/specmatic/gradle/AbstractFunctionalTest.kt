@@ -1,10 +1,12 @@
 package io.specmatic.gradle
 
 import io.specmatic.gradle.release.execGit
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
 import java.io.File
+import java.util.Properties
 import java.util.jar.JarFile
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.assertj.core.api.Assertions.assertThat
-import org.gradle.internal.impldep.org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.BeforeEach
@@ -262,23 +264,37 @@ open class AbstractFunctionalTest {
     }
 
     fun assertPublishedWithoutSourcesAndJavadocs(coordinates: Collection<String>) {
-        assertPublishedWithoutSourcesAndJavadocs(*coordinates.toTypedArray())
+        error("Use assertPublishedWithoutSourcesAndJavadocs(vararg publishedArtifacts: PublishedArtifact)")
     }
 
     fun assertPublishedWithoutSourcesAndJavadocs(vararg coordinates: String) {
+        error("Use assertPublishedWithoutSourcesAndJavadocs(vararg publishedArtifacts: PublishedArtifact)")
+    }
+
+    fun assertPublishedWithoutSourcesAndJavadocs(vararg publishedArtifacts: PublishedArtifact) {
+        val coordinates = publishedArtifacts.map { it.coordinates }.toTypedArray()
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         stagingRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
+        stagingRepo.assertSpecmaticPomProperties(*publishedArtifacts)
 
         assertThat(localMavenRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         localMavenRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
+        localMavenRepo.assertSpecmaticPomProperties(*publishedArtifacts)
     }
 
     fun assertPublishedWithSourcesAndJavadocs(vararg coordinates: String, isEmptySourceAndJavadoc: Boolean = false) {
+        error("Use assertPublishedWithSourcesAndJavadocs(vararg publishedArtifacts: PublishedArtifact, isEmptySourceAndJavadoc = ...)")
+    }
+
+    fun assertPublishedWithSourcesAndJavadocs(vararg publishedArtifacts: PublishedArtifact, isEmptySourceAndJavadoc: Boolean = false) {
+        val coordinates = publishedArtifacts.map { it.coordinates }.toTypedArray()
         assertThat(stagingRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
         stagingRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates, isEmptySourceAndJavadoc = isEmptySourceAndJavadoc)
+        stagingRepo.assertSpecmaticPomProperties(*publishedArtifacts)
 
         localMavenRepo.assertSourcesAndJavadocsPresentWithOriginalJars(*coordinates, isEmptySourceAndJavadoc = isEmptySourceAndJavadoc)
         assertThat(localMavenRepo.getPublishedArtifactCoordinates()).containsExactlyInAnyOrder(*coordinates)
+        localMavenRepo.assertSpecmaticPomProperties(*publishedArtifacts)
     }
 
     fun File.assertOnlyJarPublishedWithoutSourcesAndJavadocs(vararg coordinates: String) {
@@ -325,6 +341,23 @@ open class AbstractFunctionalTest {
         }
     }
 
+    fun File.assertSpecmaticPomProperties(vararg publishedArtifacts: PublishedArtifact) {
+        publishedArtifacts.forEach { publishedArtifact ->
+            val pomProperties = pomProperties(publishedArtifact.coordinates)
+
+            assertThat(pomProperties).containsEntry("x-specmatic-git-sha", "unknown - no git repo found")
+            assertThat(pomProperties).containsEntry("x-specmatic-git-short-sha", "unknown")
+            assertThat(pomProperties).containsEntry("x-specmatic-artifact-type", publishedArtifact.artifactType.serializedValue)
+        }
+    }
+
+    fun File.pomProperties(coordinates: String): Properties {
+        val pomFile = artifactDir(coordinates).resolve("${coordinates.artifactId()}-${coordinates.version()}.pom")
+        assertThat(pomFile).exists()
+        val model = pomFile.inputStream().use { MavenXpp3Reader().read(it) }
+        return model.properties
+    }
+
     fun assertNothingPublished() {
         stagingRepo.assertNothingPublished()
         localMavenRepo.assertNothingPublished()
@@ -349,3 +382,7 @@ open class AbstractFunctionalTest {
 
     private fun String.groupId() = split(":").get(0)
 }
+
+data class PublishedArtifact(val coordinates: String, val artifactType: SpecmaticArtifactType)
+
+fun publishedArtifact(coordinates: String, artifactType: SpecmaticArtifactType): PublishedArtifact = PublishedArtifact(coordinates, artifactType)

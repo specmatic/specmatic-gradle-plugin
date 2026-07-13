@@ -1,6 +1,9 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.ORIGINAL_FAT
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -77,8 +80,8 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:example-project:1.2.3",
-                "io.specmatic.example:example-project-all:1.2.3",
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:example-project-all:1.2.3", ORIGINAL_FAT),
             )
             assertThat(getDependencies("io.specmatic.example:example-project-all:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
@@ -110,6 +113,10 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 .contains("ADD reports/cyclonedx/bom.json /usr/local/share/example-project/sbom.cyclonedx.json")
                 .contains("ADD libs/example-project-1.2.3-all-unobfuscated.jar /usr/local/share/example-project/example-project.jar")
                 .contains("ADD example-project /usr/local/bin/example-project")
+                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
+                .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/example-project"""")
+                .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")
                 .contains("""ENTRYPOINT ["/usr/local/bin/example-project"]""")
 
             assertThat(projectDir.resolve("build/example-project").exists()).isTrue
@@ -190,8 +197,8 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:example-project:1.2.3",
-                "io.specmatic.example:example-project-all:1.2.3",
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:example-project-all:1.2.3", ORIGINAL_FAT),
             )
             assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
                 "org.slf4j:slf4j-api:2.0.17",
@@ -318,9 +325,9 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:executable:1.2.3",
-                "io.specmatic.example:executable-all:1.2.3",
-                "io.specmatic.example:core:1.2.3",
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:executable-all:1.2.3", ORIGINAL_FAT),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
             )
 
             assertThat(getDependencies("io.specmatic.example:executable-all:1.2.3")).isEmpty()
@@ -360,6 +367,10 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 .contains("ADD reports/cyclonedx/bom.json /usr/local/share/specmatic-foo/sbom.cyclonedx.json")
                 .contains("ADD libs/executable-1.2.3-all-unobfuscated.jar /usr/local/share/specmatic-foo/specmatic-foo.jar")
                 .contains("ADD specmatic-foo /usr/local/bin/specmatic-foo")
+                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
+                .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/specmatic-foo"""")
+                .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")
                 .contains("""ENTRYPOINT ["/usr/local/bin/specmatic-foo"]""")
 
             assertThat(projectDir.resolve("executable/build/specmatic-foo").exists()).isTrue
@@ -470,9 +481,9 @@ class OSSApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertPublishedWithSourcesAndJavadocs(
-                "io.specmatic.example:executable:1.2.3",
-                "io.specmatic.example:executable-all:1.2.3",
-                "io.specmatic.example:core:1.2.3",
+                publishedArtifact("io.specmatic.example:executable:1.2.3", ORIGINAL),
+                publishedArtifact("io.specmatic.example:executable-all:1.2.3", ORIGINAL_FAT),
+                publishedArtifact("io.specmatic.example:core:1.2.3", ORIGINAL),
             )
 
             assertThat(getDependencies("io.specmatic.example:executable-all:1.2.3")).isEmpty()

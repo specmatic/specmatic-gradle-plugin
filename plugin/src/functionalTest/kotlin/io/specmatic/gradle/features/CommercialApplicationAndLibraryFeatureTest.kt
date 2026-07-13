@@ -1,6 +1,9 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.OBFUSCATED_FAT
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.OBFUSCATED_SLIM
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -58,6 +61,12 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:example-project-all:1.2.3", OBFUSCATED_FAT),
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Nested
@@ -75,7 +84,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-                assertPublishedWithSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -121,7 +130,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -163,6 +172,10 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             ).contains("ADD reports/cyclonedx/bom.json /usr/local/share/example-project/sbom.cyclonedx.json")
                 .contains("ADD libs/example-project-1.2.3-all-obfuscated.jar /usr/local/share/example-project/example-project.jar")
                 .contains("ADD example-project /usr/local/bin/example-project")
+                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
+                .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/example-project"""")
+                .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")
                 .contains("""ENTRYPOINT ["/usr/local/bin/example-project"]""")
 
             assertThat(projectDir.resolve("build/example-project").exists()).isTrue
@@ -218,6 +231,12 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:example-project-all:1.2.3", OBFUSCATED_FAT),
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Test
@@ -233,7 +252,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
 
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -355,6 +374,13 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core-min:1.2.3",
             )
 
+        val obfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:executable-all:1.2.3", OBFUSCATED_FAT),
+                publishedArtifact("io.specmatic.example:executable:1.2.3", OBFUSCATED_SLIM),
+                publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = obfuscatedArtifacts
 
         @Nested
@@ -373,7 +399,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
 
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-                assertPublishedWithSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithSourcesAndJavadocs(*obfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -430,7 +456,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
 
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithoutSourcesAndJavadocs(*obfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -482,6 +508,10 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
             ).contains("ADD reports/cyclonedx/bom.json /usr/local/share/specmatic-foo/sbom.cyclonedx.json")
                 .contains("ADD libs/executable-1.2.3-all-obfuscated.jar /usr/local/share/specmatic-foo/specmatic-foo.jar")
                 .contains("ADD specmatic-foo /usr/local/bin/specmatic-foo")
+                .contains("""LABEL org.opencontainers.image.revision="unknown - no git repo found"""")
+                .contains("""LABEL org.opencontainers.image.version="1.2.3"""")
+                .contains("""LABEL org.opencontainers.image.url="https://hub.docker.com/u/specmatic/specmatic-foo"""")
+                .contains("""LABEL org.opencontainers.image.vendor="specmatic.io"""")
                 .contains("""ENTRYPOINT ["/usr/local/bin/specmatic-foo"]""")
 
             assertThat(projectDir.resolve("executable/build/specmatic-foo").exists()).isTrue
@@ -574,6 +604,13 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core-min:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:executable-all:1.2.3", OBFUSCATED_FAT),
+                publishedArtifact("io.specmatic.example:executable:1.2.3", OBFUSCATED_SLIM),
+                publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Test
@@ -589,7 +626,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
 
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),

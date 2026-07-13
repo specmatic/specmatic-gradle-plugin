@@ -62,10 +62,9 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
         }
 
     val commonDockerBuildArgs =
-        annotationArgs(primaryOrg, imageName) +
-            dockerTags
-                .flatMap { listOf("--tag", it) }
-                .toTypedArray() +
+        dockerTags
+            .flatMap { listOf("--tag", it) }
+            .toTypedArray() +
             arrayOf("--file", "Dockerfile") +
             dockerBuildConfig.extraDockerArgs
 
@@ -78,6 +77,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             "docker",
             "buildx",
             "build",
+            *annotationArgs(primaryOrg, imageName, includeManifestListAnnotations = false),
             *commonDockerBuildArgs,
             "--load",
             ".",
@@ -102,6 +102,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
                 "docker",
                 "buildx",
                 "build",
+                *annotationArgs(primaryOrg, imageName, includeManifestListAnnotations = true),
                 *commonDockerBuildArgs,
                 "--platform",
                 "linux/amd64,linux/arm64",
@@ -256,7 +257,7 @@ private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String = 
     dockerBuildConfig.imageName!!
 }
 
-private fun Project.annotationArgs(primaryOrg: String, imageName: String): Array<String> {
+private fun Project.annotationArgs(primaryOrg: String, imageName: String, includeManifestListAnnotations: Boolean,): Array<String> {
     val keys =
         listOf(
             "org.opencontainers.image.created" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(Date()),
@@ -267,7 +268,12 @@ private fun Project.annotationArgs(primaryOrg: String, imageName: String): Array
             "org.opencontainers.image.vendor" to "specmatic.io",
         )
 
-    val prefixes = listOf("", "index:", "manifest-descriptor:")
+    val prefixes =
+        if (includeManifestListAnnotations) {
+            listOf("", "index:", "manifest-descriptor:")
+        } else {
+            listOf("")
+        }
 
     return prefixes
         .flatMap { prefix ->

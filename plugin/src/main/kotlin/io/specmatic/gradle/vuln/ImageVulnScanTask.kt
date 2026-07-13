@@ -1,6 +1,5 @@
 package io.specmatic.gradle.vuln
 
-import io.specmatic.gradle.release.PreReleaseCheck
 import io.specmatic.gradle.vuln.scanner.ScanTarget
 import io.specmatic.gradle.vuln.scanner.ScanTargetKind
 import javax.inject.Inject
@@ -39,10 +38,6 @@ internal fun Project.createDockerVulnScanTask(imageName: String) {
                     .resolve("reports/vulnerabilities/image")
             )
         }
-
-    rootProject.tasks.withType(PreReleaseCheck::class.java) {
-        dependsOn(scanTask)
-    }
 
     tasks.named("check") {
         dependsOn(scanTask)

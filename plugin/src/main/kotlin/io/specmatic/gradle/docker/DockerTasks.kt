@@ -80,10 +80,6 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             "build",
             *commonDockerBuildArgs,
             "--load",
-            "--attest",
-            "type=provenance,mode=max",
-            "--attest",
-            "type=sbom",
             ".",
         )
         environment("DOCKER_BUILDKIT", "1")

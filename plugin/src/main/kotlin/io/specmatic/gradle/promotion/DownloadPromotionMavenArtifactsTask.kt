@@ -3,6 +3,9 @@ package io.specmatic.gradle.promotion
 import io.specmatic.gradle.utils.httpClient
 import java.io.File
 import java.io.IOException
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -42,7 +45,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
 
     @TaskAction
     fun downloadArtifacts() {
-        val baseUri = ensureTrailingSlash(canonicalRepository.get())
+        val repositoryUri = URI(ensureTrailingSlash(canonicalRepository.get()))
         val outputDir = outputDirectory.get().asFile
         outputDir.deleteRecursively()
         outputDir.mkdirs()
@@ -53,12 +56,18 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                 artifactRelativePaths.get().map { relativePath ->
                     executor.submit(
                         Callable {
-                            downloadWithRetries(
-                                client = httpClient,
-                                uri = "$baseUri$relativePath",
-                                targetFile = outputDir.resolve(relativePath),
-                                maxRetries = maxRetries.get(),
-                            )
+                            val targetFile = outputDir.resolve(relativePath)
+                            when (repositoryUri.scheme.lowercase()) {
+                                "file" -> copyFromFileRepository(repositoryUri, relativePath, targetFile)
+                                "http", "https" ->
+                                    downloadWithRetries(
+                                        client = httpClient,
+                                        uri = repositoryUri.resolve(relativePath).toString(),
+                                        targetFile = targetFile,
+                                        maxRetries = maxRetries.get(),
+                                    )
+                                else -> throw GradleException("Unsupported Maven repository scheme '${repositoryUri.scheme}'")
+                            }
                         },
                     )
                 }
@@ -72,6 +81,13 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
     }
 
     private fun ensureTrailingSlash(uri: String): String = if (uri.endsWith("/")) uri else "$uri/"
+
+    private fun copyFromFileRepository(repositoryUri: URI, relativePath: String, targetFile: File) {
+        val sourceFile = File(repositoryUri.resolve(relativePath))
+        logger.lifecycle("Copying ${sourceFile.absolutePath}")
+        targetFile.parentFile.mkdirs()
+        Files.copy(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+    }
 
     private fun downloadWithRetries(client: OkHttpClient, uri: String, targetFile: File, maxRetries: Int) {
         targetFile.parentFile.mkdirs()

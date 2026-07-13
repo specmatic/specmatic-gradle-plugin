@@ -11,6 +11,8 @@ import io.specmatic.gradle.jar.massage.publishing
 import io.specmatic.gradle.jar.massage.shadow
 import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.specmaticExtension
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
+import io.specmatic.gradle.versioninfo.versionInfo
 import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectProvider
 import org.gradle.api.Project
@@ -36,6 +38,8 @@ internal fun Project.createUnobfuscatedJarPublication(artifactIdentifier: String
     val publication =
         publishJar(
             object : PublishingConfigurer {
+                override fun artifactType(): SpecmaticArtifactType = SpecmaticArtifactType.ORIGINAL
+
                 override fun configure(publication: MavenPublication) {
                     val component = components["java"]
                     pluginInfo(
@@ -84,6 +88,8 @@ internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<o
     val publication =
         publishJar(
             object : PublishingConfigurer {
+                override fun artifactType(): SpecmaticArtifactType = SpecmaticArtifactType.OBFUSCATED_SLIM
+
                 override fun configure(publication: MavenPublication) {
                     pluginInfo(
                         "Configuring publication named ${name()} for artifact '${publication.groupId}:${publication.artifactId}:${publication.version}' using task ${task.get().path}",
@@ -180,7 +186,7 @@ private fun addExcludes(eachDependency: Dependency, globalExcludeRules: Set<Excl
 }
 
 internal fun Project.createShadowedObfuscatedJarPublication(task: TaskProvider<out Jar>, artifactIdentifier: String) {
-    publishJar(ArtifactPublishingConfigurer(project, artifactIdentifier, task))
+    publishJar(ArtifactPublishingConfigurer(project, artifactIdentifier, task, SpecmaticArtifactType.OBFUSCATED_FAT))
     createConfigurationAndAddArtifacts(task)
 }
 
@@ -188,7 +194,7 @@ internal fun Project.createShadowedUnobfuscatedJarPublication(
     task: TaskProvider<out Jar>,
     artifactIdentifier: String,
 ): NamedDomainObjectProvider<MavenPublication> {
-    val publication = publishJar(ArtifactPublishingConfigurer(project, artifactIdentifier, task))
+    val publication = publishJar(ArtifactPublishingConfigurer(project, artifactIdentifier, task, SpecmaticArtifactType.ORIGINAL_FAT))
     createConfigurationAndAddArtifacts(task)
     return publication
 }
@@ -210,12 +216,15 @@ interface PublishingConfigurer {
     fun configure(publication: MavenPublication)
 
     fun name(): String
+
+    fun artifactType(): SpecmaticArtifactType
 }
 
 class ArtifactPublishingConfigurer(
     private val project: Project,
     private val artifactIdentifier: String,
     private val task: TaskProvider<out Jar>,
+    private val artifactType: SpecmaticArtifactType,
 ) : PublishingConfigurer {
     override fun configure(publication: MavenPublication) {
         project.pluginInfo(
@@ -230,11 +239,16 @@ class ArtifactPublishingConfigurer(
     }
 
     override fun name(): String = artifactIdentifier
+
+    override fun artifactType(): SpecmaticArtifactType = artifactType
 }
 
 private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObjectProvider<MavenPublication> =
     publishing.publications.register(configurer.name(), MavenPublication::class.java) {
         pom.packaging = "jar"
+        pom {
+            project.versionInfo().addToPom(this, configurer.artifactType())
+        }
 
         configurer.configure(this)
 

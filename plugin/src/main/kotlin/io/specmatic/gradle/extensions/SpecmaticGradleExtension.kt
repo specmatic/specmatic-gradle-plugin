@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 interface PublishTarget
 
-class MavenCentral : PublishTarget
+data class MavenCentral(val repoName: String = "mavenCentral", val type: RepoType = RepoType.PUBLISH_ALL) : PublishTarget
 
 data class MavenInternal(val repoName: String, val url: URI, val type: RepoType) : PublishTarget
 
@@ -22,7 +22,7 @@ data class PromotionDockerImage(val sourceImage: String, val targetImage: String
 
 open class PromotionConfig {
     var canonicalMavenRepository: URI? = null
-    val targetMavenRepositories = mutableListOf<PublishTarget>()
+    internal val targetMavenRepositories = mutableListOf<PublishTarget>()
     val dockerImagePromotions = mutableListOf<PromotionDockerImage>()
 
     fun canonicalMavenRepository(url: String) {
@@ -31,6 +31,10 @@ open class PromotionConfig {
 
     fun targetMavenRepository(name: String, url: String, type: RepoType = RepoType.PUBLISH_ALL) {
         targetMavenRepositories.add(MavenInternal(name, URI.create(url), type))
+    }
+
+    fun targetMavenCentral(name: String = "mavenCentral", type: RepoType = RepoType.PUBLISH_ALL) {
+        targetMavenRepositories.add(MavenCentral(name, type))
     }
 
     fun dockerImage(sourceImage: String, targetImage: String) {

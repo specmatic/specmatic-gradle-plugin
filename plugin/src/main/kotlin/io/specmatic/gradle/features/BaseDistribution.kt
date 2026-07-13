@@ -1,5 +1,6 @@
 package io.specmatic.gradle.features
 
+import com.vanniktech.maven.publish.MavenPublishBasePlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import io.specmatic.gradle.autogen.createJULLogForwarderClassTask
 import io.specmatic.gradle.autogen.createLogbackXMLFileTask
@@ -8,14 +9,15 @@ import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
 import io.specmatic.gradle.extensions.PublishTarget
 import io.specmatic.gradle.extensions.RepoType
+import io.specmatic.gradle.extensions.setupCommericalJavadocAndSources
 import io.specmatic.gradle.jar.massage.mavenPublications
+import io.specmatic.gradle.jar.publishing.isCommercial
 import java.net.URI
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
 import org.gradle.api.publish.tasks.GenerateModuleMetadata
 import org.gradle.jvm.tasks.Jar
@@ -63,7 +65,10 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
         // hook for any common setup
         signPublishTasksDependOnSourcesJar()
         project.plugins.apply(JavaPlugin::class.java)
-        project.plugins.withType(MavenPublishPlugin::class.java) {
+        project.plugins.withType(MavenPublishBasePlugin::class.java) {
+            if (project.isCommercial()) {
+                project.setupCommericalJavadocAndSources()
+            }
             project.mavenPublications {
                 publicationConfigurations.forEach {
                     it.execute(this)

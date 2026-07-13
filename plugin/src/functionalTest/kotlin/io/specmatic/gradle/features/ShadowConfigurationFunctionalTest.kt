@@ -1,6 +1,8 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.OBFUSCATED_SLIM
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -86,8 +88,8 @@ class ShadowConfigurationFunctionalTest : AbstractFunctionalTest() {
     fun `it should shadow packages`() {
         runWithSuccess("publishAllPublicationsToStagingRepository", "publishToMavenLocal")
         assertPublishedWithoutSourcesAndJavadocs(
-            "io.specmatic.example:core-min:1.2.3",
-            "io.specmatic.example:executable-min:1.2.3",
+            publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            publishedArtifact("io.specmatic.example:executable-min:1.2.3", OBFUSCATED_SLIM),
         )
 
         assertThat(

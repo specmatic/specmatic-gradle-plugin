@@ -1,6 +1,9 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.PublishedArtifact
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.OBFUSCATED_SLIM
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -60,6 +63,11 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project-min:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:example-project-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Nested
@@ -76,7 +84,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -111,7 +119,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -202,6 +210,11 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project-min:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:example-project-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Test
@@ -220,7 +233,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 projectDir.resolve("build/all-artifacts").getPublishedArtifactCoordinates(),
             ).containsExactlyInAnyOrder(*allArtifacts)
 
-            assertPublishedWithoutSourcesAndJavadocs(*arrayOf(*allArtifacts))
+            assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
             arrayOf(*allArtifacts).filter { it.contains("min") }.forEach {
                 assertThat(getDependencies(it)).containsExactlyInAnyOrder(
                     "org.slf4j:slf4j-api:2.0.17",
@@ -341,6 +354,12 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core-min:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:executable-min:1.2.3", OBFUSCATED_SLIM),
+                publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
 
         val allArtifacts = allObfuscatedArtifacts
 
@@ -358,7 +377,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -390,7 +409,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-                assertPublishedWithSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -495,6 +514,12 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core-min:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:executable-min:1.2.3", OBFUSCATED_SLIM),
+                publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Test
@@ -509,7 +534,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 )
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
             ).containsExactlyInAnyOrder(*allObfuscatedArtifacts)

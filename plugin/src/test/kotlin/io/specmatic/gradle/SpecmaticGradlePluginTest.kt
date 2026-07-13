@@ -3,8 +3,17 @@ package io.specmatic.gradle
 import com.github.jk1.license.LicenseReportPlugin
 import io.mockk.every
 import io.mockk.mockk
+import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
+import io.specmatic.gradle.extensions.RepoType
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
+import io.specmatic.gradle.promotion.DownloadPromotionMavenArtifactsTask
+import io.specmatic.gradle.promotion.InspectPromotionDockerImagesTask
+import io.specmatic.gradle.promotion.PromoteDockerImagesTask
+import io.specmatic.gradle.promotion.PromoteMavenArtifactsTask
+import io.specmatic.gradle.promotion.PromotionMavenTargetKind
+import io.specmatic.gradle.promotion.VerifyPromotionMavenArtifactsTask
+import io.specmatic.gradle.promotion.configurePromotionTasks
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.release.execGit
 import java.io.File
@@ -113,25 +122,226 @@ class SpecmaticGradlePluginTest {
         extension.promotion {
             canonicalMavenRepository("https://repo.specmatic.io/releases")
             targetMavenRepository("mavenCentral", "https://central.example.com/repository/releases")
+            targetMavenCentral()
             dockerImage("specmatic/example", "acme/example")
         }
 
         assertThat(extension.promotion.canonicalMavenRepository)
             .hasToString("https://repo.specmatic.io/releases")
         assertThat(extension.promotion.targetMavenRepositories)
-            .singleElement()
+            .hasSize(2)
+        assertThat(extension.promotion.targetMavenRepositories.first())
             .satisfies({
                 assertThat(it).isInstanceOf(MavenInternal::class.java)
                 val repo = it as MavenInternal
                 assertThat(repo.repoName).isEqualTo("mavenCentral")
                 assertThat(repo.url).hasToString("https://central.example.com/repository/releases")
             })
+        assertThat(extension.promotion.targetMavenRepositories.last()).isEqualTo(MavenCentral())
         assertThat(extension.promotion.dockerImagePromotions)
             .singleElement()
             .satisfies({
                 assertThat(it.sourceImage).isEqualTo("specmatic/example")
                 assertThat(it.targetImage).isEqualTo("acme/example")
             })
+    }
+
+    @Test
+    fun `registers docker promotion inspect task from configured source images`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        project.extensions.getByType(SpecmaticGradleExtension::class.java).promotion {
+            dockerImage("specmatic/example", "acme/example")
+            dockerImage("specmatic/example", "acme/example-2")
+        }
+
+        project.configurePromotionTasks()
+
+        val task = project.tasks.named("inspectPromotionDockerImages").get() as InspectPromotionDockerImagesTask
+        assertThat(task.images.get()).containsExactly("specmatic/example")
+        assertThat(task.version.get()).isEqualTo("1.2.3")
+        assertThat(task.platforms.get()).containsExactly("linux/amd64", "linux/arm64")
+    }
+
+    @Test
+    fun `registers docker promotion task from configured image mappings`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        project.extensions.getByType(SpecmaticGradleExtension::class.java).promotion {
+            dockerImage("specmatic/example", "acme/example")
+            dockerImage("specmatic/example", "acme/example-2")
+        }
+
+        project.configurePromotionTasks()
+
+        val inspectTask = project.tasks.named("inspectPromotionDockerImages").get()
+        val inspectPromotionTask = project.tasks.named("inspectPromotion").get()
+        val task = project.tasks.named("promoteDocker").get() as PromoteDockerImagesTask
+        assertThat(task.version.get()).isEqualTo("1.2.3")
+        assertThat(task.promoteLatest.get()).isTrue()
+        assertThat(task.images.get()).hasSize(2)
+        assertThat(task.images.get().map { it.sourceImage.get() to it.targetImage.get() })
+            .containsExactly(
+                "specmatic/example" to "acme/example",
+                "specmatic/example" to "acme/example-2",
+            )
+        assertThat(inspectPromotionTask.taskDependencies.getDependencies(inspectPromotionTask)).contains(inspectTask)
+        assertThat(task.taskDependencies.getDependencies(task)).contains(inspectPromotionTask)
+    }
+
+    @Test
+    fun `registers maven promotion download task from configured publications`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+        project.configurePromotionTasks()
+
+        val task = project.tasks.named("downloadPromotionMavenArtifacts").get() as DownloadPromotionMavenArtifactsTask
+        val artifactBasePath = "org/example/${project.name}/1.2.3/${project.name}-1.2.3"
+        assertThat(task.canonicalRepository.get()).isEqualTo("https://repo.specmatic.io/releases")
+        assertThat(task.artifactRelativePaths.get())
+            .contains("$artifactBasePath.pom")
+            .contains("$artifactBasePath.jar")
+            .contains("$artifactBasePath-sources.jar")
+            .contains("$artifactBasePath-javadoc.jar")
+            .contains("$artifactBasePath.pom.asc")
+            .contains("$artifactBasePath.pom.asc.sha256")
+            .contains("$artifactBasePath.jar.asc")
+            .contains("$artifactBasePath.jar.asc.sha256")
+            .contains("$artifactBasePath.jar.sha256")
+        assertThat(task.outputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+    }
+
+    @Test
+    fun `registers maven promotion verify task from configured publications`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+        project.configurePromotionTasks()
+
+        val downloadTask = project.tasks.named("downloadPromotionMavenArtifacts").get()
+        val inspectPromotionTask = project.tasks.named("inspectPromotion").get()
+        val verifyTask = project.tasks.named("verifyPromotionMavenArtifacts").get() as VerifyPromotionMavenArtifactsTask
+
+        assertThat(verifyTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(verifyTask.expectedVersion.get()).isEqualTo("1.2.3")
+        assertThat(verifyTask.taskDependencies.getDependencies(verifyTask)).contains(downloadTask)
+        assertThat(inspectPromotionTask.taskDependencies.getDependencies(inspectPromotionTask)).contains(verifyTask)
+    }
+
+    @Test
+    fun `registers maven promotion task from configured target repositories`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            targetMavenRepository("reposilite", "https://repo.example.com/releases", RepoType.PUBLISH_ALL)
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+        project.configurePromotionTasks()
+
+        val inspectPromotionTask = project.tasks.named("inspectPromotion").get()
+        val promoteTask = project.tasks.named("promoteMaven").get() as PromoteMavenArtifactsTask
+
+        assertThat(promoteTask.inputDirectory.get().asFile.path).endsWith("build/promotion/maven")
+        assertThat(promoteTask.targets.get()).singleElement().satisfies({
+            assertThat(it.repoName.get()).isEqualTo("reposilite")
+            assertThat(it.kind.get()).isEqualTo(PromotionMavenTargetKind.REPOSITORY.name)
+            assertThat(it.url.get()).isEqualTo("https://repo.example.com/releases")
+            assertThat(it.artifactPaths.get())
+            .contains("org/example/${project.name}/1.2.3/${project.name}-1.2.3.jar")
+        })
+        assertThat(promoteTask.taskDependencies.getDependencies(promoteTask)).contains(inspectPromotionTask)
+    }
+
+    @Test
+    fun `registers maven central promotion target`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            targetMavenCentral()
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+        project.configurePromotionTasks()
+
+        val promoteTask = project.tasks.named("promoteMaven").get() as PromoteMavenArtifactsTask
+        assertThat(promoteTask.targets.get()).singleElement().satisfies({
+            assertThat(it.repoName.get()).isEqualTo("mavenCentral")
+            assertThat(it.kind.get()).isEqualTo(PromotionMavenTargetKind.MAVEN_CENTRAL.name)
+            assertThat(it.url.get()).isEqualTo("https://central.sonatype.com")
+        })
+    }
+
+    @Test
+    fun `registers aggregate promote task with inspect and artifact promotion phases`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            targetMavenRepository("reposilite", "https://repo.example.com/releases", RepoType.PUBLISH_ALL)
+            dockerImage("specmatic/example", "acme/example")
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+        project.configurePromotionTasks()
+
+        val inspectTask = project.tasks.named("inspectPromotion").get()
+        val promoteArtifactsTask = project.tasks.named("promoteArtifacts").get()
+        val createGithubReleaseTask = project.tasks.named("promotionCreateGithubRelease").get()
+        val promoteTask = project.tasks.named("promote").get()
+
+        assertThat(promoteArtifactsTask.taskDependencies.getDependencies(promoteArtifactsTask))
+            .contains(project.tasks.named("promoteMaven").get())
+            .contains(project.tasks.named("promoteDocker").get())
+            .contains(inspectTask)
+        assertThat(promoteTask.taskDependencies.getDependencies(promoteTask))
+            .contains(createGithubReleaseTask)
+        assertThat(createGithubReleaseTask.taskDependencies.getDependencies(createGithubReleaseTask))
+            .contains(project.tasks.named("promotionGitPush").get())
+            .contains(project.tasks.named("updatePromotionDockerHubReadme").get())
     }
 
     @Test

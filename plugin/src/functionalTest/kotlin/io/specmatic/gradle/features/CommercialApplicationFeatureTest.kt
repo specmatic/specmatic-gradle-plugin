@@ -1,6 +1,9 @@
 package io.specmatic.gradle.features
 
 import io.specmatic.gradle.AbstractFunctionalTest
+import io.specmatic.gradle.publishedArtifact
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.OBFUSCATED_FAT
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType.OBFUSCATED_SLIM
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -65,7 +68,9 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                         "io.specmatic.example:example-project:1.2.3",
                     )
 
-                assertPublishedWithSourcesAndJavadocs(*artifacts)
+                assertPublishedWithSourcesAndJavadocs(
+                    publishedArtifact("io.specmatic.example:example-project:1.2.3", OBFUSCATED_FAT),
+                )
                 artifacts.forEach { assertThat(getDependencies(it)).isEmpty() }
 
                 artifacts.forEach {
@@ -95,7 +100,9 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                         "io.specmatic.example:example-project:1.2.3",
                     )
 
-                assertPublishedWithoutSourcesAndJavadocs(*artifacts)
+                assertPublishedWithoutSourcesAndJavadocs(
+                    publishedArtifact("io.specmatic.example:example-project:1.2.3", OBFUSCATED_FAT),
+                )
                 artifacts.forEach { assertThat(getDependencies(it)).isEmpty() }
 
                 artifacts.forEach {
@@ -191,6 +198,11 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:example-project:1.2.3",
             )
 
+        val allObfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:example-project:1.2.3", OBFUSCATED_FAT),
+            )
+
         val allArtifacts = allObfuscatedArtifacts
 
         @Test
@@ -206,7 +218,7 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.internal.fluxcapacitor")
 
-            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
 
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -324,6 +336,12 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core-min:1.2.3",
             )
 
+        val obfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:executable:1.2.3", OBFUSCATED_FAT),
+                publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = obfuscatedArtifacts
 
         @Nested
@@ -341,7 +359,7 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-                assertPublishedWithSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithSourcesAndJavadocs(*obfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -387,7 +405,7 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                     )
                 assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-                assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+                assertPublishedWithoutSourcesAndJavadocs(*obfuscatedPublishedArtifacts)
 
                 assertThat(
                     projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),
@@ -519,6 +537,12 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
                 "io.specmatic.example:core-min:1.2.3",
             )
 
+        val obfuscatedPublishedArtifacts =
+            arrayOf(
+                publishedArtifact("io.specmatic.example:executable:1.2.3", OBFUSCATED_FAT),
+                publishedArtifact("io.specmatic.example:core-min:1.2.3", OBFUSCATED_SLIM),
+            )
+
         val allArtifacts = obfuscatedArtifacts
 
         @Test
@@ -534,7 +558,7 @@ class CommercialApplicationFeatureTest : AbstractFunctionalTest() {
 
             assertMainObfuscatedJarExecutes(result, "io.specmatic.example.executable.internal.fluxcapacitor")
 
-            assertPublishedWithoutSourcesAndJavadocs(*allArtifacts)
+            assertPublishedWithoutSourcesAndJavadocs(*obfuscatedPublishedArtifacts)
 
             assertThat(
                 projectDir.resolve("build/obfuscated-only").getPublishedArtifactCoordinates(),

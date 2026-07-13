@@ -1,6 +1,7 @@
 package io.specmatic.gradle
 
 import io.specmatic.gradle.versioninfo.ProjectVersionInfo
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -226,13 +227,14 @@ class ProjectVersionInfoTest {
                 kotlinPackageName = "io.specmatic",
                 isRootProject = true,
                 timestamp = "2021-09-01T12:00:00Z",
-            ).addToPom(publication.pom)
+            ).addToPom(publication.pom, SpecmaticArtifactType.OBFUSCATED_FAT)
 
             assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-version", "1.0.0")
             assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-group", "io.specmatic")
             assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-name", "Specmatic-License-Generator")
             assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-git-sha", "1234567890abcdef")
             assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-git-short-sha", "12345678")
+            assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-artifact-type", "obfuscated-fat")
             assertThat(publication.pom.properties.get()).containsEntry("x-specmatic-compile-timestamp", "2021-09-01T12:00:00Z")
         }
     }

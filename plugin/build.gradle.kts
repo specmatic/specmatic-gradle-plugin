@@ -34,6 +34,7 @@ dependencies {
     }
     implementation("org.codehaus.plexus:plexus-utils:4.0.3")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.36.0")
+    implementation("com.vanniktech:central-portal:0.36.0")
     implementation("org.kohsuke:github-api:1.330")
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.2.4")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.1")
@@ -47,11 +48,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.8")
     implementation("io.specmatic.priospot:gradle-plugin:0.99.4")
     implementation("org.apache.maven:maven-model:3.9.16")
+    implementation("org.apache.maven:maven-repository-metadata:3.9.16")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.assertj:assertj-core:3.27.7")
     testImplementation("org.junit.jupiter:junit-jupiter-params:6.1.1")
     testImplementation("io.mockk:mockk:1.14.11")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.4.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

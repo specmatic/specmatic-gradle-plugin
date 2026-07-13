@@ -10,10 +10,11 @@ import io.specmatic.gradle.exec.ConfigureExecTaskPlugin
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.extensions.baseSetup
 import io.specmatic.gradle.jar.massage.applyToRootProjectOrSubprojects
-import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.publishing.applyShadowConfigs
 import io.specmatic.gradle.license.SpecmaticLicenseReportingPlugin
+import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.plugin.VersionInfo
+import io.specmatic.gradle.promotion.configurePromotionTasks
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.spotless.SpecmaticSpotlessPlugin
 import io.specmatic.gradle.tests.SpecmaticTestReportingPlugin
@@ -21,13 +22,13 @@ import io.specmatic.gradle.versioninfo.VersionInfoPlugin
 import io.specmatic.gradle.versioninfo.versionInfo
 import io.specmatic.gradle.versions.ForceVersionConstraintsPlugin
 import io.specmatic.gradle.vuln.SpecmaticVulnScanPlugin
+import java.util.concurrent.TimeUnit
 import org.barfuin.gradle.taskinfo.GradleTaskInfoPlugin
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 @Suppress("unused")
@@ -60,18 +61,31 @@ class SpecmaticGradlePlugin : Plugin<Project> {
                 }
             }
 
-            plugins.withType(MavenPublishPlugin::class.java) {
-                project.mavenPublications {
-                    pom {
-                        project.versionInfo().addToPom(this)
+            plugins.withType(JavaPlugin::class.java) {
+                project.dependencies.components.all {
+                    if (id.group.startsWith("io.specmatic")) {
+                        pluginInfo("Setting dependency ${id.group}:${id.name}:${id.version} as always changing")
+                        isChanging = true
+                    }
+                }
+
+                configurations.all {
+                    resolutionStrategy {
+                        cacheChangingModulesFor(30, TimeUnit.SECONDS)
                     }
                 }
             }
+
         }
+
         target.plugins.apply(SpecmaticReleasePlugin::class.java)
         target.plugins.apply(SpecmaticSpotlessPlugin::class.java)
 
         target.plugins.apply(GradleTaskInfoPlugin::class.java)
+
+        target.gradle.projectsEvaluated {
+            target.configurePromotionTasks()
+        }
 
         target.applyToRootProjectOrSubprojects {
             plugins.apply(LifecycleBasePlugin::class.java)
@@ -100,10 +114,9 @@ fun Project.specmaticExtension(): SpecmaticGradleExtension {
     throw GradleException("SpecmaticGradleExtension not found in project $this, or any of its parents")
 }
 
-fun Project.projectDependencies(): List<ProjectDependency> =
-    project.configurations
-        .asSequence()
-        .flatMap { config -> config.dependencies.filterIsInstance<ProjectDependency>().asSequence() }
-        .filter { dependency -> dependency.dependencyProject.path != project.path }
-        .distinctBy { dependency -> dependency.dependencyProject.path }
-        .toList()
+fun Project.projectDependencies(): List<ProjectDependency> = project.configurations
+    .asSequence()
+    .flatMap { config -> config.dependencies.filterIsInstance<ProjectDependency>().asSequence() }
+    .filter { dependency -> dependency.dependencyProject.path != project.path }
+    .distinctBy { dependency -> dependency.dependencyProject.path }
+    .toList()

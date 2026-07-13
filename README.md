@@ -210,7 +210,7 @@ The plugin also supports the following Gradle project properties:
 | Property                         | Values                                        | Used by                                                                                                                                                                                | Effect                                                                                                                                                           |
 |----------------------------------|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `release.releaseVersion`         | Version string (for example `1.2.3`)          | Release pipeline tasks (`release`, `preReleaseBump`, `createReleaseTag`, `createGithubRelease`) that need the exact release tag/version.                                               | Release version to tag and publish.                                                                                                                              |
-| `release.newVersion`             | Version string (for example `1.2.4-SNAPSHOT`) | Post-release bump tasks (`release`, `postReleaseBump`) that move the repo back to the next development version.                                                                        | Version to set after release completes.                                                                                                                          |
+| `release.newVersion`             | Version string (for example `1.2.4-SNAPSHOT`) | Post-release bump tasks (`release`, `postReleaseBump`) and promotion tail tasks (`promote`, `promotionPostReleaseBump`) that move the repo back to the next development version.       | Version to set after release or promotion completes.                                                                                                             |
 | `allowSnapshotDependencies`      | `true` / `false`                              | `validateSnapshotDependencies` in release lifecycle, when you intentionally release while still depending on snapshots.                                                                | When `true`, snapshot dependency check warns instead of failing.                                                                                                 |
 | `skipBranchCheck`                | `true` / `false`                              | Release git safety checks (pre-release validation in `GitOperations`) that normally enforce running from `main`.                                                                       | Skip "must be on main branch" validation.                                                                                                                        |
 | `skipRepoDirtyCheck`             | `true` / `false`                              | Release git safety checks before bump/tag operations; useful only for exceptional/manual flows.                                                                                        | Skip clean working tree validation.                                                                                                                              |
@@ -222,6 +222,39 @@ The plugin also supports the following Gradle project properties:
 | `<moduleName>Version`            | Version string (dynamic key)                  | Downstream integration tasks that need a module version to write/fetch/validate in dependent repos.                                                                                    | Version used for bump/fetch/validate downstream projects. Key is lower camel case of root project name + `Version` (for example `specmaticGradlePluginVersion`). |
 | `functionalTestingHack`          | `true` / `false`                              | Release plugin test path (`runReleaseLifecycleHooks`) used by functional tests to avoid nested GradleBuild release hooks.                                                              | Internal testing switch; bypasses normal release lifecycle hook execution. Avoid in real releases.                                                               |
 | `generateAllJars`                | `true` / `false`                              | For debugging, will generate all jars (obfuscated, unobfuscated, shaded...). This is disabled by default for build performance                                                         | 
+
+## Promotion
+
+Promotion republishes already-built Maven and Docker artifacts from canonical sources. It does not rebuild jars or Docker images.
+
+Configure it with the `promotion` block:
+
+```kotlin
+specmatic {
+    promotion {
+        canonicalMavenRepository("https://repo.specmatic.io/releases")
+        targetMavenRepository("reposilite", "https://repo.example.com/releases")
+        targetMavenCentral()
+        dockerImage("specmatic/example", "acme/example")
+    }
+}
+```
+
+The promotion flow is phase-based:
+
+1. `inspectPromotion`
+   validates fetched Maven artifacts and canonical Docker images against the current git SHA and project version.
+2. `promoteArtifacts`
+   republishes Maven artifacts and promotes multi-platform Docker images without rebuilding them.
+3. `promote`
+   runs the full flow, then updates Docker Hub README content, creates the GitHub release, creates the release tag, and bumps to `-Prelease.newVersion`.
+
+Notes:
+
+- `promote` derives the promoted release version from the current project version.
+- `promote` still requires `-Prelease.newVersion=...` for the post-promotion version bump.
+- If `readme.docker.md` exists, Docker Hub README content is published for each promoted target Docker image using `SPECMATIC_DOCKER_HUB_USERNAME` and `SPECMATIC_DOCKER_HUB_TOKEN`.
+- `promotionCreateGithubRelease` does not rebuild release assets; it only uploads files already present under `build/githubAssets` if that directory exists.
 
 ## Handling conflict resolution
 
@@ -295,6 +328,15 @@ Here is a list of available tasks
 | `publishToMavenCentral`                              | Publishes to a staging repository on Sonatype OSS.                                             |
 | **Release tasks**                                    |                                                                                                |
 | `release`                                            | Verify project, release, and update version to next.                                           |
+| **Promotion tasks**                                  |                                                                                                |
+| `inspectPromotion`                                   | Run promotion pre-flight and validate Maven/Docker provenance before any promotion happens.    |
+| `promoteArtifacts`                                   | Promote configured Maven and Docker artifacts after the inspect phase succeeds.                |
+| `promote`                                            | Run the full promotion flow, update release metadata, create GitHub release, and bump version. |
+| `downloadPromotionMavenArtifacts`                    | Download published Maven artifacts from the canonical repository.                              |
+| `verifyPromotionMavenArtifacts`                      | Verify downloaded Maven artifacts against current version and git SHA.                         |
+| `inspectPromotionDockerImages`                       | Verify canonical multi-platform Docker images and OCI annotations.                             |
+| `promoteMaven`                                       | Promote verified Maven artifacts to configured target repositories.                            |
+| `promoteDocker`                                      | Promote verified Docker images to configured target image names.                               |
 | **Vulnerability tasks**                              |                                                                                                |
 | `vulnScanSBOMScan`                                   | Scan for and print vulnerabilities in dependency tree (SBOM).                                  |
 | `vulnScanJarScan`                                    | Scan for and print vulnerabilities by deep scanning inside each generated jar.                 |

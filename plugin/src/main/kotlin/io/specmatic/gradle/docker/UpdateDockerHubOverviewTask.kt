@@ -2,8 +2,8 @@ package io.specmatic.gradle.docker
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.specmatic.gradle.utils.httpClient
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.gradle.api.DefaultTask
@@ -24,8 +24,6 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
 
     @get:Input
     abstract val readmeContent: Property<String>
-
-    private fun client(): OkHttpClient = OkHttpClient()
 
     private fun mapper(): ObjectMapper = ObjectMapper().registerKotlinModule()
 
@@ -57,7 +55,7 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
                 .post(requestBody)
                 .build()
 
-        client().newCall(request).execute().use { response ->
+        httpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 error("Failed to fetch JWT token: ${response.message}")
             }
@@ -87,7 +85,7 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
                 .addHeader("Authorization", "JWT $jwtToken")
                 .build()
 
-        client().newCall(request).execute().use { response ->
+        httpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 error(
                     "Failed to update DockerHub overview. code=${response.code} message=${response.message} body=${response.body.string()}",

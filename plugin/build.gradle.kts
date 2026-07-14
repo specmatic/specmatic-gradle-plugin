@@ -34,7 +34,7 @@ dependencies {
     }
     implementation("org.codehaus.plexus:plexus-utils:4.0.3")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.37.0")
-    implementation("com.vanniktech:central-portal:0.36.0")
+    implementation("com.vanniktech:central-portal:0.37.0")
     implementation("org.kohsuke:github-api:1.330")
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.2.4")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.1")

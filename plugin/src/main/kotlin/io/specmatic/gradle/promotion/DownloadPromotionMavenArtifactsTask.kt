@@ -6,6 +6,7 @@ import java.io.IOException
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.Base64
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -17,6 +18,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
@@ -34,6 +36,12 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
 
     @get:Input
     abstract val artifactRelativePaths: ListProperty<String>
+
+    @get:Internal
+    abstract val username: Property<String>
+
+    @get:Internal
+    abstract val password: Property<String>
 
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
@@ -68,6 +76,8 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                                         uri = repositoryUri.resolve(relativePath).toString(),
                                         targetFile = targetFile,
                                         maxRetries = maxRetries.get(),
+                                        username = username.orNull.orEmpty(),
+                                        password = password.orNull.orEmpty(),
                                     )
                                 }
 
@@ -96,14 +106,30 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
         Files.copy(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
 
-    private fun downloadWithRetries(client: OkHttpClient, uri: String, targetFile: File, maxRetries: Int) {
+    private fun downloadWithRetries(
+        client: OkHttpClient,
+        uri: String,
+        targetFile: File,
+        maxRetries: Int,
+        username: String,
+        password: String,
+    ) {
         targetFile.parentFile.mkdirs()
 
         var lastFailure: Exception? = null
         repeat(maxRetries) { attempt ->
             try {
                 logger.lifecycle("Downloading $uri (attempt ${attempt + 1}/$maxRetries)")
-                val request = Request.Builder().url(uri).build()
+                val request =
+                    Request
+                        .Builder()
+                        .url(uri)
+                        .apply {
+                            if (username.isNotBlank() && password.isNotBlank()) {
+                                val credentials = Base64.getEncoder().encodeToString("$username:$password".toByteArray())
+                                header("Authorization", "Basic $credentials")
+                            }
+                        }.build()
                 client.newCall(request).execute().use { response ->
                     if (response.code != 200) {
                         logger.lifecycle("Download failed for $uri (attempt ${attempt + 1}/$maxRetries)")

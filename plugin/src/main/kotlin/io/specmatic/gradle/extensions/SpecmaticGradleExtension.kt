@@ -20,13 +20,19 @@ data class MavenInternal(val repoName: String, val url: URI, val type: RepoType)
 
 data class PromotionDockerImage(val sourceImage: String, val targetImage: String)
 
+data class SourceMavenRepository(val name: String, val url: URI)
+
 open class PromotionConfig {
-    var canonicalMavenRepository: URI? = null
+    var canonicalMavenRepository: SourceMavenRepository? = null
     internal val targetMavenRepositories = mutableListOf<PublishTarget>()
     val dockerImagePromotions = mutableListOf<PromotionDockerImage>()
 
-    fun canonicalMavenRepository(url: String) {
-        canonicalMavenRepository = URI.create(url)
+    fun sourceMavenRepository(name: String, url: String) {
+        sourceMavenRepository(name, URI.create(url))
+    }
+
+    fun sourceMavenRepository(name: String, url: URI) {
+        canonicalMavenRepository = SourceMavenRepository(name, url)
     }
 
     fun targetMavenRepository(name: String, url: String, type: RepoType = RepoType.PUBLISH_ALL) {

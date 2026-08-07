@@ -37,9 +37,14 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
     internal var shadowPrefix = ""
     internal var vulnerableDeps = mutableListOf<String?>()
     internal val publishTo = mutableListOf<PublishTarget>()
+    internal var promotes = false
 
     fun publish(configuration: Action<MavenPublication>) {
         this.publicationConfigurations.add(configuration)
+    }
+
+    fun promote() {
+        promotes = true
     }
 
     fun vulnerableDeps(vararg deps: String?) {

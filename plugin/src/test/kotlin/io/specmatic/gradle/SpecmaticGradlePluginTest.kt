@@ -6,6 +6,7 @@ import io.mockk.mockk
 import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
 import io.specmatic.gradle.extensions.RepoType
+import io.specmatic.gradle.extensions.SourceMavenRepository
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.promotion.DownloadPromotionMavenArtifactsTask
 import io.specmatic.gradle.promotion.InspectPromotionDockerImagesTask
@@ -17,6 +18,7 @@ import io.specmatic.gradle.promotion.configurePromotionTasks
 import io.specmatic.gradle.release.SpecmaticReleasePlugin
 import io.specmatic.gradle.release.execGit
 import java.io.File
+import java.net.URI
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatCode
 import org.barfuin.gradle.taskinfo.GradleTaskInfoPlugin
@@ -120,14 +122,14 @@ class SpecmaticGradlePluginTest {
 
         val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
         extension.promotion {
-            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
             targetMavenRepository("mavenCentral", "https://central.example.com/repository/releases")
             targetMavenCentral()
             dockerImage("specmatic/example", "acme/example")
         }
 
         assertThat(extension.promotion.canonicalMavenRepository)
-            .hasToString("https://repo.specmatic.io/releases")
+            .isEqualTo(SourceMavenRepository("specmaticReleases", URI.create("https://repo.specmatic.io/releases")))
         assertThat(extension.promotion.targetMavenRepositories)
             .hasSize(2)
         assertThat(extension.promotion.targetMavenRepositories.first())
@@ -198,11 +200,12 @@ class SpecmaticGradlePluginTest {
 
         val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
         extension.promotion {
-            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
         }
         extension.withOSSApplication(project) {
             mainClass = "org.example.Main"
             publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+            promote()
         }
 
         project.evaluationDependsOn(":")
@@ -229,17 +232,38 @@ class SpecmaticGradlePluginTest {
     }
 
     @Test
+    fun `does not register maven promotion tasks for projects that do not opt in`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+
+        val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+        extension.promotion {
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
+        }
+        extension.withOSSApplication(project) {
+            mainClass = "org.example.Main"
+            publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+        }
+
+        project.evaluationDependsOn(":")
+        project.configurePromotionTasks()
+
+        assertThat(project.tasks.names).doesNotContain("downloadPromotionMavenArtifacts", "verifyPromotionMavenArtifacts", "promoteMaven")
+    }
+
+    @Test
     fun `registers maven promotion verify task from configured publications`() {
         val project = createProject("org.example", "1.2.3")
         project.plugins.apply("io.specmatic.gradle")
 
         val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
         extension.promotion {
-            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
         }
         extension.withOSSApplication(project) {
             mainClass = "org.example.Main"
             publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+            promote()
         }
 
         project.evaluationDependsOn(":")
@@ -266,12 +290,13 @@ class SpecmaticGradlePluginTest {
 
         val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
         extension.promotion {
-            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
             targetMavenRepository("reposilite", "https://repo.example.com/releases", RepoType.PUBLISH_ALL)
         }
         extension.withOSSApplication(project) {
             mainClass = "org.example.Main"
             publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+            promote()
         }
 
         project.evaluationDependsOn(":")
@@ -302,12 +327,13 @@ class SpecmaticGradlePluginTest {
 
         val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
         extension.promotion {
-            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
             targetMavenCentral()
         }
         extension.withOSSApplication(project) {
             mainClass = "org.example.Main"
             publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+            promote()
         }
 
         project.evaluationDependsOn(":")
@@ -328,13 +354,14 @@ class SpecmaticGradlePluginTest {
 
         val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
         extension.promotion {
-            canonicalMavenRepository("https://repo.specmatic.io/releases")
+            sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
             targetMavenRepository("reposilite", "https://repo.example.com/releases", RepoType.PUBLISH_ALL)
             dockerImage("specmatic/example", "acme/example")
         }
         extension.withOSSApplication(project) {
             mainClass = "org.example.Main"
             publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+            promote()
         }
 
         project.evaluationDependsOn(":")

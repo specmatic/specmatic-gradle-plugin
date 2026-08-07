@@ -77,15 +77,17 @@ internal fun Project.configurePromotionTasks() {
         hasPromotePhase = true
     }
 
-    val canonicalRepositoryUri = promotionConfig.canonicalMavenRepository
-    if (canonicalRepositoryUri != null && mavenArtifactPaths.isNotEmpty()) {
+    val sourceMavenRepository = promotionConfig.canonicalMavenRepository
+    if (sourceMavenRepository != null && mavenArtifactPaths.isNotEmpty()) {
         val targetRepositories = promotionConfig.targetMavenRepositories
         val downloadTask =
             tasks.register(DOWNLOAD_PROMOTION_MAVEN_ARTIFACTS_TASK, DownloadPromotionMavenArtifactsTask::class.java) {
                 group = "promotion"
                 description = "Downloads published Maven artifacts for configured modules from the canonical repository"
-                canonicalRepository.set(canonicalRepositoryUri.toString())
+                canonicalRepository.set(sourceMavenRepository.url.toString())
                 artifactRelativePaths.set(mavenArtifactPaths)
+                username.set(providers.gradleProperty("${sourceMavenRepository.name}Username"))
+                password.set(providers.gradleProperty("${sourceMavenRepository.name}Password"))
                 outputDirectory.set(layout.buildDirectory.dir("promotion/maven"))
             }
 
@@ -164,7 +166,7 @@ internal fun Project.configurePromotionTasks() {
     }
 }
 
-private fun Project.registerPromotionDockerReadmeTasks(targetImages: List<String>, dependentTask: TaskProvider<*>,): TaskProvider<*> {
+private fun Project.registerPromotionDockerReadmeTasks(targetImages: List<String>, dependentTask: TaskProvider<*>): TaskProvider<*> {
     val readmeFile = file("readme.docker.md")
     val readmeTasks =
         targetImages.map { targetImage ->
@@ -235,7 +237,7 @@ private fun Project.registerPromotionCreateGithubReleaseTask(
         layout.buildDirectory
             .dir("githubAssets")
             .get()
-            .asFile
+            .asFile,
     )
     releaseVersion.set(provider { version.toString() })
 }
@@ -257,7 +259,7 @@ private fun ObjectFactory.promotionTarget(
 private fun Project.promotionMavenArtifactPaths(): List<String> {
     val extension = specmaticExtension()
     return extension.projectConfigurations
-        .filter { (_, distribution) -> distribution.publishTo.isNotEmpty() }
+        .filter { (_, distribution) -> distribution.promotes && distribution.publishTo.isNotEmpty() }
         .flatMap { (configuredProject, distribution) ->
             configuredProject.publishedMavenRelativePaths(distribution.publishTo)
         }.distinct()
@@ -267,7 +269,7 @@ private fun Project.promotionMavenArtifactPaths(): List<String> {
 private fun Project.promotionMavenArtifactPaths(targets: List<PublishTarget>): List<String> {
     val extension = specmaticExtension()
     return extension.projectConfigurations
-        .filter { (_, distribution) -> distribution.publishTo.isNotEmpty() }
+        .filter { (_, distribution) -> distribution.promotes && distribution.publishTo.isNotEmpty() }
         .flatMap { (configuredProject, _) ->
             configuredProject.publishedMavenRelativePaths(targets)
         }.distinct()

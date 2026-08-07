@@ -232,11 +232,20 @@ Configure it with the `promotion` block:
 ```kotlin
 specmatic {
     promotion {
-        canonicalMavenRepository("https://repo.specmatic.io/releases")
+        sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
         targetMavenRepository("reposilite", "https://repo.example.com/releases")
         targetMavenCentral()
         dockerImage("specmatic/example", "acme/example")
     }
+}
+```
+
+Mark each published project whose artifacts should be promoted:
+
+```kotlin
+withOSSLibrary(project(":library")) {
+    publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_ALL)
+    promote()
 }
 ```
 

@@ -38,10 +38,11 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
             specmatic {
                 withOSSLibrary(rootProject) {
                     publishTo("staging", file("build/mvn-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
                 }
 
                 promotion {
-                    canonicalMavenRepository(file("build/mvn-repo").toURI().toString())
+                    sourceMavenRepository("staging", file("build/mvn-repo").toURI().toString())
                     targetMavenRepository("release", file("build/promoted-repo").toURI().toString())
                 }
             }

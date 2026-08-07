@@ -45,7 +45,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("org.zeroturnaround:zt-exec:1.13.0")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
-    implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.8")
+    implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.9")
     implementation("io.specmatic.priospot:gradle-plugin:0.99.4")
     implementation("org.apache.maven:maven-model:3.9.16")
     implementation("org.apache.maven:maven-repository-metadata:3.9.16")

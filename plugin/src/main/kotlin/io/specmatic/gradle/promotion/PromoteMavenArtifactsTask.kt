@@ -13,6 +13,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -134,9 +136,9 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
                 usertoken = Base64.getEncoder().encodeToString("$username:$password".toByteArray()),
                 userAgentName = "specmatic-gradle-plugin",
                 userAgentVersion = VersionInfo.version,
-                okhttpTimeoutSeconds = 30,
-                closeTimeoutSeconds = 600,
-                pollIntervalMs = 5_000,
+                okhttpTimeoutSeconds = 60,
+                closeTimeoutSeconds = 15.minutes.inWholeSeconds,
+                pollIntervalMs = 5.seconds.inWholeMilliseconds,
                 logger = LoggerFactory.getLogger(PromoteMavenArtifactsTask::class.java),
             )
         val publishingType =
@@ -147,7 +149,7 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
             }
 
         logger.lifecycle("Uploading Maven Central bundle ${zipFile.absolutePath} to $repoName using $publishingType")
-        val deploymentId = portal.upload(zipFile.nameWithoutExtension, publishingType, zipFile)
+        val deploymentId = portal.upload("${project.rootProject.group}:${project.version}", publishingType, zipFile)
         logger.lifecycle("Created Maven Central deployment $deploymentId for $repoName")
         portal.validateDeployment(deploymentId, automaticMavenCentralRelease.get())
     }
@@ -348,7 +350,7 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
                 return
             } catch (e: Exception) {
                 logger.lifecycle(
-                    "Upload failed for ${sourceFile.absolutePath} to $repoName (attempt ${attempt + 1}/$maxRetries): ${e.message}"
+                    "Upload failed for ${sourceFile.absolutePath} to $repoName (attempt ${attempt + 1}/$maxRetries): ${e.message}",
                 )
                 lastFailure = e
             }
@@ -389,7 +391,7 @@ private val LAST_UPDATED_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss
 private val CHECKSUM_ALGORITHMS = mapOf("md5" to "MD5", "sha1" to "SHA-1", "sha256" to "SHA-256", "sha512" to "SHA-512")
 private val CHECKSUM_EXTENSIONS = CHECKSUM_ALGORITHMS.keys.toList()
 
-private data class ReleaseMetadataEntry(val groupId: String, val artifactId: String, val version: String, val metadataPath: String,)
+private data class ReleaseMetadataEntry(val groupId: String, val artifactId: String, val version: String, val metadataPath: String)
 
 private fun releaseMetadataEntries(artifactPaths: List<String>): List<ReleaseMetadataEntry> = artifactPaths
     .asSequence()

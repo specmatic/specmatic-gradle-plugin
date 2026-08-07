@@ -297,6 +297,7 @@ class PromoteMavenArtifactsTaskTest {
                     }.value
                     .single()
             assertThat(uploadRequest.getHeader("Authorization")).isEqualTo("Bearer Y2VudHJhbFVzZXI6Y2VudHJhbFBhc3M=")
+            assertThat(uploadRequest.requestUrl?.queryParameter("name")).isEqualTo("io.specmatic:1.0.0")
             val uploadBody = uploadRequest.body.readUtf8()
             assertThat(uploadBody).contains("example-1.0.0.pom")
             assertThat(uploadBody).contains("example-1.0.0.jar")
@@ -311,6 +312,8 @@ class PromoteMavenArtifactsTaskTest {
 
     private fun task(): PromoteMavenArtifactsTask {
         val project = ProjectBuilder.builder().build()
+        project.group = "io.specmatic"
+        project.version = "1.0.0"
         return project.tasks.create("promoteTest", PromoteMavenArtifactsTask::class.java)
     }
 

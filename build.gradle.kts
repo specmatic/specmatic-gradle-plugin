@@ -32,15 +32,10 @@ specmatic {
             "plugin:publishAllPublicationsToSpecmaticReleasesRepository",
         )
 
-    promotion {
-        canonicalMavenRepository("https://repo.specmatic.io/snapshots")
-        targetMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
-        targetMavenCentral()
-    }
-
     withOSSLibrary(project(":plugin")) {
         publishTo("specmaticPrivate", "https://repo.specmatic.io/private", RepoType.PUBLISH_ALL)
         publishTo("specmaticSnapshots", "https://repo.specmatic.io/snapshots", RepoType.PUBLISH_OBFUSCATED_ONLY)
+        publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_OBFUSCATED_ONLY)
 
         publishGradle {
             pom {

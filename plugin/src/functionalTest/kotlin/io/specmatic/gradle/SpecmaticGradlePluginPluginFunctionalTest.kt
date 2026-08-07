@@ -9,6 +9,44 @@ import org.junit.jupiter.api.Nested
 
 class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
     @Test
+    fun `adds version metadata to Gradle plugin POMs`() {
+        settingsFile.writeText("rootProject.name = \"test-plugin\"")
+        buildFile.writeText(
+            """
+            plugins {
+                `java-gradle-plugin`
+                id("io.specmatic.gradle")
+            }
+
+            gradlePlugin {
+                plugins {
+                    create("test") {
+                        id = "io.specmatic.test"
+                        implementationClass = "io.specmatic.TestPlugin"
+                    }
+                }
+            }
+
+            specmatic {
+                withOSSLibrary(rootProject) {
+                    publishGradle {}
+                }
+            }
+            """.trimIndent(),
+        )
+
+        runWithSuccess(
+            "generatePomFileForPluginMavenPublication",
+            "generatePomFileForTestPluginMarkerMavenPublication",
+        )
+
+        assertThat(projectDir.resolve("build/publications/pluginMaven/pom-default.xml").readText())
+            .contains("<x-specmatic-version>1.2.3</x-specmatic-version>")
+        assertThat(projectDir.resolve("build/publications/testPluginMarkerMaven/pom-default.xml").readText())
+            .contains("<x-specmatic-version>1.2.3</x-specmatic-version>")
+    }
+
+    @Test
     fun `throws error when shadow prefix is not valid package name`() {
         // Set up the test build
         settingsFile.writeText("")

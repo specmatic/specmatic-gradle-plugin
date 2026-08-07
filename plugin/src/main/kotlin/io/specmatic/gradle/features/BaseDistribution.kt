@@ -12,6 +12,8 @@ import io.specmatic.gradle.extensions.RepoType
 import io.specmatic.gradle.extensions.setupCommericalJavadocAndSources
 import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.publishing.isCommercial
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
+import io.specmatic.gradle.versioninfo.versionInfo
 import java.net.URI
 import org.gradle.api.Action
 import org.gradle.api.Project
@@ -70,6 +72,9 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
                 project.setupCommericalJavadocAndSources()
             }
             project.mavenPublications {
+                if (isGradlePlugin) {
+                    project.versionInfo().addToPom(pom, SpecmaticArtifactType.ORIGINAL)
+                }
                 publicationConfigurations.forEach {
                     it.execute(this)
                 }

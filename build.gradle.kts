@@ -27,6 +27,7 @@ specmatic {
     releasePublishTasks =
         listOf(
             "plugin:publishPlugins",
+            "plugin:publishToMavenCentral",
             "plugin:publishAllPublicationsToSpecmaticPrivateRepository",
             "plugin:publishAllPublicationsToSpecmaticSnapshotsRepository",
             "plugin:publishAllPublicationsToSpecmaticReleasesRepository",
@@ -36,6 +37,7 @@ specmatic {
         publishTo("specmaticPrivate", "https://repo.specmatic.io/private", RepoType.PUBLISH_ALL)
         publishTo("specmaticSnapshots", "https://repo.specmatic.io/snapshots", RepoType.PUBLISH_OBFUSCATED_ONLY)
         publishTo("specmaticReleases", "https://repo.specmatic.io/releases", RepoType.PUBLISH_OBFUSCATED_ONLY)
+        publishToMavenCentral()
 
         publishGradle {
             pom {

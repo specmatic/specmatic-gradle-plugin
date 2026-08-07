@@ -28,7 +28,7 @@ dependencies {
     implementation("org.semver4j:semver4j:6.0.0")
     implementation("org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin:2.2.1")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0")
-    implementation("commons-codec:commons-codec:1.22.0")
+    implementation("commons-codec:commons-codec:1.22.1")
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.5.1") {
         exclude(group = "org.codehaus.plexus", module = "plexus-utils")
     }

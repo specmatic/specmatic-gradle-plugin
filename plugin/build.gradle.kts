@@ -32,7 +32,7 @@ dependencies {
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1") {
         exclude(group = "org.codehaus.plexus", module = "plexus-utils")
     }
-    implementation("org.codehaus.plexus:plexus-utils:4.0.3")
+    implementation("org.codehaus.plexus:plexus-utils:4.1.0")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.37.0")
     implementation("com.vanniktech:central-portal:0.37.0")
     implementation("org.kohsuke:github-api:1.330")

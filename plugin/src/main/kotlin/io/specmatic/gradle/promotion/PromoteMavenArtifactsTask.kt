@@ -137,7 +137,7 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
                 userAgentName = "specmatic-gradle-plugin",
                 userAgentVersion = VersionInfo.version,
                 okhttpTimeoutSeconds = 60,
-                closeTimeoutSeconds = 15.minutes.inWholeSeconds,
+                closeTimeoutSeconds = 30.minutes.inWholeSeconds,
                 pollIntervalMs = 5.seconds.inWholeMilliseconds,
                 logger = LoggerFactory.getLogger(PromoteMavenArtifactsTask::class.java),
             )

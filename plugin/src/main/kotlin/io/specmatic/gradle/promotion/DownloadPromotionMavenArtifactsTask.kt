@@ -32,6 +32,9 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
     abstract val maxRetries: Property<Int>
 
     @get:Input
+    abstract val backoffMillis: Property<Long>
+
+    @get:Input
     abstract val canonicalRepository: Property<String>
 
     @get:Input
@@ -49,6 +52,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
     init {
         maxParallelDownloads.convention(5)
         maxRetries.convention(3)
+        backoffMillis.convention(1_000)
     }
 
     @TaskAction
@@ -145,9 +149,25 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
             } catch (e: Exception) {
                 targetFile.delete()
                 lastFailure = e
+                if (attempt + 1 < maxRetries) {
+                    awaitGlobalBackoff(backoffMillis.get() * (1L shl attempt))
+                }
             }
         }
 
         throw GradleException("Failed to download $uri after $maxRetries attempts", lastFailure)
+    }
+
+    private fun awaitGlobalBackoff(delayMillis: Long) {
+        synchronized(globalBackoffLock) {
+            val now = System.currentTimeMillis()
+            globalNextRetryAt = maxOf(now, globalNextRetryAt) + delayMillis
+            Thread.sleep(globalNextRetryAt - now)
+        }
+    }
+
+    private companion object {
+        val globalBackoffLock = Any()
+        var globalNextRetryAt = 0L
     }
 }

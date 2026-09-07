@@ -95,11 +95,11 @@ class LoggingTest : AbstractFunctionalTest() {
 
         val logLines = result.output.lines().filter { it.contains("[this will only show via logback]") }
         assertThat(logLines).containsExactlyInAnyOrder(
-            "[this will only show via logback] INFO  jul -- jul - Hello, world! Version: v1.2.3",
-            "[this will only show via logback] INFO  slf4j -- slf4j - Hello, world! Version: v1.2.3",
-            "[this will only show via logback] INFO  commons-logging -- commons-logging - Hello, world! Version: v1.2.3",
-            "[this will only show via logback] INFO  log4j -- log4j - Hello, world! Version: v1.2.3",
-            "[this will only show via logback] INFO  log4j2 -- log4j2 - Hello, world! Version: v1.2.3",
+            "[this will only show via logback] INFO  jul -- jul - Hello, world! Version: v1.2.3(unknown)",
+            "[this will only show via logback] INFO  slf4j -- slf4j - Hello, world! Version: v1.2.3(unknown)",
+            "[this will only show via logback] INFO  commons-logging -- commons-logging - Hello, world! Version: v1.2.3(unknown)",
+            "[this will only show via logback] INFO  log4j -- log4j - Hello, world! Version: v1.2.3(unknown)",
+            "[this will only show via logback] INFO  log4j2 -- log4j2 - Hello, world! Version: v1.2.3(unknown)",
         )
     }
 

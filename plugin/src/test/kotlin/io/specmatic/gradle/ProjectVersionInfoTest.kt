@@ -167,7 +167,7 @@ class ProjectVersionInfoTest {
                     isRootProject = true,
                     timestamp = null,
                 )
-            assertThat(projectVersionInfo.toKotlinClass().contains("""fun describe() = "v1.0.0-SNAPSHOT(12345678)""""))
+            assertThat(projectVersionInfo.toKotlinClass()).contains("""fun describe() = "v1.0.0-SNAPSHOT(12345678)"""")
         }
 
         @Test
@@ -183,11 +183,8 @@ class ProjectVersionInfoTest {
                     timestamp = "2021-09-01T12:00:00Z",
                 )
 
-            assertThat(
-                projectVersionInfo
-                    .toKotlinClass()
-                    .contains("""fun describe() = "v1.0.0 built at 2021-09-01T12:00:00Z""""),
-            )
+            assertThat(projectVersionInfo.toKotlinClass())
+                .contains("""fun describe() = "v1.0.0(12345678) built at 2021-09-01T12:00:00Z"""")
         }
 
         @Test
@@ -203,7 +200,7 @@ class ProjectVersionInfoTest {
                     timestamp = null,
                 )
 
-            assertThat(projectVersionInfo.toKotlinClass().contains("""fun describe() = "v1.0.0""""))
+            assertThat(projectVersionInfo.toKotlinClass()).contains("""fun describe() = "v1.0.0(12345678)"""")
         }
 
         @Test

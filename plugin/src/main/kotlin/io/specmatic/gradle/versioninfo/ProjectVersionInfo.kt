@@ -34,26 +34,22 @@ data class ProjectVersionInfo(
 ) {
     fun toKotlinClass(): String =
         """
-            // $AUTO_GENERATED_CODE_WARNING
-            package $kotlinPackageName
+        // $AUTO_GENERATED_CODE_WARNING
+        package $kotlinPackageName
 
-            object VersionInfo {
-                val version = "$version"
-                val gitCommit = "$gitCommit"
-                val gitShortCommit = "${shortCommit()}"
-                val group = "$group"
-                val name = "$name"
-                ${maybeKotlinTimestamp()}
-                
-                fun describe() = "v${version}${
-            if (version.contains("SNAPSHOT")) {
-                "(${shortCommit()})"
-            } else {
-                ""
-            }
-        }${if (timestamp != null) " built at $timestamp" else ""}"
-            }
+        object VersionInfo {
+            val version = "$version"
+            val gitCommit = "$gitCommit"
+            val gitShortCommit = "${shortCommit()}"
+            val group = "$group"
+            val name = "$name"
+            ${maybeKotlinTimestamp()}
+            
+            fun describe() = "${description()}"
+        }
         """.trimIndent()
+
+    private fun description() = "v$version(${shortCommit()})${if (timestamp != null) " built at $timestamp" else ""}"
 
     private fun shortCommit() = gitCommit.take(8).trim()
 

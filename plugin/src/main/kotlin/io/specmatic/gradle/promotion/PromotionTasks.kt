@@ -6,18 +6,30 @@ import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
 import io.specmatic.gradle.extensions.PublishTarget
 import io.specmatic.gradle.extensions.RepoType
+import io.specmatic.gradle.features.CommercialApplicationAndLibraryFeature
+import io.specmatic.gradle.features.CommercialApplicationFeature
 import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.release.CreateReleaseTagTask
 import io.specmatic.gradle.release.GitPushTask
 import io.specmatic.gradle.release.PostReleaseBump
 import io.specmatic.gradle.release.PreReleaseCheck
 import io.specmatic.gradle.specmaticExtension
+import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
 import io.specmatic.gradle.versioninfo.versionInfo
+import java.io.File
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader
+import org.gradle.api.DefaultTask
 import org.gradle.api.Project
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenArtifact
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
 
@@ -34,8 +46,40 @@ private const val PROMOTION_CREATE_RELEASE_TAG_TASK = "promotionCreateReleaseTag
 private const val PROMOTION_POST_RELEASE_BUMP_TASK = "promotionPostReleaseBump"
 private const val PROMOTION_GIT_PUSH_TASK = "promotionGitPush"
 private const val PROMOTION_CREATE_GITHUB_RELEASE_TASK = "promotionCreateGithubRelease"
+private const val PROMOTION_PREPARE_GITHUB_RELEASE_ARTIFACTS_TASK = "promotionPrepareGithubReleaseArtifacts"
 private const val PROMOTE_TASK = "promote"
 private val CHECKSUM_SUFFIXES = listOf(".md5", ".sha1", ".sha256", ".sha512")
+
+abstract class PreparePromotionGithubReleaseArtifactsTask : DefaultTask() {
+    @get:InputDirectory
+    abstract val inputDirectory: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @get:Input
+    abstract val artifactType: Property<String>
+
+    @TaskAction
+    fun prepare() {
+        val input = inputDirectory.get().asFile
+        val output = outputDirectory.get().asFile
+        output.deleteRecursively()
+        output.mkdirs()
+
+        input
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "pom" }
+            .filter { readArtifactType(it) == artifactType.get() }
+            .map { pom -> pom.resolveSibling("${pom.nameWithoutExtension}.jar") }
+            .filter { it.isFile }
+            .forEach { jar -> jar.copyTo(output.resolve(jar.name), overwrite = true) }
+    }
+
+    private fun readArtifactType(pom: File): String? = pom.inputStream().use {
+        MavenXpp3Reader().read(it).properties.getProperty("x-specmatic-artifact-type")
+    }
+}
 
 internal fun Project.configurePromotionTasks() {
     project.pluginInfo("Applying promotion tasks to ${this.path}")
@@ -156,7 +200,34 @@ internal fun Project.configurePromotionTasks() {
         val createReleaseTagTask = registerPromotionCreateReleaseTagTask(updateDockerReadmeTask)
         val postReleaseBumpTask = registerPromotionPostReleaseBumpTask(createReleaseTagTask)
         val gitPushTask = registerPromotionGitPushTask(postReleaseBumpTask)
-        val createGithubReleaseTask = registerPromotionCreateGithubReleaseTask(gitPushTask, updateDockerReadmeTask)
+        val prepareGithubReleaseArtifactsTask =
+            tasks.register(PROMOTION_PREPARE_GITHUB_RELEASE_ARTIFACTS_TASK, PreparePromotionGithubReleaseArtifactsTask::class.java) {
+                group = "promotion"
+                description = "Prepares the promoted fat JAR for the GitHub release"
+                if (tasks.names.contains(VERIFY_PROMOTION_MAVEN_ARTIFACTS_TASK)) {
+                    dependsOn(VERIFY_PROMOTION_MAVEN_ARTIFACTS_TASK)
+                }
+                inputDirectory.set(layout.buildDirectory.dir("promotion/maven"))
+                outputDirectory.set(layout.buildDirectory.dir("githubAssets"))
+                artifactType.set(
+                    provider {
+                        if (specmaticExtension().projectConfigurations.values.any {
+                                it is CommercialApplicationFeature || it is CommercialApplicationAndLibraryFeature
+                            }
+                        ) {
+                            SpecmaticArtifactType.OBFUSCATED_FAT.serializedValue
+                        } else {
+                            SpecmaticArtifactType.ORIGINAL_FAT.serializedValue
+                        }
+                    },
+                )
+            }
+        val createGithubReleaseTask =
+            registerPromotionCreateGithubReleaseTask(
+                gitPushTask,
+                updateDockerReadmeTask,
+                prepareGithubReleaseArtifactsTask,
+            )
 
         tasks.register(PROMOTE_TASK) {
             group = "promotion"
@@ -229,8 +300,9 @@ private fun Project.registerPromotionGitPushTask(dependentTask: TaskProvider<*>)
 private fun Project.registerPromotionCreateGithubReleaseTask(
     dependentTask: TaskProvider<*>,
     dockerReadmeTask: TaskProvider<*>,
+    prepareArtifactsTask: TaskProvider<*>,
 ): TaskProvider<*> = tasks.register(PROMOTION_CREATE_GITHUB_RELEASE_TASK, CreateGithubReleaseTask::class.java) {
-    dependsOn(dependentTask, dockerReadmeTask)
+    dependsOn(dependentTask, dockerReadmeTask, prepareArtifactsTask)
     group = "promotion"
     description = "Creates the GitHub release for the promoted version"
     sourceDir.set(

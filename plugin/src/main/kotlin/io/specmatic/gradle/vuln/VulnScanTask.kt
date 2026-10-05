@@ -15,6 +15,7 @@ import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
@@ -27,6 +28,10 @@ import org.gradle.process.ExecOperations
 abstract class AbstractVulnScanTask
     @Inject
     constructor(private val execLauncher: ExecOperations) : DefaultTask() {
+        init {
+            extraArgs.convention(emptyList())
+        }
+
         @TaskAction
         fun vulnScan() {
             val scanner = scannerStrategy(scannerTool.get())
@@ -42,7 +47,7 @@ abstract class AbstractVulnScanTask
                 )
 
             formats.forEach { (format, output) ->
-                runScan(scanner.commandFor(scannerContext, scanTarget(), format), output)
+                runScan(scanner.commandFor(scannerContext, scanTarget(), format, extraArgs.get()), output)
             }
 
             printReportFile(project, getTextTableReportFile())
@@ -61,6 +66,9 @@ abstract class AbstractVulnScanTask
 
         @get:Input
         abstract val scannerTool: Property<VulnScannerType>
+
+        @get:Input
+        abstract val extraArgs: ListProperty<String>
 
         private fun runScan(cliArgs: List<String>, output: File) {
             try {

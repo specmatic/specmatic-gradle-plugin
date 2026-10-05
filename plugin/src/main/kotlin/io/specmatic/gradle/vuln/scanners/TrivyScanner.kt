@@ -19,14 +19,14 @@ class TrivyScanner :
         installDirName = "trivy",
         versionFileName = "trivy.version",
     ) {
-    override fun commandFor(context: ScannerContext, target: ScanTarget, format: String): List<String> = commandPrefix(context, target) +
+    override fun commandFor(context: ScannerContext, target: ScanTarget, format: String, extraArgs: List<String>): List<String> = commandPrefix(context, target) +
         listOf(
             "--ignore-unfixed",
             "--quiet",
             "--no-progress",
             "--format",
             format,
-        ) +
+        ) + extraArgs +
         target.value
 
     override fun hasVulnerabilities(jsonReportFile: File, severities: Set<VulnerabilitySeverity>,): Boolean {

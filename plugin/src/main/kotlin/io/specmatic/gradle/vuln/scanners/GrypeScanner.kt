@@ -19,13 +19,13 @@ class GrypeScanner :
         installDirName = "grype",
         versionFileName = "grype.version",
     ) {
-    override fun commandFor(context: ScannerContext, target: ScanTarget, format: String): List<String> = commandPrefix(context, target) +
+    override fun commandFor(context: ScannerContext, target: ScanTarget, format: String, extraArgs: List<String>): List<String> = commandPrefix(context, target) +
         listOf(
             "--quiet",
             "--only-fixed",
             "--output",
             format,
-        )
+        ) + extraArgs
 
     override fun hasVulnerabilities(jsonReportFile: File, severities: Set<VulnerabilitySeverity>,): Boolean = jacksonObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

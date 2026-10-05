@@ -28,7 +28,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 dependencies {
                     // tiny jar, with no deps
-                    implementation("org.slf4j:slf4j-api:2.0.17")
+                    implementation("org.slf4j:slf4j-api:2.0.20")
                 }
                 
                 specmatic {
@@ -96,7 +96,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
 
                 allArtifacts.filter { it.contains("min") }.forEach {
                     assertThat(getDependencies(it)).containsExactlyInAnyOrder(
-                        "org.slf4j:slf4j-api:2.0.17",
+                        "org.slf4j:slf4j-api:2.0.20",
                         "org.jetbrains.kotlin:kotlin-stdlib:1.9.20",
                     )
                 }
@@ -130,7 +130,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
 
                 allArtifacts.filter { it.contains("min") }.forEach {
                     assertThat(getDependencies(it)).containsExactlyInAnyOrder(
-                        "org.slf4j:slf4j-api:2.0.17",
+                        "org.slf4j:slf4j-api:2.0.20",
                         "org.jetbrains.kotlin:kotlin-stdlib:1.9.20",
                     )
                 }
@@ -176,7 +176,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 dependencies {
                     // tiny jar, with no deps
-                    implementation("org.slf4j:slf4j-api:2.0.17")
+                    implementation("org.slf4j:slf4j-api:2.0.20")
                 }
                 
                 specmatic {
@@ -235,7 +235,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
             assertPublishedWithoutSourcesAndJavadocs(*allObfuscatedPublishedArtifacts)
             arrayOf(*allArtifacts).filter { it.contains("min") }.forEach {
                 assertThat(getDependencies(it)).containsExactlyInAnyOrder(
-                    "org.slf4j:slf4j-api:2.0.17",
+                    "org.slf4j:slf4j-api:2.0.20",
                     "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
                 )
             }
@@ -293,7 +293,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     dependencies {
                         // tiny jar, with no deps
                         implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
-                        implementation("org.slf4j:slf4j-api:2.0.17")
+                        implementation("org.slf4j:slf4j-api:2.0.20")
                     }
                 }
                 
@@ -387,7 +387,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
 
                 assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
                     "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
-                    "org.slf4j:slf4j-api:2.0.17",
+                    "org.slf4j:slf4j-api:2.0.20",
                 )
             }
         }
@@ -419,7 +419,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
 
                 assertThat(getDependencies("io.specmatic.example:core-min:1.2.3")).containsExactlyInAnyOrder(
                     "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
-                    "org.slf4j:slf4j-api:2.0.17",
+                    "org.slf4j:slf4j-api:2.0.20",
                 )
             }
         }
@@ -456,7 +456,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     dependencies {
                         // tiny jar, with no deps
                         implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
-                        implementation("org.slf4j:slf4j-api:2.0.17")
+                        implementation("org.slf4j:slf4j-api:2.0.20")
                     }
                 }
                 

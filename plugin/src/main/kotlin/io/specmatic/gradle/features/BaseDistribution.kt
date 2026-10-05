@@ -127,14 +127,14 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
     protected fun setupLogging() {
         project.configurations.named("implementation") {
             // add logback classic
-            dependencies.add(project.dependencies.create("ch.qos.logback:logback-classic:1.5.27"))
-            dependencies.add(project.dependencies.create("ch.qos.logback:logback-core:1.5.27"))
+            dependencies.add(project.dependencies.create("ch.qos.logback:logback-classic:1.6.5"))
+            dependencies.add(project.dependencies.create("ch.qos.logback:logback-core:1.6.5"))
 
             // add bridges to redirect all other logging frameworks to SLF4J
-            dependencies.add(project.dependencies.create("org.apache.logging.log4j:log4j-to-slf4j:2.25.3"))
-            dependencies.add(project.dependencies.create("org.slf4j:jul-to-slf4j:2.0.17"))
-            dependencies.add(project.dependencies.create("org.slf4j:jcl-over-slf4j:2.0.17"))
-            dependencies.add(project.dependencies.create("org.slf4j:log4j-over-slf4j:2.0.17"))
+            dependencies.add(project.dependencies.create("org.apache.logging.log4j:log4j-to-slf4j:2.26.1"))
+            dependencies.add(project.dependencies.create("org.slf4j:jul-to-slf4j:2.0.20"))
+            dependencies.add(project.dependencies.create("org.slf4j:jcl-over-slf4j:2.0.20"))
+            dependencies.add(project.dependencies.create("org.slf4j:log4j-over-slf4j:2.0.20"))
 
             excludeLoggingFrameworks()
         }

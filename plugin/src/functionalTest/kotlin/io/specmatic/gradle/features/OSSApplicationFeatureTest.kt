@@ -28,7 +28,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 
                 dependencies {
                     // tiny jar, with no deps
-                    implementation("org.slf4j:slf4j-api:2.0.17")
+                    implementation("org.slf4j:slf4j-api:2.0.20")
                 }
                 
                 specmatic {
@@ -129,7 +129,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 
                 dependencies {
                     // tiny jar, with no deps
-                    implementation("org.slf4j:slf4j-api:2.0.17")
+                    implementation("org.slf4j:slf4j-api:2.0.20")
                 }
                 
                 specmatic {
@@ -226,7 +226,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                     dependencies {
                         // tiny jar, with no deps
                         implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
-                        implementation("org.slf4j:slf4j-api:2.0.17")
+                        implementation("org.slf4j:slf4j-api:2.0.20")
                     }
                 }
                 
@@ -279,7 +279,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
                 "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
-                "org.slf4j:slf4j-api:2.0.17",
+                "org.slf4j:slf4j-api:2.0.20",
             )
 
             assertThat(
@@ -367,7 +367,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                     dependencies {
                         // tiny jar, with no deps
                         implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
-                        implementation("org.slf4j:slf4j-api:2.0.17")
+                        implementation("org.slf4j:slf4j-api:2.0.20")
                     }
                 }
                 
@@ -418,7 +418,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).isEmpty()
             assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
                 "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
-                "org.slf4j:slf4j-api:2.0.17",
+                "org.slf4j:slf4j-api:2.0.20",
             )
 
             assertThat(

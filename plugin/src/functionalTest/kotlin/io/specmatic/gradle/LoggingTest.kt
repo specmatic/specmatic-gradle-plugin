@@ -134,7 +134,7 @@ class LoggingTest : AbstractFunctionalTest() {
                 dependencies {
                     implementation("log4j:log4j:1.2.17")
                     implementation("commons-logging:commons-logging:1.3.5")
-                    implementation("org.slf4j:slf4j-api:2.0.17")
+                    implementation("org.slf4j:slf4j-api:2.0.20")
                     implementation("org.apache.logging.log4j:log4j-api:2.12.4")
                 }
                 

@@ -37,7 +37,7 @@ class ShadowConfigurationFunctionalTest : AbstractFunctionalTest() {
                 
                 dependencies {
                     // tiny jar, with no deps
-                    implementation("org.slf4j:slf4j-api:2.0.17")
+                    implementation("org.slf4j:slf4j-api:2.0.20")
                 }
             }
             

@@ -1,6 +1,7 @@
 package io.specmatic.gradle.promotion
 
 import io.specmatic.gradle.CreateGithubReleaseTask
+import io.specmatic.gradle.docker.HasDockerReadme
 import io.specmatic.gradle.docker.UpdateDockerHubOverviewTask
 import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
@@ -14,6 +15,7 @@ import io.specmatic.gradle.release.GitPushTask
 import io.specmatic.gradle.release.PostReleaseBump
 import io.specmatic.gradle.release.PreReleaseCheck
 import io.specmatic.gradle.specmaticExtension
+import io.specmatic.gradle.tasks.SpecmaticAggregateTask
 import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
 import io.specmatic.gradle.versioninfo.versionInfo
 import java.io.File
@@ -35,6 +37,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
+import org.gradle.work.DisableCachingByDefault
 
 private const val INSPECT_PROMOTION_DOCKER_IMAGES_TASK = "inspectPromotionDockerImages"
 private const val INSPECT_PROMOTION_TASK = "inspectPromotion"
@@ -53,6 +56,7 @@ private const val PROMOTION_PREPARE_GITHUB_RELEASE_ARTIFACTS_TASK = "promotionPr
 private const val PROMOTE_TASK = "promote"
 private val CHECKSUM_SUFFIXES = listOf(".md5", ".sha1", ".sha256", ".sha512")
 
+@DisableCachingByDefault(because = "Prepares release artifacts for an external GitHub release")
 abstract class PreparePromotionGithubReleaseArtifactsTask : DefaultTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -91,7 +95,7 @@ internal fun Project.configurePromotionTasks() {
     val targetImages = promotionConfig.dockerImagePromotions.map { it.targetImage }.distinct()
     val mavenArtifactPaths = promotionMavenArtifactPaths()
     val inspectPromotionTask =
-        tasks.register(INSPECT_PROMOTION_TASK) {
+        tasks.register(INSPECT_PROMOTION_TASK, SpecmaticAggregateTask::class.java) {
             group = "promotion"
             description = "Validates Maven and Docker artifacts before promotion"
         }
@@ -154,7 +158,9 @@ internal fun Project.configurePromotionTasks() {
                 group = "promotion"
                 description = "Promotes verified Maven artifacts to configured target repositories"
                 dependsOn(inspectPromotionTask)
-                automaticMavenCentralRelease.set(provider { project.properties["disableMavenCentralAutoPublish"] != "true" })
+                groupId.set(project.rootProject.group.toString())
+                projectVersion.set(project.version.toString())
+                automaticMavenCentralRelease.set(providers.gradleProperty("disableMavenCentralAutoPublish").map { it != "true" }.orElse(true))
                 inputDirectory.set(layout.buildDirectory.dir("promotion/maven"))
                 targets.set(
                     targetRepositories.map { repo ->
@@ -179,7 +185,7 @@ internal fun Project.configurePromotionTasks() {
 
     if (hasPromotePhase) {
         val promoteArtifactsTask =
-            tasks.register(PROMOTE_ARTIFACTS_TASK) {
+            tasks.register(PROMOTE_ARTIFACTS_TASK, SpecmaticAggregateTask::class.java) {
                 group = "promotion"
                 description = "Runs promotion inspection and promotes all configured artifacts"
                 dependsOn(inspectPromotionTask)
@@ -233,7 +239,7 @@ internal fun Project.configurePromotionTasks() {
                 prepareGithubReleaseArtifactsTask,
             )
 
-        tasks.register(PROMOTE_TASK) {
+            tasks.register(PROMOTE_TASK, SpecmaticAggregateTask::class.java) {
             group = "promotion"
             description = "Runs inspection, promotes configured artifacts, updates release metadata, and bumps to the next version"
             dependsOn(createGithubReleaseTask)
@@ -249,7 +255,7 @@ private fun Project.registerPromotionDockerReadmeTasks(targetImages: List<String
                 dependsOn(dependentTask)
                 group = "promotion"
                 description = "Publishes Docker Hub README content for $targetImage after promotion"
-                onlyIf { readmeFile.exists() }
+                onlyIf("Docker Hub README exists", HasDockerReadme(readmeFile))
                 dockerHubUsername.set(
                     provider {
                         System.getenv("SPECMATIC_DOCKER_HUB_USERNAME")
@@ -267,7 +273,7 @@ private fun Project.registerPromotionDockerReadmeTasks(targetImages: List<String
             }
         }
 
-    return tasks.register(UPDATE_PROMOTION_DOCKER_HUB_README_TASK) {
+    return tasks.register(UPDATE_PROMOTION_DOCKER_HUB_README_TASK, SpecmaticAggregateTask::class.java) {
         group = "promotion"
         description = "Updates Docker Hub README content for promoted target images"
         dependsOn(dependentTask)
@@ -281,7 +287,7 @@ private fun Project.registerPromotionCreateReleaseTagTask(dependentTask: TaskPro
         group = "promotion"
         description = "Creates a git tag for the promoted version"
         rootDir.set(rootProject.rootDir)
-        releaseVersion.set(provider { version.toString() })
+        releaseVersion.set(version.toString())
     }
 
 private fun Project.registerPromotionPostReleaseBumpTask(dependentTask: TaskProvider<*>): TaskProvider<*> =

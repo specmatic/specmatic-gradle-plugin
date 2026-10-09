@@ -7,22 +7,14 @@ plugins {
 }
 
 specmatic {
-    kotlinVersion = "2.3.20"
-    kotlinApiVersion = KotlinVersion.KOTLIN_2_3
+    kotlinVersion = "2.4.21"
+    kotlinApiVersion = KotlinVersion.KOTLIN_2_4
 
     downstreamDependentProjects =
         listOf(
             "specmatic",
-            "specmatic-arazzo",
-            "specmatic-async",
-            "specmatic-google-pubsub",
-            "specmatic-gradle-plugin",
-            "specmatic-graphql",
-            "specmatic-grpc",
-            "specmatic-kafka",
-            "specmatic-license",
-            "specmatic-openapi",
-            "specmatic-redis",
+            "specmatic-insights",
+            "enterprise",
         )
     releasePublishTasks =
         listOf(
@@ -90,14 +82,26 @@ specmatic {
         license = "Apache-2.0"
     }
     licenseData {
-        name = "org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin"
-        version = "2.2.0"
+        name = "org.barfuin.gradle.taskinfo:gradle-taskinfo"
+        version = "2.2.1"
         projectUrl = "https://gitlab.com/barfuin/gradle-taskinfo"
         license = "Apache-2.0"
     }
     licenseData {
+        name = "org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin"
+        version = "2.2.1"
+        projectUrl = "https://gitlab.com/barfuin/gradle-taskinfo"
+        license = "Apache-2.0"
+    }
+    licenseData {
+        name = "org.cyclonedx:cyclonedx-gradle-plugin"
+        version = "3.5.1"
+        projectUrl = "https://github.com/CycloneDX/cyclonedx-gradle-plugin"
+        license = "Apache-2.0"
+    }
+    licenseData {
         name = "org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin"
-        version = "2.3.10"
+        version = "3.5.1"
         projectUrl = "https://github.com/CycloneDX/cyclonedx-gradle-plugin"
         license = "Apache-2.0"
     }
@@ -120,9 +124,15 @@ specmatic {
         license = "Apache-2.0"
     }
     licenseData {
+        name = "org.gradlex:jvm-dependency-conflict-resolution"
+        version = "2.5"
+        projectUrl = "https://github.com/gradlex-org/jvm-dependency-conflict-resolution"
+        license = "Apache-2.0"
+    }
+    licenseData {
         name =
             "org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin"
-        version = "2.2"
+        version = "2.5"
         projectUrl = "https://github.com/gradlex-org/jvm-dependency-conflict-resolution"
         license = "Apache-2.0"
     }

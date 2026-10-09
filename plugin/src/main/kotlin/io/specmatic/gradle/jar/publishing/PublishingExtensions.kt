@@ -23,6 +23,7 @@ import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.XmlProvider
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.get
 
@@ -65,16 +66,13 @@ internal fun Project.createUnobfuscatedJarPublication(artifactIdentifier: String
                     }
 
                     publication.artifactId = artifactIdentifier
-                    publication.pom {
-                        withXml {
-                            val topLevel = asNode()
-                            val dependenciesNode = topLevel.appendNode("dependencies")
-                            val projectDeps =
-                                configurations["compileClasspath"].allDependencies - configurations.shadow.get().allDependencies
-                            val globalExcludeRules = configurations["implementation"].excludeRules
-                            processDependencies(projectDeps, dependenciesNode, globalExcludeRules, false)
-                        }
-                    }
+                    val dependencies =
+                        pomDependencies(
+                            configurations["compileClasspath"].allDependencies - configurations.shadow.get().allDependencies,
+                            configurations["implementation"].excludeRules,
+                            obfuscated = false,
+                        )
+                    publication.pom.withXml(AppendPomDependenciesAction(dependencies))
                 }
 
                 override fun name(): String = artifactIdentifier
@@ -100,17 +98,13 @@ internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<o
                         classifier = null
                     }
                     publication.artifactId = artifactIdentifier
-                    publication.pom {
-                        withXml {
-                            val topLevel = asNode()
-                            val dependenciesNode = topLevel.appendNode("dependencies")
-                            val projectDeps =
-                                configurations["compileClasspath"].allDependencies - configurations.shadow.get().allDependencies
-                            val globalExcludeRules = configurations["implementation"].excludeRules
-
-                            processDependencies(projectDeps, dependenciesNode, globalExcludeRules, true)
-                        }
-                    }
+                    val dependencies =
+                        pomDependencies(
+                            configurations["compileClasspath"].allDependencies - configurations.shadow.get().allDependencies,
+                            configurations["implementation"].excludeRules,
+                            obfuscated = true,
+                        )
+                    publication.pom.withXml(AppendPomDependenciesAction(dependencies))
                 }
 
                 override fun name(): String = artifactIdentifier
@@ -119,67 +113,57 @@ internal fun Project.createObfuscatedOriginalJarPublication(task: TaskProvider<o
     createConfigurationAndAddArtifacts(publication.name, task)
 }
 
-private fun Project.processDependencies(
+private data class PomDependency(
+    val groupId: String?,
+    val artifactId: String,
+    val version: String?,
+    val exclusions: List<Pair<String?, String?>>,
+) : java.io.Serializable
+
+private class AppendPomDependenciesAction(private val dependencies: List<PomDependency>) : org.gradle.api.Action<XmlProvider> {
+    override fun execute(xmlProvider: XmlProvider) {
+        appendPomDependencies(xmlProvider.asNode(), dependencies)
+    }
+}
+
+private fun Project.pomDependencies(
     projectDeps: Set<Dependency>,
-    dependenciesNode: Node,
     globalExcludeRules: Set<ExcludeRule>,
     obfuscated: Boolean,
-) {
-    projectDeps.forEach { eachDependency ->
-        val dependency = dependenciesNode.appendNode("dependency")
-
-        dependency.appendNode("groupId", eachDependency.group)
-        handleGroupId(eachDependency, dependency, obfuscated)
-        dependency.appendNode("version", eachDependency.version)
-        dependency.appendNode("scope", "compile")
-
-        addExcludes(eachDependency, globalExcludeRules, dependency)
-    }
-}
-
-private fun Project.handleGroupId(eachDependency: Dependency, dependency: Node, obfuscated: Boolean) {
-    if (eachDependency is ProjectDependency) {
-        val projectDependency = rootProject.project(eachDependency.path)
-        val distribution = rootProject.specmaticExtension().projectConfigurations[projectDependency]
-        when (distribution) {
-            is CommercialLibraryFeature -> {
-                if (obfuscated) {
-                    dependency.appendNode("artifactId", "${projectDependency.name}-min")
-                } else {
-                    dependency.appendNode("artifactId", "${projectDependency.name}-dont-use-this-unless-you-know-what-you-are-doing")
-                }
-            }
-
-            is CommercialApplicationAndLibraryFeature -> {
-                if (obfuscated) {
-                    dependency.appendNode("artifactId", projectDependency.name)
-                } else {
-                    dependency.appendNode("artifactId", "${projectDependency.name}-dont-use-this-unless-you-know-what-you-are-doing")
-                }
-            }
-
-            is OSSLibraryFeature, is OSSApplicationAndLibraryFeature -> {
-                dependency.appendNode("artifactId", projectDependency.name)
-            }
-
-            else -> {
-                throw GradleException("Don't know how to express dependency on project ${eachDependency.name} in ${this.name}")
-            }
+): List<PomDependency> = projectDeps.map { dependency ->
+    val artifactId = if (dependency is ProjectDependency) {
+        val dependencyProject = rootProject.project(dependency.path)
+        when (rootProject.specmaticExtension().projectConfigurations[dependencyProject]) {
+            is CommercialLibraryFeature -> if (obfuscated) "${dependencyProject.name}-min" else "${dependencyProject.name}-dont-use-this-unless-you-know-what-you-are-doing"
+            is CommercialApplicationAndLibraryFeature -> if (obfuscated) dependencyProject.name else "${dependencyProject.name}-dont-use-this-unless-you-know-what-you-are-doing"
+            is OSSLibraryFeature, is OSSApplicationAndLibraryFeature -> dependencyProject.name
+            else -> throw GradleException("Don't know how to express dependency on project ${dependency.name} in $name")
         }
     } else {
-        dependency.appendNode("artifactId", eachDependency.name)
+        dependency.name
     }
+    val exclusions = if (dependency is ModuleDependency) {
+        (globalExcludeRules + dependency.excludeRules).toSet().map { it.group to it.module }
+    } else {
+        emptyList()
+    }
+    PomDependency(dependency.group, artifactId, dependency.version, exclusions)
 }
 
-private fun addExcludes(eachDependency: Dependency, globalExcludeRules: Set<ExcludeRule>, dependency: Node) {
-    if (eachDependency is ModuleDependency) {
-        val excludeRules = HashSet<ExcludeRule>() + globalExcludeRules + eachDependency.excludeRules
-        if (excludeRules.isNotEmpty()) {
-            val exclusionsNode = dependency.appendNode("exclusions")
-            excludeRules.forEach { rule ->
+private fun appendPomDependencies(topLevel: Node, dependencies: List<PomDependency>) {
+    val dependenciesNode = topLevel.appendNode("dependencies")
+    dependencies.forEach { dependency ->
+        val node = dependenciesNode.appendNode("dependency")
+        node.appendNode("groupId", dependency.groupId)
+        node.appendNode("artifactId", dependency.artifactId)
+        node.appendNode("version", dependency.version)
+        node.appendNode("scope", "compile")
+        if (dependency.exclusions.isNotEmpty()) {
+            val exclusionsNode = node.appendNode("exclusions")
+            dependency.exclusions.forEach { (group, module) ->
                 val exclusionNode = exclusionsNode.appendNode("exclusion")
-                exclusionNode.appendNode("groupId", rule.group)
-                exclusionNode.appendNode("artifactId", rule.module)
+                exclusionNode.appendNode("groupId", group)
+                exclusionNode.appendNode("artifactId", module)
             }
         }
     }
@@ -243,18 +227,22 @@ class ArtifactPublishingConfigurer(
     override fun artifactType(): SpecmaticArtifactType = artifactType
 }
 
-private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObjectProvider<MavenPublication> =
-    publishing.publications.register(configurer.name(), MavenPublication::class.java) {
+private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObjectProvider<MavenPublication> {
+    val versionInfo = versionInfo()
+    val commercial = isCommercial()
+
+    return publishing.publications.register(configurer.name(), MavenPublication::class.java) {
         pom.packaging = "jar"
         pom {
-            project.versionInfo().addToPom(this, configurer.artifactType())
+            versionInfo.addToPom(this, configurer.artifactType())
         }
 
         configurer.configure(this)
 
-        if (project.isCommercial()) {
+        if (commercial) {
             addCommercialPomFragments()
         }
+    }
     }
 
 internal fun Project.isOSS(): Boolean {

@@ -10,8 +10,10 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.process.ExecOperations
 
+@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
 abstract class SBOMVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
@@ -30,6 +32,7 @@ internal fun Project.createSBOMVulnScanTask() {
         tasks.register("${scanTaskName}Scan", SBOMVulnScanTask::class.java) {
             dependsOn(tasks.withType(BaseCyclonedxTask::class.java))
             scannerTool.set(scannerType)
+            skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             sbomFile.set(
                 project.layout.buildDirectory
                     .get()

@@ -14,6 +14,6 @@ abstract class GitPushTask : DefaultTask() {
 
     @TaskAction
     fun push() {
-        GitOperations(rootDir.get(), project.properties, logger).push()
+        GitOperations(rootDir.get(), emptyMap(), logger).push()
     }
 }

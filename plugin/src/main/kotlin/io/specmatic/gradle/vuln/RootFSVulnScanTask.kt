@@ -7,14 +7,19 @@ import javax.inject.Inject
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.jvm.tasks.Jar
 import org.gradle.plugins.signing.Sign
 import org.gradle.process.ExecOperations
+import org.gradle.work.DisableCachingByDefault
 
+@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
 abstract class RootFSVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
         @get:InputDirectory
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         abstract val inputDir: Property<File>
 
         override fun scanTarget(): ScanTarget = ScanTarget(ScanTargetKind.ROOTFS, inputDir.get().path)
@@ -30,6 +35,7 @@ internal fun Project.createJarVulnScanTask() {
             dependsOn(project.tasks.withType(Jar::class.java))
             dependsOn(project.tasks.withType(Sign::class.java))
             scannerTool.set(scannerType)
+            skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             inputDir.set(
                 project.layout.buildDirectory
                     .file("libs")

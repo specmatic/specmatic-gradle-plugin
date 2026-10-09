@@ -8,6 +8,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.gradle.api.DefaultTask
 import org.gradle.api.provider.Property
+import org.gradle.api.Task
+import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 
@@ -93,4 +95,8 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
             }
         }
     }
+}
+
+internal class HasDockerReadme(private val readmeFile: java.io.File) : Spec<Task> {
+    override fun isSatisfiedBy(element: Task): Boolean = readmeFile.isFile
 }

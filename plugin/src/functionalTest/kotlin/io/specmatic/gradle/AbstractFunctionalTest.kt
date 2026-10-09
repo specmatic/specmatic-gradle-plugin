@@ -36,10 +36,15 @@ open class AbstractFunctionalTest {
     @BeforeEach
     fun baseSetup() {
         projectDir.execGit(LoggerFactory.getLogger("test"), "init", "--initial-branch=main")
+        projectDir.execGit(LoggerFactory.getLogger("test"), "config", "user.name", "Specmatic Functional Tests")
+        projectDir.execGit(LoggerFactory.getLogger("test"), "config", "user.email", "gradle-tests@specmatic.io")
         projectDir.resolve(".gitignore").writeText(
             """
             build
             .gradle
+            .editorconfig
+            src/main/gen-kt/
+            src/main/gen-resources/
             """.trimIndent(),
         )
         gradleProperties.writeText(
@@ -145,18 +150,32 @@ open class AbstractFunctionalTest {
         }
     }
 
-    fun createRunner(gradleRunArgs: Array<out String>): GradleRunner =
-        GradleRunner.create().forwardOutput().withPluginClasspath().withProjectDir(projectDir).withArguments(
+    fun createRunner(gradleRunArgs: Array<out String>): GradleRunner = createRunner(gradleRunArgs, createInitialGitCommit = true)
+
+    private fun createRunner(gradleRunArgs: Array<out String>, createInitialGitCommit: Boolean): GradleRunner {
+        if (createInitialGitCommit) {
+            runCatching { projectDir.execGit(LoggerFactory.getLogger("test"), "rev-parse", "--verify", "HEAD", quiet = true) }
+                .onFailure {
+                    projectDir.execGit(LoggerFactory.getLogger("test"), "commit", "--allow-empty", "-m", "Initial empty commit")
+                }
+        }
+
+        return GradleRunner.create().forwardOutput().withPluginClasspath().withProjectDir(projectDir).withArguments(
             *gradleRunArgs,
             "-Dmaven.repo.local=$localMavenRepo",
+            "--configuration-cache",
             "--stacktrace",
 //                "-d"
 //                "-Dorg.gradle.debug=true"
         )
+    }
 
     fun runWithSuccess(vararg gradleRunArgs: String): BuildResult = createRunner(gradleRunArgs).build()
 
     fun runWithFailure(vararg gradleRunArgs: String): BuildResult = createRunner(gradleRunArgs).buildAndFail()
+
+    protected fun runWithSuccessWithoutInitialGitCommit(vararg gradleRunArgs: String): BuildResult =
+        createRunner(gradleRunArgs, createInitialGitCommit = false).build()
 
     fun assertMainJarExecutes(result: BuildResult, innerPackage: String? = null) {
         assertThat(result.output).contains("Hello, world! Version: v${projectVersion()}")
@@ -345,8 +364,12 @@ open class AbstractFunctionalTest {
         publishedArtifacts.forEach { publishedArtifact ->
             val pomProperties = pomProperties(publishedArtifact.coordinates)
 
-            assertThat(pomProperties).containsEntry("x-specmatic-git-sha", "unknown - no git repo found")
-            assertThat(pomProperties).containsEntry("x-specmatic-git-short-sha", "unknown")
+            val gitSha =
+                runCatching {
+                    projectDir.execGit(LoggerFactory.getLogger("test"), "rev-parse", "HEAD", quiet = true).outputUTF8().trim()
+                }.getOrDefault("unknown - no git repo found")
+            assertThat(pomProperties).containsEntry("x-specmatic-git-sha", gitSha)
+            assertThat(pomProperties).containsEntry("x-specmatic-git-short-sha", gitSha.take(8).trim())
             assertThat(pomProperties).containsEntry("x-specmatic-artifact-type", publishedArtifact.artifactType.serializedValue)
         }
     }

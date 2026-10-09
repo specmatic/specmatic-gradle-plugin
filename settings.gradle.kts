@@ -4,17 +4,9 @@ pluginManagement {
         id("io.specmatic.gradle") version (specmaticGradlePluginVersion)
     }
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         mavenCentral()
-        mavenLocal {
-            mavenContent {
-                snapshotsOnly()
-            }
-
-            content {
-                includeGroup("io.specmatic.gradle")
-            }
-        }
 
         val repos =
             mapOf(

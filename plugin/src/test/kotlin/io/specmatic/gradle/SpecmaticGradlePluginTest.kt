@@ -370,6 +370,7 @@ class SpecmaticGradlePluginTest {
         val inspectTask = project.tasks.named("inspectPromotion").get()
         val promoteArtifactsTask = project.tasks.named("promoteArtifacts").get()
         val createGithubReleaseTask = project.tasks.named("promotionCreateGithubRelease").get()
+        val gitPushTask = project.tasks.named("promotionGitPush").get()
         val promoteTask = project.tasks.named("promote").get()
 
         assertThat(promoteArtifactsTask.taskDependencies.getDependencies(promoteArtifactsTask))
@@ -381,6 +382,8 @@ class SpecmaticGradlePluginTest {
         assertThat(createGithubReleaseTask.taskDependencies.getDependencies(createGithubReleaseTask))
             .contains(project.tasks.named("promotionGitPush").get())
             .contains(project.tasks.named("updatePromotionDockerHubReadme").get())
+        assertThat(gitPushTask.taskDependencies.getDependencies(gitPushTask))
+            .contains(project.tasks.named("promotionPrepareGithubReleaseArtifacts").get())
     }
 
     @Test

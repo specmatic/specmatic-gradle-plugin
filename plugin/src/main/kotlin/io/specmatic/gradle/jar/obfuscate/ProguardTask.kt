@@ -2,16 +2,15 @@ package io.specmatic.gradle.jar.obfuscate
 
 import io.specmatic.gradle.exec.shellEscape
 import io.specmatic.gradle.exec.shellEscapedArgs
-import io.specmatic.gradle.license.pluginInfo
-import io.specmatic.gradle.projectDependencies
 import java.io.File
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
@@ -42,6 +41,16 @@ abstract class ProguardTask
         @get:Input
         val proguardArgs = mutableListOf<String>()
 
+        @get:Classpath
+        abstract val proguardClasspath: ConfigurableFileCollection
+
+        @get:Classpath
+        abstract val runtimeClasspath: ConfigurableFileCollection
+
+        @get:InputFiles
+        @get:PathSensitive(PathSensitivity.RELATIVE)
+        abstract val dependentMappingFiles: ConfigurableFileCollection
+
         @get:InputFile
         @PathSensitive(PathSensitivity.RELATIVE)
         var inputJar: File? = null
@@ -49,31 +58,14 @@ abstract class ProguardTask
         @get:OutputFile
         var outputJar: File? = null
 
+        @get:OutputDirectory
+        abstract val proguardOutputDir: DirectoryProperty
+
         @TaskAction
         fun exec() {
-            project.repositories.mavenCentral()
-
-            val proguard =
-                (project as ProjectInternal).configurations.resolvableDependencyScopeUnlocked("proguard_$name") {
-                    isVisible = true
-                    isTransitive = true
-//                isCanBeResolved = true
-//                isCanBeConsumed = false
-//                isCanBeDeclared = true
-                    // since proguard is GPL, we avoid compile time dependencies on it
-                    defaultDependencies {
-                        add(project.dependencies.create("com.guardsquare:proguard-base:$proguardVersion"))
-                    }
-                }
-
             val args = mutableListOf<String>()
             args.add("-cp")
-            args.add(
-                this.project.configurations
-                    .named("proguard_${this.name}")
-                    .get()
-                    .asPath,
-            )
+            args.add(proguardClasspath.asPath)
             args.add("proguard.ProGuard") // main class
             args.addAll(createArgs())
             getArgsFile().writeText(args.joinToString("\n", transform = ::shellEscape))
@@ -84,9 +76,9 @@ abstract class ProguardTask
                         .executablePath.asFile.path,
                     "@${getArgsFile()}",
                 )
-            val outputFile = project.file("${getProguardOutputDir()}/proguard-task-output-${this.name}.log")
+            val outputFile = outputDirectory().resolve("proguard-task-output-${this.name}.log")
             val outputFileStream = outputFile.outputStream()
-            project.pluginInfo("$ ${shellEscapedArgs(completeCLI)}")
+            logger.info("$ ${shellEscapedArgs(completeCLI)}")
 
             try {
                 execLauncher.exec {
@@ -101,15 +93,15 @@ abstract class ProguardTask
                     args("@${getArgsFile()}")
                 }
             } catch (e: ExecException) {
-                project.pluginInfo(e.message!!)
-                project.pluginInfo("Check the proguard output in ${outputFile.toURI()}")
+                logger.error(e.message!!)
+                logger.error("Check the proguard output in ${outputFile.toURI()}")
                 throw e
             } finally {
-                project.configurations.remove(proguard)
+                outputFileStream.close()
             }
         }
 
-        private fun getArgsFile(): File = getProguardOutputDir().resolve("args.txt")
+        private fun getArgsFile(): File = outputDirectory().resolve("args.txt")
 
         private fun getJVMLibraryFiles(): List<File> {
             val dir =
@@ -120,12 +112,7 @@ abstract class ProguardTask
             return dir.asFile.listFiles { _, name -> name.endsWith(".jmod") }?.toList() ?: emptyList<File>()
         }
 
-        @InputFiles
-        @PathSensitive(PathSensitivity.ABSOLUTE)
-        fun getRuntimeConfiguration(): Configuration = this.project.configurations.getByName("runtimeClasspath")
-
-        @OutputDirectory
-        fun getProguardOutputDir(): File = File("${project.layout.buildDirectory.get().asFile}/proguard-$name")
+        private fun outputDirectory(): File = proguardOutputDir.get().asFile
 
         private fun createArgs(): MutableList<String> {
             addJVMLibraryJars()
@@ -186,22 +173,10 @@ abstract class ProguardTask
         }
 
         private fun addMappingFiles() {
-            val dependentProjects = project.projectDependencies().map { project.rootProject.project(it.path) }
-            project.pluginInfo("Adding proguard mapping file from dependent project(s): ${dependentProjects.map { it.path }}")
-
-            val dependentObfuscationMappingFiles =
-                dependentProjects.map { dependentProject ->
-
-                    dependentProject.tasks
-                        .named("obfuscateJarInternal", ProguardTask::class.java)
-                        .get()
-                        .mapFile()
-                }
-
-            val merged = getProguardOutputDir().resolve("dependent-proguard-mappings.txt")
+            val merged = outputDirectory().resolve("dependent-proguard-mappings.txt")
             merged.parentFile.mkdirs()
             merged.bufferedWriter().use { out ->
-                dependentObfuscationMappingFiles.forEach { f ->
+                dependentMappingFiles.files.forEach { f ->
                     out.append(f.readText())
                 }
             }
@@ -209,17 +184,16 @@ abstract class ProguardTask
             appendProguardArgs("-applymapping", merged.absolutePath)
         }
 
-        internal fun mapFile(): File = getProguardOutputDir().resolve("proguard.mapping.txt")
+        internal fun mapFile(): File = outputDirectory().resolve("proguard.mapping.txt")
 
-        private fun dumpFile(): File = getProguardOutputDir().resolve("proguard.dump.txt")
+        private fun dumpFile(): File = outputDirectory().resolve("proguard.dump.txt")
 
-        private fun outputConfigFile(): File = getProguardOutputDir().resolve("proguard.cfg")
+        private fun outputConfigFile(): File = outputDirectory().resolve("proguard.cfg")
 
-        private fun seedsFile(): File = getProguardOutputDir().resolve("seeds.txt")
+        private fun seedsFile(): File = outputDirectory().resolve("seeds.txt")
 
         private fun addLibraryArgs() {
-            val configuration = getRuntimeConfiguration()
-            libraryJars(configuration.files.map { it.path })
+            libraryJars(runtimeClasspath.files.map { it.path })
         }
 
         private fun addJVMLibraryJars() {

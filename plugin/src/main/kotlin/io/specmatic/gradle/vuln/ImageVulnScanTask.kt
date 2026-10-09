@@ -6,8 +6,10 @@ import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.process.ExecOperations
 
+@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
 abstract class ImageVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {

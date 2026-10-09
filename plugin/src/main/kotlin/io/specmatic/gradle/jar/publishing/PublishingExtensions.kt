@@ -243,18 +243,22 @@ class ArtifactPublishingConfigurer(
     override fun artifactType(): SpecmaticArtifactType = artifactType
 }
 
-private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObjectProvider<MavenPublication> =
-    publishing.publications.register(configurer.name(), MavenPublication::class.java) {
+private fun Project.publishJar(configurer: PublishingConfigurer): NamedDomainObjectProvider<MavenPublication> {
+    val versionInfo = versionInfo()
+    val commercial = isCommercial()
+
+    return publishing.publications.register(configurer.name(), MavenPublication::class.java) {
         pom.packaging = "jar"
         pom {
-            project.versionInfo().addToPom(this, configurer.artifactType())
+            versionInfo.addToPom(this, configurer.artifactType())
         }
 
         configurer.configure(this)
 
-        if (project.isCommercial()) {
+        if (commercial) {
             addCommercialPomFragments()
         }
+    }
     }
 
 internal fun Project.isOSS(): Boolean {

@@ -23,7 +23,9 @@ import io.specmatic.gradle.versioninfo.versionInfo
 import io.specmatic.gradle.versions.ForceVersionConstraintsPlugin
 import io.specmatic.gradle.vuln.SpecmaticVulnScanPlugin
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import org.barfuin.gradle.taskinfo.GradleTaskInfoPlugin
+import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -32,14 +34,16 @@ import org.gradle.api.plugins.JavaPlugin
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 @Suppress("unused")
-class SpecmaticGradlePlugin : Plugin<Project> {
+class SpecmaticGradlePlugin
+    @Inject
+    constructor(private val softwareComponentFactory: SoftwareComponentFactory) : Plugin<Project> {
     override fun apply(target: Project) {
         target.extensions.create("specmatic", SpecmaticGradleExtension::class.java)
 
         println("Specmatic Gradle Plugin ${VersionInfo.describe()}")
 
         target.applyToRootProjectOrSubprojects {
-            applyShadowConfigs()
+            applyShadowConfigs(softwareComponentFactory)
             afterEvaluate {
                 baseSetup()
             }
@@ -116,6 +120,6 @@ fun Project.specmaticExtension(): SpecmaticGradleExtension {
 fun Project.projectDependencies(): List<ProjectDependency> = project.configurations
     .asSequence()
     .flatMap { config -> config.dependencies.filterIsInstance<ProjectDependency>().asSequence() }
-    .filter { dependency -> dependency.dependencyProject.path != project.path }
-    .distinctBy { dependency -> dependency.dependencyProject.path }
+    .filter { dependency -> dependency.path != project.path }
+    .distinctBy { dependency -> dependency.path }
     .toList()

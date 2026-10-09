@@ -35,6 +35,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
+import org.gradle.work.DisableCachingByDefault
 
 private const val INSPECT_PROMOTION_DOCKER_IMAGES_TASK = "inspectPromotionDockerImages"
 private const val INSPECT_PROMOTION_TASK = "inspectPromotion"
@@ -53,6 +54,7 @@ private const val PROMOTION_PREPARE_GITHUB_RELEASE_ARTIFACTS_TASK = "promotionPr
 private const val PROMOTE_TASK = "promote"
 private val CHECKSUM_SUFFIXES = listOf(".md5", ".sha1", ".sha256", ".sha512")
 
+@DisableCachingByDefault(because = "Prepares release artifacts for an external GitHub release")
 abstract class PreparePromotionGithubReleaseArtifactsTask : DefaultTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)

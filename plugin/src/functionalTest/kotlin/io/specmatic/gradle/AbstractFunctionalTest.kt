@@ -149,6 +149,7 @@ open class AbstractFunctionalTest {
         GradleRunner.create().forwardOutput().withPluginClasspath().withProjectDir(projectDir).withArguments(
             *gradleRunArgs,
             "-Dmaven.repo.local=$localMavenRepo",
+            "--configuration-cache",
             "--stacktrace",
 //                "-d"
 //                "-Dorg.gradle.debug=true"

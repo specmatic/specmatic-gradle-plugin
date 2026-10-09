@@ -17,7 +17,6 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.DuplicatesStrategy
-import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
@@ -130,7 +129,7 @@ private fun Project.applyProjectSpecifiedConfigurations(shadowJarTask: ShadowJar
     }
 }
 
-internal fun Project.applyShadowConfigs() {
+internal fun Project.applyShadowConfigs(softwareComponentFactory: SoftwareComponentFactory) {
     pluginInfo("Applying shadow configurations to project $name")
     val shadowConfiguration = configurations.create("shadow")
 
@@ -141,7 +140,6 @@ internal fun Project.applyShadowConfigs() {
             isCanBeResolved = false
         }
 
-    val softwareComponentFactory = (project as ProjectInternal).services.get(SoftwareComponentFactory::class.java)
     val shadowComponent = softwareComponentFactory.adhoc(ShadowBasePlugin.CONFIGURATION_NAME)
     project.components.add(shadowComponent)
     shadowComponent.addVariantsFromConfiguration(shadowRuntimeElements) {

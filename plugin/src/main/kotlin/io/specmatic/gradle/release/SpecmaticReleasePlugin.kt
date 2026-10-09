@@ -45,30 +45,48 @@ private fun Project.configureReleaseTasks() {
             dependsOn(createGithubReleaseTask)
         }
 
-    project.gradle.addBuildListener(
-        object : BuildAdapter() {
-            @Deprecated("Deprecated in Java")
-            override fun buildFinished(result: BuildResult) {
-                if (result.failure != null) {
-                    val executedTasks =
-                        project.gradle.taskGraph.allTasks
-                            .map { it.path }
-                    val wasMyTaskRun = executedTasks.contains(releaseTask.get().path)
-                    pluginWarn("Checking if release task ran: $wasMyTaskRun")
-                    if (wasMyTaskRun) {
-                        pluginWarn("Rolling back git changes to original commit $originalGitCommit")
-                        revertGitChanges(originalGitCommit)
+    if (!project.gradle.startParameter.isConfigurationCacheRequested) {
+        project.gradle.addBuildListener(
+            object : BuildAdapter() {
+                @Deprecated("Deprecated in Java")
+                override fun buildFinished(result: BuildResult) {
+                    if (result.failure != null) {
+                        val executedTasks =
+                            project.gradle.taskGraph.allTasks
+                                .map { it.path }
+                        val wasMyTaskRun = executedTasks.contains(releaseTask.get().path)
+                        pluginWarn("Checking if release task ran: $wasMyTaskRun")
+                        if (wasMyTaskRun) {
+                            pluginWarn("Rolling back git changes to original commit $originalGitCommit")
+                            revertGitChanges(originalGitCommit)
+                        }
                     }
                 }
-            }
-        },
-    )
+            },
+        )
+    }
 }
 
 private fun Project.validateSnapshotDependenciesTask(): TaskProvider<ValidateSnapshotDependencies> =
     tasks.register("validateSnapshotDependencies", ValidateSnapshotDependencies::class.java) {
         group = RELEASE_TASK_NAME
         description = "Validate snapshot dependencies"
+        allowSnapshotDependencies.set(findProperty("allowSnapshotDependencies") == "true")
+        snapshotDependencies.set(
+            allprojects.associate { eachProject ->
+                val dependencies =
+                    (eachProject.configurations + eachProject.buildscript.configurations).flatMap { configuration ->
+                        configuration.dependencies
+                            .filter { dependency ->
+                                dependency !is org.gradle.api.artifacts.ProjectDependency &&
+                                    dependency.version?.contains("SNAPSHOT") == true
+                            }.map { dependency ->
+                                "${dependency.group}:${dependency.name}:${dependency.version}"
+                            }
+                    }
+                eachProject.path to dependencies
+            }
+        )
     }
 
 private fun Project.gitPushTask(runReleaseLifecycleHooksTask: TaskProvider<*>): TaskProvider<*> =
@@ -162,6 +180,7 @@ private fun Project.getPreReleaseCheckTask(): TaskProvider<*> = project.tasks.re
     description = "Pre-release checks"
 
     rootDir.set(project.rootProject.rootDir)
+    projectProperties.set(project.properties.mapValues { (_, value) -> value.toString() })
 }
 
 private fun Project.revertGitChanges(originalGitCommit: String) {

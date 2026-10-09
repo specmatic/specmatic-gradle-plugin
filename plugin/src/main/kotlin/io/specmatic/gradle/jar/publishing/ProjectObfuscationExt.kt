@@ -11,12 +11,20 @@ import org.gradle.jvm.tasks.Jar
 internal const val OBFUSCATE_JAR_TASK = "obfuscateJar"
 
 internal fun Project.createObfuscatedOriginalJar(proguardExtraArgs: MutableList<String?>): TaskProvider<Jar> {
+    repositories.mavenCentral()
     val obfuscateJarInternalTask =
         project.tasks.register("obfuscateJarInternal", ProguardTask::class.java) {
             val jarTask = project.tasks.jar.get()
             dependsOn(jarTask)
             inputJar = jarTask.archiveFile.get().asFile
             outputJar = project.file("${project.layout.buildDirectory.get().asFile}/tmp/obfuscated-internal.jar")
+            proguardOutputDir.set(project.layout.buildDirectory.dir("proguard-$name"))
+            runtimeClasspath.from(project.configurations.named("runtimeClasspath"))
+            proguardClasspath.from(
+                project.configurations.detachedConfiguration(
+                    project.dependencies.create("com.guardsquare:proguard-base:$proguardVersion"),
+                ),
+            )
 
             appendProguardArgs(*proguardExtraArgs.filterNotNull().toTypedArray())
         }
@@ -60,6 +68,7 @@ private fun Project.dependOnUpstreamObfuscationTasks(proguardTask: TaskProvider<
         dependentObfuscationTasks.forEach { eachUpstreamObfuscationTask ->
             proguardTask.configure {
                 dependsOn(eachUpstreamObfuscationTask)
+                dependentMappingFiles.from(eachUpstreamObfuscationTask.map { it.mapFile() })
             }
         }
     }

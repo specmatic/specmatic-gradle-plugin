@@ -8,7 +8,6 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.GradleBuild
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.util.internal.GUtil
 
 class DownstreamProjectIntegrationPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -79,7 +78,15 @@ private fun Project.defineTasks() {
 private fun Project.getDownstreamProjectDir(eachProject: String): File = file("../$eachProject")
 
 private val Project.specmaticModulePropertyKey: String
-    get() = GUtil.toLowerCamelCase(project.name) + "Version"
+    get() = project.name.toLowerCamelCase() + "Version"
+
+private fun String.toLowerCamelCase(): String =
+    split(Regex("[^A-Za-z0-9]+"))
+        .filter(String::isNotEmpty)
+        .mapIndexed { index, part ->
+            if (index == 0) part.replaceFirstChar { it.lowercaseChar() }
+            else part.replaceFirstChar { it.uppercaseChar() }
+        }.joinToString("")
 
 private val Project.specmaticModuleVersion: Any?
     get() = project.findProperty(specmaticModulePropertyKey)

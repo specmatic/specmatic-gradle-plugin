@@ -8,6 +8,7 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 private val ALLOWED_LICENSES =
     setOf(
@@ -44,6 +45,7 @@ private val ALLOWED_LICENSES =
 //         ...
 //     ]
 // }
+@DisableCachingByDefault(because = "Generates a license allowlist file")
 open class CreateAllowedLicensesFileTask : DefaultTask() {
     init {
         group = "verification"

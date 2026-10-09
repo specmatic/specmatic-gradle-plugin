@@ -87,7 +87,7 @@ val functionalTestSourceSet =
 configurations["functionalTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["functionalTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
 
-val functionalTest by tasks.registering(Test::class) {
+val functionalTest = tasks.register<Test>("functionalTest") {
     description = "Run functional tests"
     group = "verification"
 
@@ -114,7 +114,7 @@ tasks.withType<Test> {
     systemProperty("java.io.tmpdir", tempDir)
 
     doFirst {
-        project.delete(tempDir)
+        tempDir.deleteRecursively()
         tempDir.mkdirs()
     }
 }

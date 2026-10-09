@@ -7,9 +7,14 @@ import io.specmatic.gradle.jar.massage.publishing
 import io.specmatic.gradle.jar.publishing.isCommercial
 import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.specmaticExtension
+import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.credentials.PasswordCredentials
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
@@ -117,20 +122,18 @@ internal fun Project.setupCommericalJavadocAndSources() {
             .get()
             .asFile
 
-    tasks.register("generateDummyReadme") {
-        doLast {
-            dummyReadme.parentFile.mkdirs()
-            dummyReadme.writeText(
-                """
-                This is a DUMMY FILE.
-                
-                Specmatic does not open source this library (${project.group}:${project.name}:${project.version}).
-                Therefore the source code is not included in this distribution.
-                
-                Please contact Specmatic (https://specmatic.io) for more information.
-                """.trimIndent(),
-            )
-        }
+    tasks.register("generateDummyReadme", GenerateDummyReadmeTask::class.java) {
+        outputFile.set(dummyReadme)
+        content.set(
+            """
+            This is a DUMMY FILE.
+
+            Specmatic does not open source this library (${project.group}:${project.name}:${project.version}).
+            Therefore the source code is not included in this distribution.
+
+            Please contact Specmatic (https://specmatic.io) for more information.
+            """.trimIndent(),
+        )
     }
 
     val sourcesJarTask =
@@ -173,6 +176,22 @@ internal fun Project.setupCommericalJavadocAndSources() {
                     this.exclude()
                 }
             }
+        }
+    }
+}
+
+abstract class GenerateDummyReadmeTask : DefaultTask() {
+    @get:OutputFile
+    abstract val outputFile: org.gradle.api.file.RegularFileProperty
+
+    @get:Input
+    abstract val content: Property<String>
+
+    @TaskAction
+    fun generate() {
+        outputFile.get().asFile.apply {
+            parentFile.mkdirs()
+            writeText(content.get())
         }
     }
 }

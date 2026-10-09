@@ -7,7 +7,7 @@ plugins {
 }
 
 specmatic {
-    kotlinVersion = "2.4.21"
+    kotlinVersion = embeddedKotlinVersion
     kotlinApiVersion = KotlinVersion.KOTLIN_2_4
 
     downstreamDependentProjects =

@@ -1,7 +1,3 @@
-import org.gradle.api.Action
-import org.gradle.api.Task
-import java.io.File
-
 plugins {
     `maven-publish`
     `java-gradle-plugin`
@@ -31,7 +27,7 @@ dependencies {
     implementation("com.adarshr.test-logger:com.adarshr.test-logger.gradle.plugin:4.0.0")
     implementation("org.semver4j:semver4j:6.0.0")
     implementation("org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin:2.2.1")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$embeddedKotlinVersion")
     implementation("commons-codec:commons-codec:1.23.0")
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1") {
         exclude(group = "org.codehaus.plexus", module = "plexus-utils")

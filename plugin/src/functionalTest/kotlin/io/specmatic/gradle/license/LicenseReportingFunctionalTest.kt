@@ -22,6 +22,22 @@ class LicenseReportingFunctionalTest : AbstractFunctionalTest() {
     }
 
     @Test
+    fun additionalAllowedLicensesCanBeConfiguredThroughSpecmaticDsl() {
+        writeBuild("CC-BY-2.5")
+        buildFile.writeText(
+            buildFile.readText().replace(
+                "specmatic {",
+                "specmatic {\n    additionalAllowedLicenses.add(\"CC-BY-2.5\")",
+            ),
+        )
+
+        val firstRun = runWithSuccess("checkLicense")
+
+        assertThat(firstRun.output).contains("Configuration cache entry stored")
+        assertThat(firstRun.task(":checkLicense")?.outcome).isEqualTo(TaskOutcome.SUCCESS)
+    }
+
+    @Test
     fun checkRejectsGplLicense() {
         writeBuild("GPL-3.0-only")
 

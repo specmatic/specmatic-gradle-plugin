@@ -13,16 +13,8 @@ specmatic {
     downstreamDependentProjects =
         listOf(
             "specmatic",
-            "specmatic-arazzo",
-            "specmatic-async",
-            "specmatic-google-pubsub",
-            "specmatic-gradle-plugin",
-            "specmatic-graphql",
-            "specmatic-grpc",
-            "specmatic-kafka",
-            "specmatic-license",
-            "specmatic-openapi",
-            "specmatic-redis",
+            "specmatic-insights",
+            "enterprise",
         )
     releasePublishTasks =
         listOf(

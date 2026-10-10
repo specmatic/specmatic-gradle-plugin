@@ -12,7 +12,7 @@ pluginManagement {
             }
 
             content {
-                includeGroup("io.specmatic.gradle")
+                includeGroupByRegex("io.specmatic.*")
             }
         }
 

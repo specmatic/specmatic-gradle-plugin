@@ -10,8 +10,10 @@ import io.specmatic.gradle.specmaticExtension
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.credentials.PasswordCredentials
-import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -180,9 +182,10 @@ internal fun Project.setupCommericalJavadocAndSources() {
     }
 }
 
+@CacheableTask
 abstract class GenerateDummyReadmeTask : DefaultTask() {
     @get:OutputFile
-    abstract val outputFile: org.gradle.api.file.RegularFileProperty
+    abstract val outputFile: RegularFileProperty
 
     @get:Input
     abstract val content: Property<String>

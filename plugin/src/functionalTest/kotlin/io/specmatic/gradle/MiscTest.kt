@@ -18,7 +18,7 @@ class MiscTest : AbstractFunctionalTest() {
             """
             plugins {
                 id("java")
-                kotlin("jvm") version "2.3.20"
+                kotlin("jvm") version "2.4.21"
                 id("io.specmatic.gradle")
             }
             
@@ -35,10 +35,12 @@ class MiscTest : AbstractFunctionalTest() {
                     implementation("org.slf4j:slf4j-api:2.0.20")
                 }
                 
-                configure<PublishingExtension> {
-                    publications {
-                        create<MavenPublication>("dummy") {
-                            from(project.components.getByName("java"))
+                afterEvaluate {
+                    configure<PublishingExtension> {
+                        publications {
+                            create<MavenPublication>("dummy") {
+                                from(project.components.getByName("java"))
+                            }
                         }
                     }
                 }

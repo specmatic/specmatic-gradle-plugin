@@ -6,10 +6,16 @@ import org.gradle.api.Project
 import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector
 
 fun gitSha(project: Project): String = runCatching {
-    project.providers.exec {
+    val gitOutput = project.providers.exec {
         commandLine("git", "rev-parse", "HEAD")
         workingDir(project.rootDir)
-    }.standardOutput.asText.get().trim()
+        isIgnoreExitValue = true
+    }
+    if (gitOutput.result.get().exitValue != 0) {
+        "unknown - no git repo found"
+    } else {
+        gitOutput.standardOutput.asText.get().trim().ifBlank { "unknown - no git repo found" }
+    }
 }.getOrElse { "unknown - no git repo found" }
 
 val okHttp =

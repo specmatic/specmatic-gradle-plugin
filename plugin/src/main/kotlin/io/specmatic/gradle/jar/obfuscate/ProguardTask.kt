@@ -5,9 +5,9 @@ import io.specmatic.gradle.exec.shellEscapedArgs
 import java.io.File
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Classpath
@@ -22,7 +22,6 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.toolchain.JavaLauncher
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.process.ExecOperations
-import org.gradle.process.internal.ExecException
 
 @CacheableTask
 abstract class ProguardTask
@@ -33,7 +32,7 @@ abstract class ProguardTask
         objectFactory: ObjectFactory,
     ) : DefaultTask() {
         @get:Input
-        val proguardVersion = "7.8.2"
+        val proguardVersion = "7.10.0"
 
         private var javaLauncher: Property<JavaLauncher> =
             objectFactory.property(JavaLauncher::class.java).convention(javaToolchainService.launcherFor {})
@@ -92,7 +91,7 @@ abstract class ProguardTask
 
                     args("@${getArgsFile()}")
                 }
-            } catch (e: ExecException) {
+            } catch (e: Exception) {
                 logger.error(e.message!!)
                 logger.error("Check the proguard output in ${outputFile.toURI()}")
                 throw e

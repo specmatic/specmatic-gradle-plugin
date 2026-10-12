@@ -78,7 +78,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
 
         @Test
         fun `it should create docker templates`() {
-            runWithSuccess("dockerBuild", "createDockerFiles")
+            runWithSuccessWithoutInitialGitCommit("dockerBuild", "createDockerFiles")
 
             assertThat(projectDir.resolve("build/Dockerfile").exists()).isTrue
             assertThat(projectDir.resolve("build/Dockerfile").readText().lines())
@@ -300,7 +300,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
 
         @Test
         fun `it should create docker templates`() {
-            runWithSuccess("dockerBuild", "createDockerFiles")
+            runWithSuccessWithoutInitialGitCommit("dockerBuild", "createDockerFiles")
 
             assertThat(projectDir.resolve("executable/build/Dockerfile").exists()).isTrue
             assertThat(projectDir.resolve("executable/build/Dockerfile").readText().lines())

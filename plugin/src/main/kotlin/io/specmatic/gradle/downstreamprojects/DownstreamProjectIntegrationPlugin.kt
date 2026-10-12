@@ -1,12 +1,11 @@
 package io.specmatic.gradle.downstreamprojects
 
 import io.specmatic.gradle.specmaticExtension
+import io.specmatic.gradle.tasks.SpecmaticAggregateTask
 import java.io.File
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.GradleBuild
 import org.gradle.api.tasks.TaskProvider
 
 class DownstreamProjectIntegrationPlugin : Plugin<Project> {
@@ -22,19 +21,19 @@ class DownstreamProjectIntegrationPlugin : Plugin<Project> {
 private fun Project.defineTasks() {
     val specmaticExtension = specmaticExtension()
     val validateDownstreamProjectTask =
-        tasks.register("validateDownstreamProjects") {
+        tasks.register("validateDownstreamProjects", SpecmaticAggregateTask::class.java) {
             group = "verification"
             description = "Validate downstream project(s)"
         }
 
     val bumpVersionsInDownstreamProjectGradlePropertiesTask =
-        tasks.register("bumpVersionsInDownstreamProjects") {
+        tasks.register("bumpVersionsInDownstreamProjects", SpecmaticAggregateTask::class.java) {
             group = "other"
             description = "Bump versions in downstream project(s)"
         }
 
     val fetchArtifactsInDownstreamProjectGradlePropertiesTask =
-        tasks.register("fetchArtifactsInDownstreamProjects") {
+        tasks.register("fetchArtifactsInDownstreamProjects", SpecmaticAggregateTask::class.java) {
             group = "other"
             description = "Fetch artifacts downstream project(s)"
         }
@@ -75,8 +74,6 @@ private fun Project.defineTasks() {
     }
 }
 
-private fun Project.getDownstreamProjectDir(eachProject: String): File = file("../$eachProject")
-
 private val Project.specmaticModulePropertyKey: String
     get() = project.name.toLowerCamelCase() + "Version"
 
@@ -88,38 +85,24 @@ private fun String.toLowerCamelCase(): String =
             else part.replaceFirstChar { it.uppercaseChar() }
         }.joinToString("")
 
-private val Project.specmaticModuleVersion: Any?
-    get() = project.findProperty(specmaticModulePropertyKey)
-
 private fun Project.bumpSpecmaticVersionInProjectTask(
     eachProject: String,
     cloneRepoIfNotExists: TaskProvider<out Task>,
-): TaskProvider<Task> = tasks.register("bumpVersion-$eachProject") {
-    onlyIf("$specmaticModulePropertyKey is set") {
-        project.hasProperty(specmaticModulePropertyKey)
-    }
+): TaskProvider<BumpDownstreamVersionTask> = tasks.register("bumpVersion-$eachProject", BumpDownstreamVersionTask::class.java) {
     dependsOn(cloneRepoIfNotExists)
-
-    doFirst {
-        println("Bumping $specmaticModulePropertyKey in $eachProject")
-        val newValue = "$specmaticModulePropertyKey=$specmaticModuleVersion"
-        val gradlePropertiesFile = file("../$eachProject/gradle.properties")
-        val content =
-            replacePropertyValue(
-                gradlePropertiesFile,
-                specmaticModulePropertyKey,
-                specmaticModuleVersion,
-            ).let { updatedContent ->
-                if (!updatedContent.lines().any { it.startsWith("$specmaticModulePropertyKey=") }) {
-                    println("$specmaticModulePropertyKey property not found, adding")
-                    updatedContent + "\n${newValue}\n"
-                } else {
-                    updatedContent
-                }
-            }
-        gradlePropertiesFile.writeText(content)
-    }
+    propertyKey.set(specmaticModulePropertyKey)
+    moduleVersion.set(providers.gradleProperty(specmaticModulePropertyKey))
+    gradlePropertiesFile.set(file("../$eachProject/gradle.properties"))
 }
+
+private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>): TaskProvider<FetchDownstreamArtifactsTask> =
+    tasks.register("fetchArtifacts-$eachProject", FetchDownstreamArtifactsTask::class.java) {
+        dependsOn(cloneRepoIfNotExists)
+        downstreamProjectDir.set(layout.projectDirectory.dir("../$eachProject"))
+        dependencyGroup.set(project.group.toString())
+        artifact.set("${project.name}-min")
+        moduleVersion.set(providers.gradleProperty(specmaticModulePropertyKey))
+    }
 
 internal fun replacePropertyValue(file: File, key: String, value: Any?): String = file.readLines().joinToString("\n") { line ->
     if (line.trim().startsWith("#")) {
@@ -129,103 +112,23 @@ internal fun replacePropertyValue(file: File, key: String, value: Any?): String 
     }
 }
 
-private fun Project.fetchLibsInProjectTask(eachProject: String, cloneRepoIfNotExists: TaskProvider<out Task>): TaskProvider<Exec> =
-    tasks.register("fetchArtifacts-$eachProject", Exec::class.java) {
-        onlyIf("$specmaticModulePropertyKey is set") {
-            project.hasProperty(specmaticModulePropertyKey)
-        }
-        dependsOn(cloneRepoIfNotExists)
-        workingDir = getDownstreamProjectDir(eachProject)
-
-        commandLine =
-            listOf(
-                "../specmatic-github-workflows/bin/fetch-artifacts",
-                "-a",
-                "${project.group}:${project.name}-min:$specmaticModuleVersion",
-                "-r",
-                "lib",
-            )
-    }
-
-private fun Project.validateDownstreamProjectTask(eachRepo: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<Exec> =
-    tasks.register("validate-$eachRepo", Exec::class.java) {
+private fun Project.validateDownstreamProjectTask(eachRepo: String, cloneRepoIfNotExists: TaskProvider<out Task>,): TaskProvider<ValidateDownstreamProjectTask> =
+    tasks.register("validate-$eachRepo", ValidateDownstreamProjectTask::class.java) {
         subprojects.forEach { subproject ->
             dependsOn("${subproject.path}:publishAllPublicationsToStagingRepository")
             dependsOn("${subproject.path}:publishToMavenLocal")
         }
 
         dependsOn(cloneRepoIfNotExists)
-
-        workingDir = getDownstreamProjectDir(eachRepo)
-
-        doFirst {
-            val projectDir = workingDir ?: getDownstreamProjectDir(eachRepo)
-            val hasGradleBuild = File(projectDir, "build.gradle").exists() || File(projectDir, "build.gradle.kts").exists()
-            val hasMavenPom = File(projectDir, "pom.xml").exists()
-
-            val isWindows = System.getProperty("os.name").lowercase().contains("windows")
-
-            when {
-                hasGradleBuild -> {
-                    println(
-                        "Validating $eachRepo using ${
-                            if (isWindows) "`gradlew.bat`" else "`./gradlew`"
-                        } check -P$specmaticModulePropertyKey=$version",
-                    )
-                    commandLine =
-                        if (isWindows) {
-                            listOf("cmd", "/c", "gradlew.bat", "check", "-P$specmaticModulePropertyKey=$version")
-                        } else {
-                            listOf("./gradlew", "check", "-P$specmaticModulePropertyKey=$version")
-                        }
-                }
-
-                hasMavenPom -> {
-                    println("Validating $eachRepo using mvn test")
-                    val wrapperUnix = File(projectDir, "mvnw")
-                    val wrapperWin = File(projectDir, "mvnw.bat")
-
-                    commandLine =
-                        if (isWindows) {
-                            listOf(
-                                "cmd",
-                                "/c",
-                                if (wrapperWin.exists()) "mvnw.bat" else "mvn",
-                                "test",
-                                "-D$specmaticModulePropertyKey=$specmaticModuleVersion",
-                            )
-                        } else {
-                            if (wrapperUnix.exists()) {
-                                listOf("./mvnw", "test", "-D$specmaticModulePropertyKey=$specmaticModuleVersion")
-                            } else {
-                                listOf("mvn", "test", "-D$specmaticModulePropertyKey=$specmaticModuleVersion")
-                            }
-                        }
-                }
-
-                else -> {
-                    throw org.gradle.api.GradleException(
-                        "No build file found in ${projectDir.absolutePath}: expected build.gradle, build.gradle.kts or pom.xml"
-                    )
-                }
-            }
-        }
+        downstreamProjectDir.set(layout.projectDirectory.dir("../$eachRepo"))
+        repositoryName.set(eachRepo)
+        propertyKey.set(specmaticModulePropertyKey)
+        moduleVersion.set(providers.gradleProperty(specmaticModulePropertyKey).orElse("null"))
     }
 
-private fun Project.cloneOrUpdateRepoTask(eachRepo: String): TaskProvider<Exec> = tasks.register("clone-$eachRepo", Exec::class.java) {
-    onlyIf("skipDownstreamClone not set") {
-        !project.hasProperty("skipDownstreamClone")
+private fun Project.cloneOrUpdateRepoTask(eachRepo: String): TaskProvider<CloneOrUpdateDownstreamRepositoryTask> =
+    tasks.register("clone-$eachRepo", CloneOrUpdateDownstreamRepositoryTask::class.java) {
+        downstreamProjectDir.set(layout.projectDirectory.dir("../$eachRepo"))
+        repositoryName.set(eachRepo)
+        skipClone.set(providers.gradleProperty("skipDownstreamClone").map { true }.orElse(false))
     }
-
-    doFirst {
-        val downstreamProjectDir = getDownstreamProjectDir(eachRepo)
-
-        if (!downstreamProjectDir.exists()) {
-            commandLine("git", "clone", "https://github.com/specmatic/$eachRepo.git", downstreamProjectDir, "--recursive")
-        } else {
-            // pull the latest changes if the repo already exists
-            commandLine("git", "pull", "--ff-only", "--no-rebase")
-            workingDir = downstreamProjectDir
-        }
-    }
-}

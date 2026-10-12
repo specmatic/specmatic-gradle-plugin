@@ -12,10 +12,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 class ConfigureCompilerOptionsPlugin : Plugin<Project> {
     override fun apply(target: Project) {
-        target.afterEvaluate {
-            setupJavaCompilerOpts(target)
-            setupKotlinCompilerOpts(target)
-        }
+        setupJavaCompilerOpts(target)
+        setupKotlinCompilerOpts(target)
     }
 
     private fun setupKotlinCompilerOpts(target: Project) {
@@ -42,7 +40,6 @@ class ConfigureCompilerOptionsPlugin : Plugin<Project> {
 
             target.extensions.configure(JavaPluginExtension::class.java) {
                 toolchain.languageVersion.set(jvmVersion)
-                toolchain.languageVersion.finalizeValue()
             }
 
             target.tasks.withType(JavaCompile::class.java) {

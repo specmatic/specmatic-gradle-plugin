@@ -32,6 +32,7 @@ internal fun Project.createSBOMVulnScanTask() {
         tasks.register("${scanTaskName}Scan", SBOMVulnScanTask::class.java) {
             dependsOn(tasks.withType(BaseCyclonedxTask::class.java))
             scannerTool.set(scannerType)
+            skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             sbomFile.set(
                 project.layout.buildDirectory
                     .get()

@@ -33,6 +33,7 @@ internal fun Project.createDockerVulnScanTask(imageName: String) {
             dependsOn("dockerBuild")
             image = imageName
             scannerTool.set(scannerType)
+            skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             reportsDir.set(
                 project.layout.buildDirectory
                     .get()

@@ -9,6 +9,22 @@ import org.junit.jupiter.api.Nested
 
 class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
     @Test
+    fun `does not apply detekt to a non JVM project`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("base")
+                id("io.specmatic.gradle")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runWithSuccess("tasks", "--all")
+
+        assertThat(result.output).doesNotContain("detekt")
+    }
+
+    @Test
     fun `adds version metadata to Gradle plugin POMs`() {
         settingsFile.writeText("rootProject.name = \"test-plugin\"")
         buildFile.writeText(
@@ -109,8 +125,10 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                     id("io.specmatic.gradle")
                 }
                 
-                repositories {
-                    mavenCentral()
+                allprojects {
+                    repositories {
+                        mavenCentral()
+                    }
                 }
                 
                 dependencies {
@@ -157,7 +175,13 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                     id("java")
                     id("io.specmatic.gradle")
                 }
-                            
+
+                allprojects {
+                    repositories {
+                        mavenCentral()
+                    }
+                }
+
                 project(":project-a") {
                    apply(plugin = "java")
                 }

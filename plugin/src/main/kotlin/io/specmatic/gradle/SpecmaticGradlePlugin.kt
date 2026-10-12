@@ -1,6 +1,5 @@
 package io.specmatic.gradle
 
-import io.github.priospot.gradle.PriospotPlugin
 import io.specmatic.gradle.artifacts.EnsureJarsAreStampedPlugin
 import io.specmatic.gradle.artifacts.EnsureReproducibleArtifactsPlugin
 import io.specmatic.gradle.collision.CollisionDetectorPluginWrapper
@@ -57,13 +56,6 @@ class SpecmaticGradlePlugin
         target.plugins.apply(SpecmaticLicenseReportingPlugin::class.java)
         target.allprojects {
             plugins.apply(SpecmaticTestReportingPlugin::class.java)
-            if (this == rootProject) {
-                plugins.apply(PriospotPlugin::class.java)
-            } else {
-                plugins.withType(JavaPlugin::class.java) {
-                    plugins.apply(PriospotPlugin::class.java)
-                }
-            }
 
             plugins.withType(JavaPlugin::class.java) {
                 project.dependencies.components.all {

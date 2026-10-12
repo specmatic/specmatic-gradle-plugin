@@ -57,7 +57,7 @@ abstract class GithubReleaseBinaryScanner(
     }
 
     private fun downloadLatest(context: ScannerContext) {
-        context.project.pluginInfo("Checking if $executableName is up to date")
+        context.pluginInfo("Checking if $executableName is up to date")
 
         try {
             val gitHubBuilder = GitHubBuilder().withConnector(okHttpConnector)
@@ -81,19 +81,19 @@ abstract class GithubReleaseBinaryScanner(
             val archivePath = context.temporaryDir.resolve(asset.name)
             val downloadUrl = asset.browserDownloadUrl
 
-            context.project.pluginInfo(
+            context.pluginInfo(
                 "Currently installed $executableName version($currentVersion) is not up-to-date. Downloading version $latestVersion from $downloadUrl to $archivePath",
             )
 
             downloadArchive(downloadUrl, archivePath)
-            context.project.delete(installDir(context))
+            context.fileSystemOperations.delete { delete(installDir(context)) }
             installDir(context).mkdirs()
 
-            context.project.copy {
+            context.fileSystemOperations.copy {
                 if (archivePath.extension == "zip") {
-                    from(context.project.zipTree(archivePath))
+                    from(context.archiveOperations.zipTree(archivePath))
                 } else {
-                    from(context.project.tarTree(archivePath))
+                    from(context.archiveOperations.tarTree(archivePath))
                 }
                 into(installDir(context))
             }
@@ -101,7 +101,7 @@ abstract class GithubReleaseBinaryScanner(
             versionFile(context).writeText(latestVersion)
         } catch (e: Exception) {
             if (executableFile(context).exists()) {
-                context.project.pluginInfo("Unable to check latest $executableName version: ${e.message}. Using existing executable.")
+                context.pluginInfo("Unable to check latest $executableName version: ${e.message}. Using existing executable.")
                 return
             }
             throw RuntimeException("Failed to check or download $executableName", e)

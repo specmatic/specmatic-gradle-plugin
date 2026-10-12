@@ -42,6 +42,12 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
     @get:Input
     abstract val automaticMavenCentralRelease: Property<Boolean>
 
+    @get:Input
+    abstract val groupId: Property<String>
+
+    @get:Input
+    abstract val projectVersion: Property<String>
+
     @get:InputDirectory
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val inputDirectory: DirectoryProperty
@@ -149,7 +155,7 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
             }
 
         logger.lifecycle("Uploading Maven Central bundle ${zipFile.absolutePath} to $repoName using $publishingType")
-        val deploymentId = portal.upload("${project.rootProject.group}:${project.version}", publishingType, zipFile)
+        val deploymentId = portal.upload("${groupId.get()}:${projectVersion.get()}", publishingType, zipFile)
         logger.lifecycle("Created Maven Central deployment $deploymentId for $repoName")
         portal.validateDeployment(deploymentId, automaticMavenCentralRelease.get())
     }

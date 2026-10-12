@@ -9,10 +9,12 @@ import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.specmaticExtension
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.credentials.PasswordCredentials
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
@@ -89,32 +91,25 @@ private fun Project.setupPublishingTargets() {
 
         if (project.isCommercial()) {
             tasks.withType(PublishToMavenRepository::class.java) {
-                onlyIf("disabling publishing of unobfuscated artifacts to this repository") {
-                    val mavenRepo = publishTargets.filterIsInstance<MavenInternal>().firstOrNull { it.repoName == this.repository.name }
-
+                val repoName = name.substringAfterLast("To").removeSuffix("Repository")
+                val mavenRepo = publishTargets.filterIsInstance<MavenInternal>().firstOrNull { it.repoName.equals(repoName, ignoreCase = true) }
+                val shouldPublish = mavenRepo?.type == RepoType.PUBLISH_ALL || run {
                     val singleDependency =
                         publication.artifacts
                             .flatMap { it.buildDependencies.getDependencies(null) }
                             .filterIsInstance<Jar>()
                             .first()
-
-                    val thisPublishTaskIsPublishingObfuscatedDependency =
-                        (
-                            singleDependency.archiveClassifier.get() == "obfuscated" ||
-                                singleDependency.archiveClassifier.get() == "all-obfuscated"
-                        )
-
-                    if (mavenRepo is MavenInternal) {
-                        mavenRepo.type == RepoType.PUBLISH_ALL ||
-                            (mavenRepo.type == RepoType.PUBLISH_OBFUSCATED_ONLY && thisPublishTaskIsPublishingObfuscatedDependency)
-                    } else {
-                        thisPublishTaskIsPublishingObfuscatedDependency
-                    }
+                    singleDependency.archiveClassifier.get() in setOf("obfuscated", "all-obfuscated")
                 }
+                onlyIf("disabling publishing of unobfuscated artifacts to this repository", ShouldPublishArtifact(shouldPublish))
             }
         }
         signAllPublications()
     }
+}
+
+private class ShouldPublishArtifact(private val shouldPublish: Boolean) : Spec<Task>, java.io.Serializable {
+    override fun isSatisfiedBy(element: Task): Boolean = shouldPublish
 }
 
 internal fun Project.setupCommericalJavadocAndSources() {

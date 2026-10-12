@@ -15,8 +15,10 @@ import java.io.File
 import java.util.jar.JarFile
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
@@ -201,32 +203,28 @@ private fun ShadowJar.maybeRelocateIfConfigured(project: Project, shadowPrefix: 
     excludePackages.forEach { exclude("$it/**") }
 
     if (shadowPrefix.isNotBlank()) {
-        // we do this in doFirst so that we can lazily evaluate the runtimeClasspath
-        doFirst {
-//            val runtimeClasspathFiles = runtimeClasspath?.files.orEmpty()
+        val runtimeClasspathFiles = runtimeClasspath?.incoming?.artifactView {
+            componentFilter { id -> id !is ModuleComponentIdentifier || id.group != "ch.qos.logback" }
+        }?.files ?: project.files()
+        doFirst(RelocateRuntimePackagesAction(runtimeClasspathFiles, shadowPrefix, excludePackages))
+    }
+}
 
-            val runtimeClasspathFiles =
-                runtimeClasspath
-                    ?.incoming
-                    ?.artifacts
-                    ?.filter {
-                        !it.variant.owner.displayName
-                            .startsWith("ch.qos.logback:")
-                    }?.map { it.file }
-                    .orEmpty()
-                    .toSet()
-
-            val packagesToRelocate = extractPackagesInJars(runtimeClasspathFiles, excludePackages)
-
-            packagesToRelocate.forEach { eachPackage ->
-                project.pluginInfo("Relocating package: $eachPackage to $shadowPrefix/$eachPackage")
-                relocate(eachPackage, "$shadowPrefix.$eachPackage")
-            }
+internal class RelocateRuntimePackagesAction(
+    private val runtimeClasspathFiles: FileCollection,
+    private val shadowPrefix: String,
+    private val excludePackages: List<String>,
+) : Action<org.gradle.api.Task> {
+    override fun execute(task: org.gradle.api.Task) {
+        val shadowJar = task as ShadowJar
+        extractPackagesInJars(runtimeClasspathFiles.files, excludePackages).forEach { packageName ->
+            task.logger.info("Relocating package: $packageName to $shadowPrefix/$packageName")
+            shadowJar.relocate(packageName, "$shadowPrefix.$packageName")
         }
     }
 }
 
-private fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePackages: List<String>): MutableSet<String> {
+internal fun extractPackagesInJars(runtimeClasspathFiles: Set<File>, excludePackages: List<String>): MutableSet<String> {
     val packagesToRelocate = mutableSetOf<String>()
     runtimeClasspathFiles.forEach { eachFile ->
         if (eachFile.name.lowercase().endsWith(".jar")) {

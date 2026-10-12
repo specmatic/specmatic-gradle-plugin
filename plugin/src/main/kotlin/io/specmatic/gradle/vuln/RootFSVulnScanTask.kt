@@ -35,6 +35,7 @@ internal fun Project.createJarVulnScanTask() {
             dependsOn(project.tasks.withType(Jar::class.java))
             dependsOn(project.tasks.withType(Sign::class.java))
             scannerTool.set(scannerType)
+            skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             inputDir.set(
                 project.layout.buildDirectory
                     .file("libs")

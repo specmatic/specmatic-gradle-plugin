@@ -314,7 +314,10 @@ class PromoteMavenArtifactsTaskTest {
         val project = ProjectBuilder.builder().build()
         project.group = "io.specmatic"
         project.version = "1.0.0"
-        return project.tasks.create("promoteTest", PromoteMavenArtifactsTask::class.java)
+        return project.tasks.create("promoteTest", PromoteMavenArtifactsTask::class.java).apply {
+            groupId.set(project.group.toString())
+            projectVersion.set(project.version.toString())
+        }
     }
 
     private fun target(

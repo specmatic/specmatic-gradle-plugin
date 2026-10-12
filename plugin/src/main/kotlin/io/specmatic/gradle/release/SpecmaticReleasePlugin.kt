@@ -4,71 +4,77 @@ import io.specmatic.gradle.CreateGithubReleaseTask
 import io.specmatic.gradle.features.BaseDistribution
 import io.specmatic.gradle.features.GithubReleaseFeature
 import io.specmatic.gradle.license.pluginInfo
-import io.specmatic.gradle.license.pluginWarn
+import io.specmatic.gradle.tasks.SpecmaticAggregateTask
 import io.specmatic.gradle.specmaticExtension
 import io.specmatic.gradle.versioninfo.versionInfo
-import org.gradle.BuildAdapter
-import org.gradle.BuildResult
+import javax.inject.Inject
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.build.event.BuildEventsListenerRegistry
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.GradleBuild
 import org.gradle.api.tasks.TaskProvider
 
-class SpecmaticReleasePlugin : Plugin<Project> {
+class SpecmaticReleasePlugin @Inject constructor(
+    private val buildEventsListenerRegistry: BuildEventsListenerRegistry,
+) : Plugin<Project> {
     override fun apply(target: Project) {
         target.plugins.apply(BasePlugin::class.java)
         target.afterEvaluate {
-            target.configureReleaseTasks()
+            target.configureReleaseTasks(buildEventsListenerRegistry)
         }
     }
 }
 
 const val RELEASE_TASK_NAME = "release"
 
-private fun Project.configureReleaseTasks() {
+private fun Project.configureReleaseTasks(buildEventsListenerRegistry: BuildEventsListenerRegistry) {
     val originalGitCommit = project.versionInfo().gitCommit
-
+    val releaseOutcomeService =
+        project.gradle.sharedServices.registerIfAbsent(
+            "specmaticReleaseOutcome",
+            SpecmaticReleaseOutcomeService::class.java,
+        ) {
+            parameters.rootDir.set(project.layout.projectDirectory)
+            parameters.originalGitCommit.set(originalGitCommit)
+        }
+    buildEventsListenerRegistry.onTaskCompletion(releaseOutcomeService)
     val preReleaseCheckTask = getPreReleaseCheckTask()
-    val removeSnapshotTask = preReleaseBumpTask(preReleaseCheckTask)
+    val removeSnapshotTask = preReleaseBumpTask(preReleaseCheckTask, releaseOutcomeService)
     val runReleaseLifecycleHooksTask = runReleaseLifecycleHooksTask(removeSnapshotTask)
     val createReleaseTagTask = runReleaseTagTask(runReleaseLifecycleHooksTask)
     val postReleaseBumpTask = postReleaseBumpTask(createReleaseTagTask)
     val gitPushTask = gitPushTask(postReleaseBumpTask)
     val createGithubReleaseTask = findOrCreateGithubReleaseTask(gitPushTask)
 
-    val releaseTask =
-        project.tasks.register(RELEASE_TASK_NAME) {
-            group = RELEASE_TASK_NAME
-            description = "Release the project"
-            dependsOn(createGithubReleaseTask)
-        }
-
-    project.gradle.addBuildListener(
-        object : BuildAdapter() {
-            @Deprecated("Deprecated in Java")
-            override fun buildFinished(result: BuildResult) {
-                if (result.failure != null) {
-                    val executedTasks =
-                        project.gradle.taskGraph.allTasks
-                            .map { it.path }
-                    val wasMyTaskRun = executedTasks.contains(releaseTask.get().path)
-                    pluginWarn("Checking if release task ran: $wasMyTaskRun")
-                    if (wasMyTaskRun) {
-                        pluginWarn("Rolling back git changes to original commit $originalGitCommit")
-                        revertGitChanges(originalGitCommit)
-                    }
-                }
-            }
-        },
-    )
+    project.tasks.register(RELEASE_TASK_NAME, SpecmaticAggregateTask::class.java) {
+        group = RELEASE_TASK_NAME
+        description = "Release the project"
+        dependsOn(createGithubReleaseTask)
+    }
 }
 
 private fun Project.validateSnapshotDependenciesTask(): TaskProvider<ValidateSnapshotDependencies> =
     tasks.register("validateSnapshotDependencies", ValidateSnapshotDependencies::class.java) {
         group = RELEASE_TASK_NAME
         description = "Validate snapshot dependencies"
+        allowSnapshotDependencies.set(findProperty("allowSnapshotDependencies") == "true")
+        snapshotDependencies.set(
+            allprojects.associate { eachProject ->
+                val dependencies =
+                    (eachProject.configurations + eachProject.buildscript.configurations).flatMap { configuration ->
+                        configuration.dependencies
+                            .filter { dependency ->
+                                dependency !is org.gradle.api.artifacts.ProjectDependency &&
+                                    dependency.version?.contains("SNAPSHOT") == true
+                            }.map { dependency ->
+                                "${dependency.group}:${dependency.name}:${dependency.version}"
+                            }
+                    }
+                eachProject.path to dependencies
+            }
+        )
     }
 
 private fun Project.gitPushTask(runReleaseLifecycleHooksTask: TaskProvider<*>): TaskProvider<*> =
@@ -87,12 +93,12 @@ private fun Project.postReleaseBumpTask(dependentTask: TaskProvider<*>): TaskPro
         description = "Post-release bump"
 
         rootDir.set(project.rootProject.rootDir)
-        postReleaseVersion.set(project.provider { project.property("release.newVersion").toString() })
+        postReleaseVersion.set(providers.gradleProperty("release.newVersion"))
     }
 
 private fun Project.runReleaseLifecycleHooksTask(removeSnapshotTask: TaskProvider<*>,): TaskProvider<*> =
     if (project.hasProperty("functionalTestingHack") && project.property("functionalTestingHack") == "true") {
-        project.tasks.register("runReleaseLifecycleHooks") {
+        project.tasks.register("runReleaseLifecycleHooks", SpecmaticAggregateTask::class.java) {
             dependsOn(removeSnapshotTask)
             group = RELEASE_TASK_NAME
             description = "Run release lifecycle hooks (add your tasks here) - test hax"
@@ -144,17 +150,22 @@ private fun Project.runReleaseTagTask(dependentTask: TaskProvider<*>): TaskProvi
         description = "Create release tag"
 
         rootDir.set(project.rootProject.rootDir)
-        releaseVersion.set(project.provider { project.property("release.releaseVersion").toString() })
+        releaseVersion.set(providers.gradleProperty("release.releaseVersion"))
     }
 
-private fun Project.preReleaseBumpTask(dependentTask: TaskProvider<*>): TaskProvider<*> =
+private fun Project.preReleaseBumpTask(
+    dependentTask: TaskProvider<*>,
+    releaseOutcomeService: org.gradle.api.provider.Provider<SpecmaticReleaseOutcomeService>,
+): TaskProvider<*> =
     project.tasks.register("preReleaseBump", PreReleaseVersionBump::class.java) {
+        usesService(releaseOutcomeService)
         dependsOn(dependentTask)
         group = RELEASE_TASK_NAME
         description = "Bump version before release"
 
         rootDir.set(project.rootProject.rootDir)
-        releaseVersion.set(project.provider { project.property("release.releaseVersion").toString() })
+        releaseVersion.set(providers.gradleProperty("release.releaseVersion"))
+        currentVersion.set(project.version.toString())
     }
 
 private fun Project.getPreReleaseCheckTask(): TaskProvider<*> = project.tasks.register("preReleaseCheck", PreReleaseCheck::class.java) {
@@ -162,13 +173,11 @@ private fun Project.getPreReleaseCheckTask(): TaskProvider<*> = project.tasks.re
     description = "Pre-release checks"
 
     rootDir.set(project.rootProject.rootDir)
-}
-
-private fun Project.revertGitChanges(originalGitCommit: String) {
-    GitOperations(rootProject.rootDir, project.properties, logger).apply {
-        pluginInfo("Reverting changes to original commit $originalGitCommit")
-        resetHardTo(originalGitCommit)
-    }
+    projectProperties.set(
+        listOf("skipBranchCheck", "skipRepoDirtyCheck", "skipIncomingOutgoingCheck")
+            .mapNotNull { key -> project.findProperty(key)?.let { key to it.toString() } }
+            .toMap(),
+    )
 }
 
 private fun Project.findOrCreateGithubReleaseTask(dependentTasks: TaskProvider<*>): TaskProvider<*> {

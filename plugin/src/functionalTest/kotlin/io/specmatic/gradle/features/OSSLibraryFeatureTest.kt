@@ -104,7 +104,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSLibrary(rootProject) {
-                        shadow("example")
+                        shadow("example") {}
                     }
                 }
                 """.trimIndent(),
@@ -116,7 +116,10 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
         @Test
         fun `it fails`() {
             val result = runWithFailure("publishAllPublicationsToStagingRepository")
-            assertThat(result.output).contains("Cannot access 'shadow': it is protected in 'OSSLibraryFeature'")
+            assertThat(result.output)
+                .contains("Cannot access")
+                .contains("shadow")
+                .contains("protected in")
 
             assertNothingPublished()
         }
@@ -271,7 +274,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSLibrary(project(":core")) {
-                        shadow("example")
+                        shadow("example") {}
                     }
                 }
                 
@@ -290,7 +293,10 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
         @Test
         fun `it fails`() {
             val result = runWithFailure("publishAllPublicationsToStagingRepository")
-            assertThat(result.output).contains("Cannot access 'shadow': it is protected in 'OSSLibraryFeature'")
+            assertThat(result.output)
+                .contains("Cannot access")
+                .contains("shadow")
+                .contains("protected in")
             assertNothingPublished()
         }
     }

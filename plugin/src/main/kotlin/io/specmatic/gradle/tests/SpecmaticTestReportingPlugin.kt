@@ -16,18 +16,15 @@ internal class SpecmaticTestReportingPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         target.pluginInfo("Apply test logger and setup junit")
         target.plugins.apply(TestLoggerPlugin::class.java)
-        target.plugins.apply(DetektPlugin::class.java)
 
         target.plugins.withType(JavaPlugin::class.java) {
             target.plugins.apply(KoverGradlePlugin::class.java)
+            target.plugins.apply(DetektPlugin::class.java)
             configureJunit(target)
 
             target.plugins.withType(KoverGradlePlugin::class.java) {
                 configureKover(target)
             }
-        }
-
-        target.plugins.withType(DetektPlugin::class.java) {
             target.tasks.withType<Detekt> {
                 ignoreFailures = true
                 parallel = true

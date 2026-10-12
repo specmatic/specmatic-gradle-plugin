@@ -1,6 +1,5 @@
 package io.specmatic.gradle
 
-import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.utils.okHttpConnector
 import java.io.File
 import java.io.IOException
@@ -59,7 +58,7 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
         if (sourceDir.isPresent && sourceDir.get().exists()) {
             sourceDir.get().listFiles().orEmpty().forEach { eachFile ->
                 uploadAsset(githubRelease, eachFile)
-                project.pluginInfo("Uploaded asset $eachFile")
+                logger.warn("[SGP - $path]: Uploaded asset $eachFile")
             }
         }
 
@@ -74,26 +73,26 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
                 .draft(true)
                 .name(releaseVersion.get())
                 .create()
-        project.pluginInfo("Created draft release ${release.name} with id ${release.id} at ${release.htmlUrl}")
+        logger.warn("[SGP - $path]: Created draft release ${release.name} with id ${release.id} at ${release.htmlUrl}")
         return release
     }
 
     @Throws(IOException::class)
     private fun findReleaseByName(repository: GHRepository, tagOrReleaseName: String?): GHRelease? {
-        project.pluginInfo("Looking for release with tag or name $tagOrReleaseName")
+        logger.warn("[SGP - $path]: Looking for release with tag or name $tagOrReleaseName")
         val release = repository.getReleaseByTagName(tagOrReleaseName)
         if (release != null) {
-            project.pluginInfo("Found $tagOrReleaseName")
+            logger.warn("[SGP - $path]: Found $tagOrReleaseName")
             return release
         }
 
         for (eachRelease in repository.listReleases()) {
             if (eachRelease.name == tagOrReleaseName) {
-                project.pluginInfo("Found $tagOrReleaseName")
+                logger.warn("[SGP - $path]: Found $tagOrReleaseName")
                 return eachRelease
             }
         }
-        project.pluginInfo("Existing release not found")
+        logger.warn("[SGP - $path]: Existing release not found")
         return null
     }
 

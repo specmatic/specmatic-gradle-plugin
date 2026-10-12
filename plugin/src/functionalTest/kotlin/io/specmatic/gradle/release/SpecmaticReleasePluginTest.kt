@@ -3,6 +3,7 @@ package io.specmatic.gradle.release
 import io.specmatic.gradle.AbstractFunctionalTest
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.CleanupMode
@@ -63,4 +64,38 @@ class SpecmaticReleasePluginTest : AbstractFunctionalTest() {
             "chore(release): pre-release bump version 7.8.1",
         )
     }
+
+    @Test
+    fun `release failure rolls back changes with configuration cache enabled`() {
+        buildFile.appendText(
+            """
+
+            tasks.register("failReleaseHooks") {
+                doLast { throw GradleException("intentional release failure") }
+            }
+
+            afterEvaluate {
+                tasks.named("runReleaseLifecycleHooks") { dependsOn("failReleaseHooks") }
+                tasks.named("failReleaseHooks") { mustRunAfter("preReleaseBump") }
+            }
+            """.trimIndent(),
+        )
+        projectDir.execGit(logger, "add", "build.gradle.kts")
+        projectDir.execGit(logger, "commit", "-m", "Add failing release hook")
+        projectDir.execGit(logger, "push")
+        val originalCommit = projectDir.execGit(logger, "rev-parse", "HEAD").outputUTF8().trim()
+
+        val result =
+            runWithFailure(
+                "release",
+                "-PfunctionalTestingHack=true",
+                "-Prelease.releaseVersion=7.8.1",
+                "-Prelease.newVersion=7.8.5-SNAPSHOT",
+            )
+
+        assertThat(result.output).contains("intentional release failure")
+        assertThat(projectDir.execGit(logger, "rev-parse", "HEAD").outputUTF8().trim()).isEqualTo(originalCommit)
+        assertThat(gradleProperties.readText()).contains("version=2.3.4-SNAPSHOT")
+    }
+
 }

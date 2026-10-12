@@ -1,7 +1,6 @@
 package io.specmatic.gradle.vuln
 
 import io.specmatic.gradle.exec.shellEscapedArgs
-import io.specmatic.gradle.license.pluginInfo
 import io.specmatic.gradle.vuln.scanner.ScanTarget
 import io.specmatic.gradle.vuln.scanner.ScannerContext
 import io.specmatic.gradle.vuln.scanner.VulnScannerType
@@ -15,21 +14,25 @@ import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
+import org.gradle.work.DisableCachingByDefault
 
-@CacheableTask
+@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
 abstract class AbstractVulnScanTask
     @Inject
     constructor(private val execLauncher: ExecOperations) : DefaultTask() {
         init {
             extraArgs.convention(emptyList())
+            skipVulnValidation.convention(false)
         }
 
         @TaskAction
@@ -50,7 +53,8 @@ abstract class AbstractVulnScanTask
                 runScan(scanner.commandFor(scannerContext, scanTarget(), format, extraArgs.get()), output)
             }
 
-            printReportFile(project, getTextTableReportFile())
+            logger.warn(getTextTableReportFile().readText())
+            logger.warn("Vulnerability report file: ${getTextTableReportFile().toURI()}")
 
             validateNoHighOrCriticalVulnerabilities(scanner, getJsonReportFile())
         }
@@ -70,10 +74,19 @@ abstract class AbstractVulnScanTask
         @get:Input
         abstract val extraArgs: ListProperty<String>
 
+        @get:Input
+        abstract val skipVulnValidation: Property<Boolean>
+
+        @get:Inject
+        abstract val fileSystemOperations: FileSystemOperations
+
+        @get:Inject
+        abstract val archiveOperations: ArchiveOperations
+
         private fun runScan(cliArgs: List<String>, output: File) {
             try {
                 output.outputStream().use { outputStream: FileOutputStream ->
-                    project.pluginInfo("$ ${shellEscapedArgs(cliArgs)}")
+                    logger.warn("[SGP - $path]: $ ${shellEscapedArgs(cliArgs)}")
 
                     execLauncher.exec {
                         standardOutput = outputStream
@@ -87,8 +100,8 @@ abstract class AbstractVulnScanTask
         }
 
         private fun validateNoHighOrCriticalVulnerabilities(scanner: VulnerabilityScanner, jsonReportFile: File,) {
-            if (project.properties["skipVulnValidation"] == "true") {
-                project.pluginInfo("Skipping vulnerability severity validation as per project properties.")
+            if (skipVulnValidation.get()) {
+                logger.warn("[SGP - $path]: Skipping vulnerability severity validation as per project properties.")
                 return
             }
 
@@ -101,7 +114,10 @@ abstract class AbstractVulnScanTask
         abstract fun scanTarget(): ScanTarget
 
         private fun scannerContext(scanner: VulnerabilityScanner): ScannerContext = ScannerContext(
-            project = project,
+            logger = logger,
+            projectPath = path,
+            fileSystemOperations = fileSystemOperations,
+            archiveOperations = archiveOperations,
             scannerHomeDir = scanner.homeDir(),
             temporaryDir = temporaryDir,
         )
@@ -113,8 +129,3 @@ abstract class AbstractVulnScanTask
     }
 
 internal fun Project.vulnScannerType(): VulnScannerType = VulnScannerType.from(findProperty("vulnScanner")?.toString())
-
-internal fun printReportFile(project: Project, reportFile: File) {
-    project.logger.warn(reportFile.readText())
-    project.logger.warn("Vulnerability report file: ${reportFile.toURI()}")
-}

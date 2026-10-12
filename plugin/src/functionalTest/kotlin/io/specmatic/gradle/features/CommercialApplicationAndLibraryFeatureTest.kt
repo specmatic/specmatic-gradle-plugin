@@ -164,7 +164,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
 
         @Test
         fun `it should create docker templates`() {
-            runWithSuccess("dockerBuild", "createDockerFiles")
+            runWithSuccessWithoutInitialGitCommit("dockerBuild", "createDockerFiles")
 
             assertThat(projectDir.resolve("build/Dockerfile").exists()).isTrue
             assertThat(
@@ -500,7 +500,7 @@ class CommercialApplicationAndLibraryFeatureTest : AbstractFunctionalTest() {
 
         @Test
         fun `it should create docker templates`() {
-            runWithSuccess("dockerBuild", "createDockerFiles")
+            runWithSuccessWithoutInitialGitCommit("dockerBuild", "createDockerFiles")
 
             assertThat(projectDir.resolve("executable/build/Dockerfile").exists()).isTrue
             assertThat(

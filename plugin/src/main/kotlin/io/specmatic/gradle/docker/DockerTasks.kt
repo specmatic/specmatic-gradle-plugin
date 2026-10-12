@@ -1,19 +1,28 @@
 package io.specmatic.gradle.docker
 
-import io.specmatic.gradle.SpecmaticGradlePlugin
 import io.specmatic.gradle.features.DockerBuildConfig
-import io.specmatic.gradle.features.mainJar
 import io.specmatic.gradle.license.pluginInfo
+import io.specmatic.gradle.tasks.SpecmaticAggregateTask
 import io.specmatic.gradle.versioninfo.versionInfo
 import io.specmatic.gradle.vuln.createDockerVulnScanTask
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import org.cyclonedx.gradle.BaseCyclonedxTask
+import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
-import org.gradle.api.Task
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
     val dockerOrgNames = dockerBuildConfig.dockerOrgNames
@@ -32,27 +41,32 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             .asFile
             .resolve("reports/cyclonedx/bom.json")
 
+    val buildDirectory = layout.buildDirectory.get().asFile
     val createDockerfilesTask =
-        tasks.register("createDockerFiles") {
+        tasks.register("createDockerFiles", CreateDockerFilesTask::class.java) {
             dependsOn(dockerBuildConfig.mainJarTaskName!!)
             group = "docker"
             description = "Creates the Dockerfile and other files needed to build the docker image"
-
-            val primaryExecutable = project.dockerImage(dockerBuildConfig)
-
-            val targetJarPath = "/usr/local/share/$primaryExecutable/$primaryExecutable.jar"
-            val targetSbomPath = "/usr/local/share/$primaryExecutable/sbom.cyclonedx.json"
-
-            createDockerfile(
-                dockerBuildConfig = dockerBuildConfig,
-                targetJarPath = targetJarPath,
-                sourceSbomFile = sourceSbomPath,
-                targetSbomPath = targetSbomPath,
-                primaryOrg = primaryOrg,
-                extraApkDependencies = dockerBuildConfig.extraApkDependencies,
-            )
-            createSpecmaticShellScript(dockerBuildConfig, targetJarPath)
+            val executable = project.dockerImage(dockerBuildConfig)
+            this.sourceSbomPath.set(sourceSbomPath.relativeTo(buildDirectory).invariantSeparatorsPath)
+            this.targetJarPath.set("/usr/local/share/$executable/$executable.jar")
+            this.targetSbomPath.set("/usr/local/share/$executable/sbom.cyclonedx.json")
+            this.dockerOrg.set(primaryOrg)
+            this.imageName.set(executable)
+            this.imageVersion.set(project.version.toString())
+            this.gitSha.set(project.versionInfo().gitCommit)
+            this.extraApkDependencies.set(dockerBuildConfig.extraApkDependencies)
+            this.extraExecutableNames.set(dockerBuildConfig.extraExecutableNames)
+            this.dockerfile.set(layout.buildDirectory.file("Dockerfile"))
+            this.shellScript.set(layout.buildDirectory.file(executable))
         }
+    project.afterEvaluate {
+        val jarArchive = tasks.named(dockerBuildConfig.mainJarTaskName!!, ShadowJar::class.java).flatMap { it.archiveFile }
+        createDockerfilesTask.configure {
+            sourceJar.set(jarArchive)
+            sourceJarPath.set(jarArchive.map { it.asFile.relativeTo(buildDirectory).invariantSeparatorsPath })
+        }
+    }
 
     pluginInfo("Adding docker tasks on $this")
 
@@ -127,7 +141,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             dependsOn(dockerBuildxPublishInternalTask)
             group = "docker"
             val readmeFile = project.file("readme.docker.md")
-            onlyIf { readmeFile.exists() }
+            onlyIf("Docker Hub README exists", HasDockerReadme(readmeFile))
 
             description = "Publishes the README to docker hub"
             dockerHubUsername.set(
@@ -149,106 +163,64 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             readmeContent.set(provider { readmeFile.readText() })
         }
 
-    tasks.register("dockerBuildxPublish") {
+    tasks.register("dockerBuildxPublish", SpecmaticAggregateTask::class.java) {
         dependsOn(dockerBuildxPublishInternalTask, dockerReadmePublishTask)
         group = "docker"
         description = "Publish image and README to docker hub"
     }
 }
 
-fun Task.createSpecmaticShellScript(dockerBuildConfig: DockerBuildConfig, targetJarPath: String) {
-    val primaryExecutable = project.dockerImage(dockerBuildConfig)
+@CacheableTask
+abstract class CreateDockerFilesTask : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sourceJar: RegularFileProperty
 
-    val specmaticShellScript =
-        project.layout.buildDirectory
-            .file(primaryExecutable)
-            .get()
-            .asFile
+    @get:Input abstract val sourceJarPath: Property<String>
+    @get:Input abstract val sourceSbomPath: Property<String>
+    @get:Input abstract val targetJarPath: Property<String>
+    @get:Input abstract val targetSbomPath: Property<String>
+    @get:Input abstract val dockerOrg: Property<String>
+    @get:Input abstract val imageName: Property<String>
+    @get:Input abstract val imageVersion: Property<String>
+    @get:Input abstract val gitSha: Property<String>
+    @get:Input abstract val extraApkDependencies: ListProperty<String>
+    @get:Input abstract val extraExecutableNames: ListProperty<String>
+    @get:OutputFile abstract val dockerfile: RegularFileProperty
+    @get:OutputFile abstract val shellScript: RegularFileProperty
 
-    this.outputs.file(specmaticShellScript)
+    @TaskAction
+    fun generate() {
+        val executable = imageName.get()
+        val aliases = extraExecutableNames.get().joinToString(" && ") { alias ->
+            "ln -sf /usr/local/bin/$executable /usr/local/bin/$alias"
+        }
+        val template = resourceText("Dockerfile")
+        val dockerfileContents = template
+            .replace("%TARGET_JAR_PATH%", targetJarPath.get())
+            .replace("%SOURCE_JAR_PATH%", sourceJarPath.get())
+            .replace("%SOURCE_SBOM_PATH%", sourceSbomPath.get())
+            .replace("%TARGET_SBOM_PATH%", targetSbomPath.get())
+            .replace("%EXECUTABLE_NAME%", executable)
+            .replace("%GIT_SHA%", gitSha.get())
+            .replace("%IMAGE_VERSION%", imageVersion.get())
+            .replace("%IMAGE_URL%", "https://hub.docker.com/u/${dockerOrg.get()}/$executable")
+            .replace("%EXTRA_APK_DEPS%", extraApkDependencies.get().joinToString(" "))
+            .replace("%EXTRA_COMMANDS%", if (aliases.isEmpty()) "" else "RUN $aliases")
 
-    doFirst {
-        specmaticShellScript.parentFile.mkdirs()
-        val templateStream =
-            SpecmaticGradlePlugin::class.java.classLoader.getResourceAsStream("specmatic.sh.template")
-                ?: throw IllegalStateException("Unable to find specmatic.sh.template in classpath")
-        val templateContent = templateStream.bufferedReader().use { it.readText() }
-
-        val shellScriptContent = templateContent.replace("%TARGET_JAR_PATH%", targetJarPath)
-        specmaticShellScript.writeText(shellScriptContent)
-        specmaticShellScript.setExecutable(true)
+        dockerfile.get().asFile.apply {
+            parentFile.mkdirs()
+            writeText(dockerfileContents)
+        }
+        shellScript.get().asFile.apply {
+            parentFile.mkdirs()
+            writeText(resourceText("specmatic.sh.template").replace("%TARGET_JAR_PATH%", targetJarPath.get()))
+            setExecutable(true)
+        }
     }
-}
 
-private fun Task.createDockerfile(
-    dockerBuildConfig: DockerBuildConfig,
-    targetJarPath: String,
-    sourceSbomFile: File,
-    targetSbomPath: String,
-    primaryOrg: String,
-    extraApkDependencies: List<String>,
-) {
-    val dockerFile =
-        project.layout.buildDirectory
-            .file("Dockerfile")
-            .get()
-            .asFile
-
-    this.outputs.file(dockerFile)
-
-    doFirst {
-        dockerFile.parentFile.mkdirs()
-        val templateStream =
-            SpecmaticGradlePlugin::class.java.classLoader.getResourceAsStream("Dockerfile")
-                ?: throw IllegalStateException("Unable to find Dockerfile in classpath")
-        val templateContent = templateStream.bufferedReader().use { it.readText() }
-
-        val sourceJarPath =
-            project
-                .mainJar(dockerBuildConfig.mainJarTaskName!!)
-                .relativeTo(
-                    project.layout.buildDirectory
-                        .get()
-                        .asFile,
-                ).path
-                .replace("\\", "/")
-
-        val sourceSbomPath =
-            sourceSbomFile
-                .relativeTo(
-                    project.layout.buildDirectory
-                        .get()
-                        .asFile,
-                ).path
-                .replace("\\", "/")
-
-        val extraDependencies = extraApkDependencies.joinToString(" ")
-
-        val extraExecutables = dockerBuildConfig.extraExecutableNames
-        val primaryExecutable = project.dockerImage(dockerBuildConfig)
-
-        val aliasCommands =
-            extraExecutables
-                .joinToString(separator = " && ") { alias ->
-                    // Create a symlink so `/usr/local/bin/<alias>` points to the primary executable
-                    "ln -sf /usr/local/bin/$primaryExecutable /usr/local/bin/$alias"
-                }
-
-        val dockerFileContent =
-            templateContent
-                .replace("%TARGET_JAR_PATH%", targetJarPath)
-                .replace("%SOURCE_JAR_PATH%", sourceJarPath)
-                .replace("%SOURCE_SBOM_PATH%", sourceSbomPath)
-                .replace("%TARGET_SBOM_PATH%", targetSbomPath)
-                .replace("%EXECUTABLE_NAME%", primaryExecutable)
-                .replace("%GIT_SHA%", project.versionInfo().gitCommit)
-                .replace("%IMAGE_VERSION%", project.version.toString())
-                .replace("%IMAGE_URL%", "https://hub.docker.com/u/$primaryOrg/$primaryExecutable")
-                .replace("%EXTRA_APK_DEPS%", extraDependencies)
-                .replace("%EXTRA_COMMANDS%", if (aliasCommands.isEmpty()) "" else "RUN $aliasCommands")
-
-        dockerFile.writeText(dockerFileContent)
-    }
+    private fun resourceText(name: String): String = javaClass.classLoader.getResourceAsStream(name)?.bufferedReader()?.use { it.readText() }
+        ?: throw IllegalStateException("Unable to find $name in classpath")
 }
 
 private fun Project.dockerImage(dockerBuildConfig: DockerBuildConfig): String = if (dockerBuildConfig.imageName.isNullOrBlank()) {

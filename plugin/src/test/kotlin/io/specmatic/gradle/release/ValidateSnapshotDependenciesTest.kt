@@ -10,7 +10,24 @@ import org.junit.jupiter.api.Test
 
 class ValidateSnapshotDependenciesTest {
     private fun Project.validateSnapshotDependenciesTask(): ValidateSnapshotDependencies =
-        tasks.register("validateSnapshotDependencies", ValidateSnapshotDependencies::class.java).get()
+        tasks.register("validateSnapshotDependencies", ValidateSnapshotDependencies::class.java) {
+            allowSnapshotDependencies.set(findProperty("allowSnapshotDependencies") == "true")
+            snapshotDependencies.set(
+                allprojects.associate { eachProject ->
+                    val dependencies =
+                        (eachProject.configurations + eachProject.buildscript.configurations).flatMap { configuration ->
+                            configuration.dependencies
+                                .filter { dependency ->
+                                    dependency !is org.gradle.api.artifacts.ProjectDependency &&
+                                        dependency.version?.contains("SNAPSHOT") == true
+                                }.map { dependency ->
+                                    "${dependency.group}:${dependency.name}:${dependency.version}"
+                                }
+                        }
+                    eachProject.path to dependencies
+                },
+            )
+        }.get()
 
     private fun Project.declareDependency(notation: String, configuration: String = "implementation") {
         if (configurations.findByName(configuration) == null) {
@@ -51,7 +68,7 @@ class ValidateSnapshotDependenciesTest {
             """
             The following projects have dependencies with SNAPSHOT versions:
 
-            Project $project uses dependencies with SNAPSHOT versions:
+            Project ${project.path} uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:lib:1.0.0-SNAPSHOT
             Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
             """.trimIndent(),
@@ -68,7 +85,7 @@ class ValidateSnapshotDependenciesTest {
             """
             The following projects have dependencies with SNAPSHOT versions:
 
-            Project $project uses dependencies with SNAPSHOT versions:
+            Project ${project.path} uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:some-plugin:1.0.0-SNAPSHOT
             Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
             """.trimIndent(),
@@ -101,7 +118,7 @@ class ValidateSnapshotDependenciesTest {
             """
             The following projects have dependencies with SNAPSHOT versions:
 
-            Project $subProject uses dependencies with SNAPSHOT versions:
+            Project ${subProject.path} uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:child-lib:1.0.0-SNAPSHOT
             Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
             """.trimIndent(),
@@ -142,7 +159,7 @@ class ValidateSnapshotDependenciesTest {
             """
             The following projects have dependencies with SNAPSHOT versions:
 
-            Project $rootProject uses dependencies with SNAPSHOT versions:
+            Project ${rootProject.path} uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:external-lib:2.0.0-SNAPSHOT
             Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
             """.trimIndent(),
@@ -166,10 +183,10 @@ class ValidateSnapshotDependenciesTest {
             """
             The following projects have dependencies with SNAPSHOT versions:
 
-            Project $rootProject uses dependencies with SNAPSHOT versions:
+            Project ${rootProject.path} uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:root-lib:1.0.0-SNAPSHOT
 
-            Project $subProject uses dependencies with SNAPSHOT versions:
+            Project ${subProject.path} uses dependencies with SNAPSHOT versions:
             - io.specmatic.example:child-lib:2.0.0-SNAPSHOT
             Please remove them before creating a release. Run with `-PallowSnapshotDependencies=true` to disable.
             """.trimIndent(),

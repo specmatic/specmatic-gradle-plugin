@@ -1,3 +1,7 @@
+import org.gradle.api.Action
+import org.gradle.api.Task
+import java.io.File
+
 plugins {
     `maven-publish`
     `java-gradle-plugin`
@@ -24,20 +28,22 @@ dependencies {
         }
     }
 
-    implementation("com.github.jk1.dependency-license-report:com.github.jk1.dependency-license-report.gradle.plugin:3.1.4")
     implementation("com.adarshr.test-logger:com.adarshr.test-logger.gradle.plugin:4.0.0")
     implementation("org.semver4j:semver4j:6.0.0")
     implementation("org.barfuin.gradle.taskinfo:org.barfuin.gradle.taskinfo.gradle.plugin:2.2.1")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21")
     implementation("commons-codec:commons-codec:1.22.1")
     implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.6.1") {
         exclude(group = "org.codehaus.plexus", module = "plexus-utils")
+        exclude(group = "org.codehaus.plexus", module = "plexus-xml")
     }
     implementation("org.codehaus.plexus:plexus-utils:4.1.0")
+    implementation("org.codehaus.plexus:plexus-xml:3.0.2")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.37.0")
     implementation("com.vanniktech:central-portal:0.37.0")
     implementation("org.kohsuke:github-api:1.330")
-    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.4.1")
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
+    implementation("com.github.jk1:gradle-license-report:3.1.4")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.3")
     implementation("org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin:2.5")
     implementation("org.gradlex.java-ecosystem-capabilities:org.gradlex.java-ecosystem-capabilities.gradle.plugin:1.5.3")
@@ -47,7 +53,6 @@ dependencies {
     implementation("org.zeroturnaround:zt-exec:1.13.0")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
     implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.11")
-    implementation("io.specmatic.priospot:gradle-plugin:0.99.4")
     implementation("org.apache.maven:maven-model:3.10.0")
     implementation("org.apache.maven:maven-repository-metadata:3.10.0")
 
@@ -87,7 +92,7 @@ val functionalTestSourceSet =
 configurations["functionalTestImplementation"].extendsFrom(configurations["testImplementation"])
 configurations["functionalTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
 
-val functionalTest by tasks.registering(Test::class) {
+val functionalTest = tasks.register<Test>("functionalTest") {
     description = "Run functional tests"
     group = "verification"
 
@@ -113,9 +118,13 @@ tasks.withType<Test> {
     environment("TMPDIR", tempDir)
     systemProperty("java.io.tmpdir", tempDir)
 
-    doFirst {
-        project.delete(tempDir)
-        tempDir.mkdirs()
+    doFirst(CleanTestTempDirectoryAction(tempDir))
+}
+
+private class CleanTestTempDirectoryAction(private val directory: File) : Action<Task> {
+    override fun execute(task: Task) {
+        directory.deleteRecursively()
+        directory.mkdirs()
     }
 }
 

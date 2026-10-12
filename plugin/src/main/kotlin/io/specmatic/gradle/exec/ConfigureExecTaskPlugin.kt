@@ -4,6 +4,7 @@ import io.specmatic.gradle.license.pluginInfo
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.Action
 import org.gradle.api.tasks.AbstractExecTask
 import org.gradle.api.tasks.JavaExec
 import org.gradle.process.BaseExecSpec
@@ -34,29 +35,30 @@ class ConfigureExecTaskPlugin : Plugin<Project> {
             task.apply {
                 standardOutput = System.out
                 errorOutput = System.err
-                doFirst {
-                    val cliArgs = mutableListOf<String>()
-                    if (task is JavaExec) {
-                        cliArgs.add("java")
-                        if (task.jvmArgs.isNotEmpty()) {
-                            cliArgs.addAll(task.jvmArgs)
-                        }
-                        if (!task.classpath.isEmpty) {
-                            cliArgs.add("-cp")
-                            cliArgs.add(task.classpath.joinToString(":"))
-                        }
-                        if (task.mainClass.isPresent) {
-                            cliArgs.add(task.mainClass.get())
-                        }
-                        cliArgs.addAll(task.args)
-                    } else {
-                        cliArgs.addAll(task.commandLine)
-                    }
-
-                    target.pluginInfo($$"[$$workingDir]$ $${shellEscapedArgs(cliArgs)}")
-                }
+                doFirst(LogExecCommandAction(target.path))
             }
         }
+    }
+}
+
+internal class LogExecCommandAction(private val projectPath: String) : Action<Task> {
+    override fun execute(task: Task) {
+        val exec = task as? BaseExecSpec ?: return
+        val cliArgs = mutableListOf<String>()
+        if (task is JavaExec) {
+            cliArgs.add("java")
+            if (task.jvmArgs.isNotEmpty()) cliArgs.addAll(task.jvmArgs)
+            if (!task.classpath.isEmpty) {
+                cliArgs.add("-cp")
+                cliArgs.add(task.classpath.joinToString(":"))
+            }
+            if (task.mainClass.isPresent) cliArgs.add(task.mainClass.get())
+            cliArgs.addAll(task.args)
+        } else {
+            cliArgs.addAll(exec.commandLine)
+        }
+
+        task.logger.warn("[SGP - $projectPath]: [${exec.workingDir}]$ ${shellEscapedArgs(cliArgs)}")
     }
 }
 

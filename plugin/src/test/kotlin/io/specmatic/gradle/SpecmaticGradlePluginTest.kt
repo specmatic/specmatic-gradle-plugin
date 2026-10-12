@@ -1,6 +1,5 @@
 package io.specmatic.gradle
 
-import com.github.jk1.license.LicenseReportPlugin
 import io.mockk.every
 import io.mockk.mockk
 import io.specmatic.gradle.extensions.MavenCentral
@@ -58,9 +57,9 @@ class SpecmaticGradlePluginTest {
             project.plugins.apply("io.specmatic.gradle")
             project.evaluationDependsOn(":") // force execution of `afterEvaluate` block
 
-            assertThat(project.plugins.hasPlugin(LicenseReportPlugin::class.java)).isTrue()
-            assertThat(project.tasks.findByName("prettyPrintLicenseCheckFailures")).isNotNull()
-            assertThat(project.tasks.findByName("createAllowedLicensesFile")).isNotNull()
+            assertThat(project.tasks.findByName("generateLicenseReport")).isNotNull()
+            assertThat(project.tasks.findByName("checkLicense")).isNotNull()
+            assertThat(project.tasks.findByName("cyclonedxBom")).isNotNull()
 
             assertThat(
                 project.tasks
@@ -68,27 +67,32 @@ class SpecmaticGradlePluginTest {
                     .get()
                     .taskDependencies
                     .getDependencies(null),
-            ).contains(project.tasks.named("generateLicenseReport").get())
+            ).contains(project.tasks.named("checkLicense").get())
         }
 
         @Test
-        fun `checkLicense task should invoke createAllowedLicensesFileTask and be finalized by prettyPrintLicenseCheckFailuresTask`() {
+        fun `checkLicense task uses the CycloneDX SBOM`() {
             val project = createProject("org.example", "1.2.3")
             project.plugins.apply("java")
             project.plugins.apply("io.specmatic.gradle")
             project.evaluationDependsOn(":") // force execution of `afterEvaluate` block
 
             val checkLicenseTask = project.tasks.named("checkLicense").get()
-            val prettyPrintLicenseCheckFailuresTask = project.tasks.named("prettyPrintLicenseCheckFailures")
-            val createAllowedLicensesFileTask = project.tasks.named("createAllowedLicensesFile")
-
-            assertThat(checkLicenseTask.taskDependencies.getDependencies(null)).contains(createAllowedLicensesFileTask.get())
-            assertThat(checkLicenseTask.finalizedBy.getDependencies(null)).contains(prettyPrintLicenseCheckFailuresTask.get())
+            assertThat(checkLicenseTask.taskDependencies.getDependencies(null))
+                .contains(project.tasks.named("cyclonedxBom").get())
         }
     }
 
     @Nested
     inner class Testing {
+        @Test
+        fun `does not register priospot task`() {
+            val project = createProject()
+            project.plugins.apply("io.specmatic.gradle")
+
+            assertThat(project.tasks.findByName("priospot")).isNull()
+        }
+
         @Test
         fun `configures junit platform extension`() {
             val project = createProject("org.example", "1.2.3")

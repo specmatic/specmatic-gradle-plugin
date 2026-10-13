@@ -25,6 +25,66 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
     }
 
     @Test
+    fun `does not apply detekt unless requested by DSL and project property`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                id("io.specmatic.gradle")
+            }
+
+            specmatic {
+                detekt {
+                    enabled = true
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val result = runWithSuccess("check", "--dry-run")
+
+        assertThat(result.output).doesNotContain(":detekt")
+    }
+
+    @Test
+    fun `applies detekt to check when requested by DSL and project property`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                id("io.specmatic.gradle")
+            }
+
+            specmatic {
+                detekt {
+                    enabled = true
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val result = runWithSuccess("check", "--dry-run", "-Pspecmatic.detekt=true")
+
+        assertThat(result.output).contains(":detekt")
+    }
+
+    @Test
+    fun `does not apply detekt from project property without DSL request`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                id("io.specmatic.gradle")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runWithSuccess("check", "--dry-run", "-Pspecmatic.detekt=true")
+
+        assertThat(result.output).doesNotContain(":detekt")
+    }
+
+    @Test
     fun `adds version metadata to Gradle plugin POMs`() {
         settingsFile.writeText("rootProject.name = \"test-plugin\"")
         buildFile.writeText(

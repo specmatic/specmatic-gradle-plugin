@@ -48,6 +48,10 @@ open class PromotionConfig {
     }
 }
 
+open class DetektConfig {
+    var enabled = false
+}
+
 open class SpecmaticGradleExtension {
     var releasePublishTasks = listOf<String>()
     var jvmVersion: JavaLanguageVersion = JavaLanguageVersion.of(17)
@@ -65,6 +69,7 @@ open class SpecmaticGradleExtension {
     internal val projectConfigurations: MutableMap<Project, BaseDistribution> = mutableMapOf()
     var versionReplacements = mutableMapOf<String, String>()
     val promotion = PromotionConfig()
+    val detekt = DetektConfig()
 
     fun licenseData(block: ModuleLicenseData.() -> Unit) {
         licenseData.add(ModuleLicenseData().apply(block))
@@ -72,6 +77,10 @@ open class SpecmaticGradleExtension {
 
     fun promotion(block: PromotionConfig.() -> Unit) {
         promotion.apply(block)
+    }
+
+    fun detekt(block: DetektConfig.() -> Unit) {
+        detekt.apply(block)
     }
 
     fun withOSSLibrary(project: Project, block: OSSLibraryFeature.() -> Unit) {

@@ -3,6 +3,7 @@ package io.specmatic.gradle.tests
 import com.adarshr.gradle.testlogger.TestLoggerPlugin
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektPlugin
+import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.license.pluginInfo
 import kotlinx.kover.gradle.plugin.KoverGradlePlugin
 import kotlinx.kover.gradle.plugin.dsl.tasks.KoverReport
@@ -19,15 +20,25 @@ internal class SpecmaticTestReportingPlugin : Plugin<Project> {
 
         target.plugins.withType(JavaPlugin::class.java) {
             target.plugins.apply(KoverGradlePlugin::class.java)
-            target.plugins.apply(DetektPlugin::class.java)
             configureJunit(target)
+
+            target.afterEvaluate {
+                val detektRequested =
+                    rootProject.extensions
+                        .getByType(SpecmaticGradleExtension::class.java)
+                        .detekt.enabled
+                val detektEnabledByProperty = providers.gradleProperty("specmatic.detekt").orNull.toBoolean()
+                if (detektRequested && detektEnabledByProperty) {
+                    plugins.apply(DetektPlugin::class.java)
+                    tasks.withType<Detekt>().configureEach {
+                        ignoreFailures = true
+                        parallel = true
+                    }
+                }
+            }
 
             target.plugins.withType(KoverGradlePlugin::class.java) {
                 configureKover(target)
-            }
-            target.tasks.withType<Detekt> {
-                ignoreFailures = true
-                parallel = true
             }
         }
     }

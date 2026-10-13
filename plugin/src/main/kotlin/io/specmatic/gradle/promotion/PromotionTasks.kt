@@ -54,7 +54,10 @@ private const val PROMOTION_GIT_PUSH_TASK = "promotionGitPush"
 private const val PROMOTION_CREATE_GITHUB_RELEASE_TASK = "promotionCreateGithubRelease"
 private const val PROMOTION_PREPARE_GITHUB_RELEASE_ARTIFACTS_TASK = "promotionPrepareGithubReleaseArtifacts"
 private const val PROMOTE_TASK = "promote"
-private val CHECKSUM_SUFFIXES = listOf(".md5", ".sha1", ".sha256", ".sha512")
+internal val CHECKSUM_SUFFIXES = listOf(".md5", ".sha1", ".sha256", ".sha512")
+
+internal fun String.isOptionalSignatureChecksumFile(): Boolean =
+    CHECKSUM_SUFFIXES.any { suffix -> endsWith(".asc$suffix") }
 
 @DisableCachingByDefault(because = "Prepares release artifacts for an external GitHub release")
 abstract class PreparePromotionGithubReleaseArtifactsTask : DefaultTask() {

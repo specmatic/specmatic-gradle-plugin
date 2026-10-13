@@ -3,8 +3,10 @@ package io.specmatic.gradle.promotion
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
+import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
@@ -37,6 +39,40 @@ class DownloadPromotionMavenArtifactsTaskTest {
 
             assertThat(server.takeRequest(1, TimeUnit.SECONDS)!!.getHeader("Authorization")).isEqualTo("Basic dXNlcjpwYXNz")
             assertThat(tempDir.resolve("artifacts/io/specmatic/example/1.0.0/example-1.0.0.jar").toFile()).hasContent("jar-bytes")
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun `skips missing signature checksum files`() {
+        val server = MockWebServer()
+        server.dispatcher =
+            object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse = if (request.path!!.endsWith(".asc.md5")) {
+                    MockResponse().setResponseCode(404)
+                } else {
+                    MockResponse().setResponseCode(200).setBody("artifact-bytes")
+                }
+            }
+        server.start()
+        try {
+            val task =
+                ProjectBuilder
+                    .builder()
+                    .build()
+                    .tasks
+                    .create("downloadTest", DownloadPromotionMavenArtifactsTask::class.java)
+            task.canonicalRepository.set(server.url("/").toString())
+            task.artifactRelativePaths.set(listOf("artifact.jar", "artifact.jar.asc", "artifact.jar.asc.md5"))
+            task.outputDirectory.set(tempDir.resolve("artifacts").toFile())
+            task.backoffMillis.set(0)
+
+            task.downloadArtifacts()
+
+            assertThat(tempDir.resolve("artifacts/artifact.jar").toFile()).hasContent("artifact-bytes")
+            assertThat(tempDir.resolve("artifacts/artifact.jar.asc").toFile()).hasContent("artifact-bytes")
+            assertThat(tempDir.resolve("artifacts/artifact.jar.asc.md5").toFile()).doesNotExist()
         } finally {
             server.shutdown()
         }

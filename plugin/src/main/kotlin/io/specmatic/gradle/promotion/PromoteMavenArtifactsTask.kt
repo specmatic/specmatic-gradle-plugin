@@ -98,6 +98,10 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
         artifactPaths.forEach { relativePath ->
             val sourceFile = inputDir.resolve(relativePath)
             if (!sourceFile.isFile) {
+                if (relativePath.isOptionalSignatureChecksumFile()) {
+                    logger.lifecycle("Optional signature checksum not found; skipping ${sourceFile.absolutePath}")
+                    return@forEach
+                }
                 throw GradleException("Missing staged artifact ${sourceFile.absolutePath} for repository $repoName")
             }
 
@@ -168,6 +172,10 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
             artifactPaths.forEach { relativePath ->
                 val sourceFile = inputDir.resolve(relativePath)
                 if (!sourceFile.isFile) {
+                    if (relativePath.isOptionalSignatureChecksumFile()) {
+                        logger.lifecycle("Optional signature checksum not found; skipping ${sourceFile.absolutePath}")
+                        return@forEach
+                    }
                     throw GradleException("Missing staged artifact ${sourceFile.absolutePath} for repository $repoName")
                 }
 

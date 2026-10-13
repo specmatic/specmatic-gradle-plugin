@@ -69,9 +69,10 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                     executor.submit(
                         Callable {
                             val targetFile = outputDir.resolve(relativePath)
+                            val optional = relativePath.isOptionalSignatureChecksumFile()
                             when (repositoryUri.scheme.lowercase()) {
                                 "file" -> {
-                                    copyFromFileRepository(repositoryUri, relativePath, targetFile)
+                                    copyFromFileRepository(repositoryUri, relativePath, targetFile, optional)
                                 }
 
                                 "http", "https" -> {
@@ -82,6 +83,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                                         maxRetries = maxRetries.get(),
                                         username = username.orNull.orEmpty(),
                                         password = password.orNull.orEmpty(),
+                                        optional = optional,
                                     )
                                 }
 
@@ -103,8 +105,12 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
 
     private fun ensureTrailingSlash(uri: String): String = if (uri.endsWith("/")) uri else "$uri/"
 
-    private fun copyFromFileRepository(repositoryUri: URI, relativePath: String, targetFile: File) {
+    private fun copyFromFileRepository(repositoryUri: URI, relativePath: String, targetFile: File, optional: Boolean) {
         val sourceFile = File(repositoryUri.resolve(relativePath))
+        if (optional && !sourceFile.isFile) {
+            logger.lifecycle("Optional signature checksum not found; skipping ${sourceFile.absolutePath}")
+            return
+        }
         logger.lifecycle("Copying ${sourceFile.absolutePath}")
         targetFile.parentFile.mkdirs()
         Files.copy(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
@@ -117,6 +123,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
         maxRetries: Int,
         username: String,
         password: String,
+        optional: Boolean,
     ) {
         targetFile.parentFile.mkdirs()
 
@@ -135,6 +142,10 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                             }
                         }.build()
                 client.newCall(request).execute().use { response ->
+                    if (optional && response.code == 404) {
+                        logger.lifecycle("Optional signature checksum not found; skipping $uri")
+                        return
+                    }
                     if (response.code != 200) {
                         logger.lifecycle("Download failed for $uri (attempt ${attempt + 1}/$maxRetries)")
                         throw IOException("HTTP ${response.code} for $uri")

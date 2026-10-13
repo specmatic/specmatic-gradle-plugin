@@ -82,7 +82,29 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
         assertThat(projectDir.resolve("build/promoted-repo")).doesNotExist()
     }
 
-    private fun addSignaturesToPublishedArtifacts() {
+    @Test
+    fun `promote artifacts validates signature checksums when present`() {
+        runWithSuccess("publishAllPublicationsToStagingRepository")
+        addSignaturesToPublishedArtifacts(includeSignatureChecksums = true)
+        val signature =
+            projectDir.resolve("build/mvn-repo")
+                .walkTopDown()
+                .first { it.isFile && it.name.endsWith(".jar.asc") }
+        File("${signature.absolutePath}.sha256").writeText("incorrect-checksum")
+
+        val result =
+            runWithFailure(
+                "promoteArtifacts",
+                "-PskipRepoDirtyCheck=true",
+                "-PskipIncomingOutgoingCheck=true",
+            )
+
+        assertThat(result.output)
+            .contains("Checksum mismatch for")
+            .contains("${signature.name} using SHA-256: expected incorrect-checksum")
+    }
+
+    private fun addSignaturesToPublishedArtifacts(includeSignatureChecksums: Boolean = false) {
         val repository = projectDir.resolve("build/mvn-repo")
         val artifacts =
             repository
@@ -96,7 +118,8 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
             signature.writeText("test signature for ${artifact.name}")
         }
 
-        (artifacts + artifacts.map { File("${it.absolutePath}.asc") }).forEach { artifact ->
+        val filesToChecksum = if (includeSignatureChecksums) artifacts + artifacts.map { File("${it.absolutePath}.asc") } else artifacts
+        filesToChecksum.forEach { artifact ->
             TEST_CHECKSUMS.forEach { (extension, algorithm) ->
                 File("${artifact.absolutePath}.$extension").writeText(artifact.checksum(algorithm))
             }

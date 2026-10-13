@@ -95,6 +95,10 @@ abstract class VerifyPromotionMavenArtifactsTask : DefaultTask() {
     private fun verifyChecksumFile(artifactFile: File, extension: String, algorithm: String) {
         val checksumFile = File("${artifactFile.absolutePath}.$extension")
         if (!checksumFile.isFile) {
+            if (checksumFile.path.isOptionalSignatureChecksumFile()) {
+                logger.lifecycle("Optional signature checksum not found; skipping $checksumFile")
+                return
+            }
             throw GradleException("Missing checksum file ${checksumFile.absolutePath}")
         }
 

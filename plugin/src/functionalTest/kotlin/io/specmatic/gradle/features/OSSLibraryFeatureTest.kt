@@ -17,7 +17,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.20"
+                    kotlin("jvm") version "2.4.21"
                     id("io.specmatic.gradle")
                 }
 
@@ -89,7 +89,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.20"
+                    kotlin("jvm") version "2.4.21"
                     id("io.specmatic.gradle")
                 }
 
@@ -144,7 +144,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.20"
+                    kotlin("jvm") version "2.4.21"
                     id("io.specmatic.gradle")
                 }
                 
@@ -158,7 +158,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                     
                     dependencies {
                         // tiny jar, with no deps
-                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
+                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.21")
                         implementation("org.slf4j:slf4j-api:2.0.20")
                     }
                 }
@@ -197,12 +197,12 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
             )
 
             assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).containsExactlyInAnyOrder(
-                "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
+                "org.jetbrains.kotlin:kotlin-stdlib:2.4.21",
                 "org.slf4j:slf4j-api:2.0.20",
                 "io.specmatic.example:core:1.2.3",
             )
             assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
-                "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
+                "org.jetbrains.kotlin:kotlin-stdlib:2.4.21",
                 "org.slf4j:slf4j-api:2.0.20",
             )
 
@@ -253,7 +253,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 """
                 plugins {
                     id("java")
-                    kotlin("jvm") version "2.3.20"
+                    kotlin("jvm") version "2.4.21"
                     id("io.specmatic.gradle")
                 }
                 
@@ -267,7 +267,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                     
                     dependencies {
                         // tiny jar, with no deps
-                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
+                        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.21")
                         implementation("org.slf4j:slf4j-api:2.0.20")
                     }
                 }

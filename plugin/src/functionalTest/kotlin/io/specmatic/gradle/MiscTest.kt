@@ -81,11 +81,11 @@ class MiscTest : AbstractFunctionalTest() {
         localMavenRepo.assertOnlyJarPublishedWithoutSourcesAndJavadocs(*coordinates)
 
         assertThat(getDependencies("io.specmatic.example:core:1.2.3")).containsExactlyInAnyOrder(
-            "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
+            "org.jetbrains.kotlin:kotlin-stdlib:2.4.21",
             "org.slf4j:slf4j-api:2.0.20",
         )
         assertThat(getDependencies("io.specmatic.example:executable:1.2.3")).containsExactlyInAnyOrder(
-            "org.jetbrains.kotlin:kotlin-stdlib:2.3.20",
+            "org.jetbrains.kotlin:kotlin-stdlib:2.4.21",
             "org.slf4j:slf4j-api:2.0.20",
             "io.specmatic.example:core:1.2.3",
         )

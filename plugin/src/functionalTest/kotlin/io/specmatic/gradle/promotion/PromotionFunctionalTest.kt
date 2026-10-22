@@ -23,7 +23,7 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
             """
             plugins {
                 id("java")
-                kotlin("jvm") version "2.3.20"
+                kotlin("jvm") version "2.4.21"
                 id("io.specmatic.gradle")
             }
 

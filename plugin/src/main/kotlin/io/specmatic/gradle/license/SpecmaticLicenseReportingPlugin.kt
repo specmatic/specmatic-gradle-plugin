@@ -9,15 +9,6 @@ class SpecmaticLicenseReportingPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         project.pluginInfo("Configuring license reporting")
         val reportDirectory = project.layout.buildDirectory.dir("reports/dependency-license")
-        val allowedLicenses =
-            ALLOWED_LICENSES +
-                project.providers
-                    .gradleProperty("extraAllowedLicenses")
-                    .orNull
-                    ?.split(";;")
-                    ?.map(String::trim)
-                    ?.filter(String::isNotEmpty)
-                    .orEmpty()
         val generateReportTask =
             project.tasks.register("generateLicenseReport", GenerateLicenseReportTask::class.java) {
                 group = "Reporting"
@@ -53,7 +44,8 @@ class SpecmaticLicenseReportingPlugin : Plugin<Project> {
         }
 
         project.afterEvaluate {
-            val manualLicenseData = project.extensions.getByType(SpecmaticGradleExtension::class.java).licenseData
+            val extension = project.extensions.getByType(SpecmaticGradleExtension::class.java)
+            val manualLicenseData = extension.licenseData
                 .filter { it.name.isNotBlank() && it.version.isNotBlank() && it.license.isNotBlank() }
                 .map {
                     JsonOutput.toJson(
@@ -72,6 +64,7 @@ class SpecmaticLicenseReportingPlugin : Plugin<Project> {
                 this.manualLicenseData.set(manualLicenseData)
             }
             checkLicenseTask.configure {
+                this.allowedLicenses.set(ALLOWED_LICENSES + extension.additionalAllowedLicenses)
                 this.manualLicenseData.set(manualLicenseData)
             }
         }

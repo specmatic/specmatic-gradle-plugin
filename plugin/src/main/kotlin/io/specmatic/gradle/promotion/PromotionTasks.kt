@@ -368,10 +368,16 @@ private fun Project.publishedMavenRelativePaths(publishTargets: List<PublishTarg
         return emptyList()
     }
 
-    val includeNonObfuscatedArtifacts = publishTargets.any { target -> target.repoType() == RepoType.PUBLISH_ALL }
-
     return publications
-        .filter { publication -> includeNonObfuscatedArtifacts || publication.isObfuscatedPublication() }
+        .filter { publication ->
+            val isObfuscated = publication.isObfuscatedPublication()
+            publishTargets.any { target ->
+                when (target.repoType()) {
+                    RepoType.PUBLISH_ALL -> true
+                    RepoType.PUBLISH_OBFUSCATED_ONLY -> isObfuscated
+                }
+            }
+        }
         .flatMap { publication -> publication.remoteFiles() }
 }
 

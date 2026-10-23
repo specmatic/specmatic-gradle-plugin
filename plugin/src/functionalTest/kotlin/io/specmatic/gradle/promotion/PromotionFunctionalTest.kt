@@ -104,6 +104,323 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
             .contains("${signature.name} using SHA-256: expected incorrect-checksum")
     }
 
+    @Test
+    fun `publishes all artifacts privately but promotes only obfuscated artifacts`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                kotlin("jvm") version "2.4.21"
+                id("io.specmatic.gradle")
+            }
+
+            repositories { mavenCentral() }
+            dependencies { implementation("org.slf4j:slf4j-api:2.0.20") }
+
+            specmatic {
+                withCommercialLibrary(rootProject) {
+                    publishTo("privateArtifacts", file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                promotion {
+                    sourceMavenRepository("staging", file("build/mvn-repo").toURI().toString())
+                    targetMavenRepository("release", file("build/promoted-repo").toURI().toString(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                }
+            }
+            """.trimIndent(),
+        )
+        assertCommercialPromotion(
+            allArtifactCoordinates = setOf(
+                "io.specmatic.example:example-project-min:1.2.3",
+                "io.specmatic.example:example-project-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:example-project-all-debug:1.2.3",
+                "io.specmatic.example:example-project:1.2.3",
+            ),
+            obfuscatedArtifactCoordinates = setOf(
+                "io.specmatic.example:example-project-min:1.2.3",
+                "io.specmatic.example:example-project:1.2.3",
+            ),
+        )
+    }
+
+    @Test
+    fun `promotes commercial application artifacts in single module builds`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                kotlin("jvm") version "2.4.21"
+                id("io.specmatic.gradle")
+            }
+
+            repositories { mavenCentral() }
+            dependencies { implementation("org.slf4j:slf4j-api:2.0.20") }
+
+            specmatic {
+                withCommercialApplication(rootProject) {
+                    mainClass = "io.specmatic.example.Main"
+                    publishTo("privateArtifacts", file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                promotion {
+                    sourceMavenRepository("staging", file("build/mvn-repo").toURI().toString())
+                    targetMavenRepository("release", file("build/promoted-repo").toURI().toString(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                }
+            }
+            """.trimIndent(),
+        )
+        assertCommercialPromotion(
+            allArtifactCoordinates = setOf(
+                "io.specmatic.example:example-project:1.2.3",
+                "io.specmatic.example:example-project-all-debug:1.2.3",
+            ),
+            obfuscatedArtifactCoordinates = setOf("io.specmatic.example:example-project:1.2.3"),
+        )
+    }
+
+    @Test
+    fun `promotes commercial application artifacts in multi module builds`() {
+        settingsFile.writeText("rootProject.name = \"example-project\"\ninclude(\"core\", \"executable\")")
+        projectDir.resolve(".gitignore").appendText("\n**/src/main/gen-kt/\n**/src/main/gen-resources/\n")
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                kotlin("jvm") version "2.4.21"
+                id("io.specmatic.gradle")
+            }
+
+            subprojects {
+                apply(plugin = "java")
+                apply(plugin = "org.jetbrains.kotlin.jvm")
+                repositories { mavenCentral() }
+                dependencies { implementation("org.slf4j:slf4j-api:2.0.20") }
+            }
+
+            specmatic {
+                withCommercialLibrary(project(":core")) {
+                    publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                withCommercialApplication(project(":executable")) {
+                    mainClass = "io.specmatic.example.executable.Main"
+                    publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                promotion {
+                    sourceMavenRepository("staging", rootProject.file("build/mvn-repo").toURI().toString())
+                    targetMavenRepository("release", rootProject.file("build/promoted-repo").toURI().toString(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                }
+            }
+
+            project(":executable") { dependencies { implementation(project(":core")) } }
+            """.trimIndent(),
+        )
+        writeRandomClasses(projectDir.resolve("core"), "io.specmatic.example.core.internal")
+        writeRandomClasses(projectDir.resolve("executable"), "io.specmatic.example.executable.internal")
+        writeMainClass(projectDir.resolve("executable"), "io.specmatic.example.executable.Main")
+        assertCommercialPromotion(
+            allArtifactCoordinates = setOf(
+                "io.specmatic.example:core-min:1.2.3",
+                "io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:core-all-debug:1.2.3",
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+                "io.specmatic.example:executable-all-debug:1.2.3",
+            ),
+            obfuscatedArtifactCoordinates = setOf(
+                "io.specmatic.example:core-min:1.2.3",
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+            ),
+        )
+    }
+
+    @Test
+    fun `promotes commercial library artifacts in multi module builds`() {
+        settingsFile.writeText("rootProject.name = \"example-project\"\ninclude(\"core\", \"executable\")")
+        projectDir.resolve(".gitignore").appendText("\n**/src/main/gen-kt/\n**/src/main/gen-resources/\n")
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                kotlin("jvm") version "2.4.21"
+                id("io.specmatic.gradle")
+            }
+
+            subprojects {
+                apply(plugin = "java")
+                apply(plugin = "org.jetbrains.kotlin.jvm")
+                repositories { mavenCentral() }
+                dependencies { implementation("org.slf4j:slf4j-api:2.0.20") }
+            }
+
+            specmatic {
+                withCommercialLibrary(project(":core")) {
+                    publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                withCommercialLibrary(project(":executable")) {
+                    publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                promotion {
+                    sourceMavenRepository("staging", rootProject.file("build/mvn-repo").toURI().toString())
+                    targetMavenRepository("release", rootProject.file("build/promoted-repo").toURI().toString(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                }
+            }
+
+            project(":executable") { dependencies { implementation(project(":core")) } }
+            """.trimIndent(),
+        )
+        writeRandomClasses(projectDir.resolve("core"), "io.specmatic.example.core.internal")
+        writeRandomClasses(projectDir.resolve("executable"), "io.specmatic.example.executable.internal")
+        assertCommercialPromotion(
+            allArtifactCoordinates = setOf(
+                "io.specmatic.example:core-min:1.2.3",
+                "io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:core-all-debug:1.2.3",
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable-min:1.2.3",
+                "io.specmatic.example:executable-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:executable-all-debug:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+            ),
+            obfuscatedArtifactCoordinates = setOf(
+                "io.specmatic.example:core-min:1.2.3",
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable-min:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+            ),
+        )
+    }
+
+    @Test
+    fun `promotes commercial application library artifacts in single module builds`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                kotlin("jvm") version "2.4.21"
+                id("io.specmatic.gradle")
+            }
+
+            repositories { mavenCentral() }
+            dependencies { implementation("org.slf4j:slf4j-api:2.0.20") }
+
+            specmatic {
+                withCommercialApplicationLibrary(rootProject) {
+                    mainClass = "io.specmatic.example.Main"
+                    publishTo("privateArtifacts", file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                promotion {
+                    sourceMavenRepository("staging", file("build/mvn-repo").toURI().toString())
+                    targetMavenRepository("release", file("build/promoted-repo").toURI().toString(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                }
+            }
+            """.trimIndent(),
+        )
+        assertCommercialPromotion(
+            allArtifactCoordinates = setOf(
+                "io.specmatic.example:example-project-all:1.2.3",
+                "io.specmatic.example:example-project:1.2.3",
+                "io.specmatic.example:example-project-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:example-project-all-debug:1.2.3",
+            ),
+            obfuscatedArtifactCoordinates = setOf(
+                "io.specmatic.example:example-project-all:1.2.3",
+                "io.specmatic.example:example-project:1.2.3",
+            ),
+        )
+    }
+
+    @Test
+    fun `promotes commercial application library artifacts in multi module builds`() {
+        settingsFile.writeText("rootProject.name = \"example-project\"\ninclude(\"core\", \"executable\")")
+        projectDir.resolve(".gitignore").appendText("\n**/src/main/gen-kt/\n**/src/main/gen-resources/\n")
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                kotlin("jvm") version "2.4.21"
+                id("io.specmatic.gradle")
+            }
+
+            subprojects {
+                apply(plugin = "java")
+                apply(plugin = "org.jetbrains.kotlin.jvm")
+                repositories { mavenCentral() }
+                dependencies { implementation("org.slf4j:slf4j-api:2.0.20") }
+            }
+
+            specmatic {
+                withCommercialLibrary(project(":core")) {
+                    publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                withCommercialApplicationLibrary(project(":executable")) {
+                    mainClass = "io.specmatic.example.executable.Main"
+                    publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
+                    promote()
+                }
+                promotion {
+                    sourceMavenRepository("staging", rootProject.file("build/mvn-repo").toURI().toString())
+                    targetMavenRepository("release", rootProject.file("build/promoted-repo").toURI().toString(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
+                }
+            }
+
+            project(":executable") { dependencies { implementation(project(":core")) } }
+            """.trimIndent(),
+        )
+        writeRandomClasses(projectDir.resolve("core"), "io.specmatic.example.core.internal")
+        writeRandomClasses(projectDir.resolve("executable"), "io.specmatic.example.executable.internal")
+        writeMainClass(projectDir.resolve("executable"), "io.specmatic.example.executable.Main")
+        assertCommercialPromotion(
+            allArtifactCoordinates = setOf(
+                "io.specmatic.example:core-min:1.2.3",
+                "io.specmatic.example:core-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:core-all-debug:1.2.3",
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable-all:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+                "io.specmatic.example:executable-dont-use-this-unless-you-know-what-you-are-doing:1.2.3",
+                "io.specmatic.example:executable-all-debug:1.2.3",
+            ),
+            obfuscatedArtifactCoordinates = setOf(
+                "io.specmatic.example:core-min:1.2.3",
+                "io.specmatic.example:core:1.2.3",
+                "io.specmatic.example:executable-all:1.2.3",
+                "io.specmatic.example:executable:1.2.3",
+            ),
+        )
+    }
+
+    private fun assertCommercialPromotion(
+        allArtifactCoordinates: Set<String>,
+        obfuscatedArtifactCoordinates: Set<String>,
+    ) {
+        projectDir.execGit(logger, "add", ".")
+        projectDir.execGit(logger, "commit", "-m", "Configure commercial promotion fixture")
+        projectDir.execGit(logger, "push", "origin", "main")
+
+        runWithSuccess(
+            "publishAllPublicationsToStagingRepository",
+            "publishAllPublicationsToPrivateArtifactsRepository",
+            "-PgenerateAllJars=true",
+        )
+        addSignaturesToPublishedArtifacts()
+        runWithSuccess(
+            "promoteArtifacts",
+            "-PgenerateAllJars=true",
+        )
+
+        assertThat(projectDir.resolve("build/private-repo").getPublishedArtifactCoordinates())
+            .containsExactlyInAnyOrderElementsOf(allArtifactCoordinates)
+        assertThat(projectDir.resolve("build/promoted-repo").getPublishedArtifactCoordinates())
+            .containsExactlyInAnyOrderElementsOf(obfuscatedArtifactCoordinates)
+    }
+
     private fun addSignaturesToPublishedArtifacts(includeSignatureChecksums: Boolean = false) {
         val repository = projectDir.resolve("build/mvn-repo")
         val artifacts =

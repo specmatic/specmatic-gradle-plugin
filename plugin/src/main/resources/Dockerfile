@@ -14,6 +14,7 @@ ADD %SOURCE_JAR_PATH% %TARGET_JAR_PATH%
 ADD %EXECUTABLE_NAME% /usr/local/bin/%EXECUTABLE_NAME%
 
 %EXTRA_COMMANDS%
+%EXTRA_DOCKERFILE_LINES%
 
 LABEL org.opencontainers.image.revision="%GIT_SHA%"
 LABEL org.opencontainers.image.version="%IMAGE_VERSION%"

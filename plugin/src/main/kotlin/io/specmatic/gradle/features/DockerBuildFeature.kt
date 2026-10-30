@@ -14,6 +14,7 @@ data class DockerBuildConfig(
     internal var mainJarTaskName: String? = null,
     var imageName: String? = null,
     var extraDockerArgs: MutableList<String> = mutableListOf(),
+    var extraDockerfileLines: List<String> = listOf(),
     var dockerOrgNames: List<String> = mutableListOf("specmatic"),
     var extraApkDependencies: List<String> = listOf(),
     var extraExecutableNames: List<String> = listOf(),

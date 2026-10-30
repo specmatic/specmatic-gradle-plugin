@@ -166,6 +166,8 @@ projects.
                 imageName = "foo"
                 // any extra docker build args
                 extraDockerArgs = listOf("...")
+                // additional Dockerfile instructions; files used by COPY must be in the build context
+                extraDockerfileLines = listOf("COPY extra-file /usr/local/share/foo/extra-file")
                 // publish to docker hub under these orgs. First one will be considered the primary org, and a readme will be generated
                 dockerOrgNames = listOf("specmatic", "znsio")
                 // For GitHub Container Registry:

@@ -57,6 +57,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             this.gitSha.set(project.versionInfo().gitCommit)
             this.extraApkDependencies.set(dockerBuildConfig.extraApkDependencies)
             this.extraExecutableNames.set(dockerBuildConfig.extraExecutableNames)
+            this.extraDockerfileLines.set(dockerBuildConfig.extraDockerfileLines)
             this.dockerfile.set(layout.buildDirectory.file("Dockerfile"))
             this.shellScript.set(layout.buildDirectory.file(executable))
         }
@@ -186,6 +187,7 @@ abstract class CreateDockerFilesTask : DefaultTask() {
     @get:Input abstract val gitSha: Property<String>
     @get:Input abstract val extraApkDependencies: ListProperty<String>
     @get:Input abstract val extraExecutableNames: ListProperty<String>
+    @get:Input abstract val extraDockerfileLines: ListProperty<String>
     @get:OutputFile abstract val dockerfile: RegularFileProperty
     @get:OutputFile abstract val shellScript: RegularFileProperty
 
@@ -207,6 +209,7 @@ abstract class CreateDockerFilesTask : DefaultTask() {
             .replace("%IMAGE_URL%", "https://hub.docker.com/u/${dockerOrg.get()}/$executable")
             .replace("%EXTRA_APK_DEPS%", extraApkDependencies.get().joinToString(" "))
             .replace("%EXTRA_COMMANDS%", if (aliases.isEmpty()) "" else "RUN $aliases")
+            .replace("%EXTRA_DOCKERFILE_LINES%", extraDockerfileLines.get().joinToString("\n"))
 
         dockerfile.get().asFile.apply {
             parentFile.mkdirs()

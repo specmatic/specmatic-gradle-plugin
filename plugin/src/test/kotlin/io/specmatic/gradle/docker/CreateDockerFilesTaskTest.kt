@@ -28,6 +28,7 @@ class CreateDockerFilesTaskTest {
         task.gitSha.set("deadbeef")
         task.extraApkDependencies.set(listOf("curl", "bash"))
         task.extraExecutableNames.set(listOf("specmatic-cli"))
+        task.extraDockerfileLines.set(listOf("COPY vex.json /usr/local/share/specmatic/sbom.vex.json"))
         task.dockerfile.set(dockerfile)
         task.shellScript.set(shellScript)
 
@@ -40,6 +41,7 @@ class CreateDockerFilesTaskTest {
             "1.2.3",
             "curl bash",
             "ln -sf /usr/local/bin/specmatic /usr/local/bin/specmatic-cli",
+            "COPY vex.json /usr/local/share/specmatic/sbom.vex.json",
         )
         assertThat(shellScript).exists().isExecutable().content().contains("/usr/local/share/specmatic/specmatic.jar")
     }

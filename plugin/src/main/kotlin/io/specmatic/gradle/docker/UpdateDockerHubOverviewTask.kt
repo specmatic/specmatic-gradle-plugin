@@ -7,10 +7,15 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.Task
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
 @org.gradle.work.DisableCachingByDefault(because = "Makes network calls")
@@ -24,7 +29,13 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
     @get:Input
     abstract val repositoryName: Property<String>
 
+    @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val readmeFile: RegularFileProperty
+
     @get:Input
+    @get:Optional
     abstract val readmeContent: Property<String>
 
     private fun mapper(): ObjectMapper = ObjectMapper().registerKotlinModule()
@@ -74,7 +85,9 @@ abstract class UpdateDockerHubOverviewTask : DefaultTask() {
         val payload =
             mapper().writeValueAsString(
                 mapOf(
-                    "full_description" to readmeContent.get(),
+                    "full_description" to
+                        (readmeFile.orNull?.asFile?.readText() ?: readmeContent.orNull
+                            ?: error("A Docker Hub README file or content must be configured")),
                 ),
             )
         val requestBody = payload.toRequestBody("application/json".toMediaType())

@@ -5,6 +5,7 @@ import io.specmatic.gradle.docker.HasDockerReadme
 import io.specmatic.gradle.docker.UpdateDockerHubOverviewTask
 import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
+import io.specmatic.gradle.extensions.PromotionDockerImage
 import io.specmatic.gradle.extensions.PublishTarget
 import io.specmatic.gradle.extensions.RepoType
 import io.specmatic.gradle.features.CommercialApplicationAndLibraryFeature
@@ -208,7 +209,11 @@ internal fun Project.configurePromotionTasks() {
             }
         inspectPromotionTask.configure { dependsOn(preFlightTask) }
 
-        val updateDockerReadmeTask = registerPromotionDockerReadmeTasks(targetImages, promoteArtifactsTask)
+        val updateDockerReadmeTask =
+            registerPromotionDockerReadmeTasks(
+                promotionConfig.dockerImagePromotions.distinctBy { it.targetImage },
+                promoteArtifactsTask,
+            )
         val createReleaseTagTask = registerPromotionCreateReleaseTagTask(updateDockerReadmeTask)
         val postReleaseBumpTask = registerPromotionPostReleaseBumpTask(createReleaseTagTask)
         val gitPushTask = registerPromotionGitPushTask(postReleaseBumpTask)
@@ -250,15 +255,21 @@ internal fun Project.configurePromotionTasks() {
     }
 }
 
-private fun Project.registerPromotionDockerReadmeTasks(targetImages: List<String>, dependentTask: TaskProvider<*>): TaskProvider<*> {
-    val readmeFile = file("readme.docker.md")
+private fun Project.registerPromotionDockerReadmeTasks(promotions: List<PromotionDockerImage>, dependentTask: TaskProvider<*>): TaskProvider<*> {
     val readmeTasks =
-        targetImages.map { targetImage ->
+        promotions.map { promotion ->
+            val targetImage = promotion.targetImage
+            val sourceReadmeTask =
+                rootProject.allprojects
+                    .asSequence()
+                    .mapNotNull { it.tasks.findByName("dockerReadmePublish") as? UpdateDockerHubOverviewTask }
+                    .firstOrNull { it.repositoryName.get() == promotion.sourceImage }
+            val readmeSourceFile = sourceReadmeTask?.readmeFile?.orNull?.asFile ?: rootProject.file("readme.docker.md")
             tasks.register("updatePromotionDockerHubReadme${targetImage.toTaskNameSuffix()}", UpdateDockerHubOverviewTask::class.java) {
                 dependsOn(dependentTask)
                 group = "promotion"
                 description = "Publishes Docker Hub README content for $targetImage after promotion"
-                onlyIf("Docker Hub README exists", HasDockerReadme(readmeFile))
+                onlyIf("Docker Hub README exists", HasDockerReadme(readmeSourceFile))
                 dockerHubUsername.set(
                     provider {
                         System.getenv("SPECMATIC_DOCKER_HUB_USERNAME")
@@ -272,7 +283,7 @@ private fun Project.registerPromotionDockerReadmeTasks(targetImages: List<String
                     },
                 )
                 repositoryName.set(targetImage)
-                readmeContent.set(provider { readmeFile.readText() })
+                readmeFile.set(readmeSourceFile)
             }
         }
 

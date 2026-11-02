@@ -2,6 +2,7 @@ package io.specmatic.gradle
 
 import io.mockk.every
 import io.mockk.mockk
+import io.specmatic.gradle.docker.UpdateDockerHubOverviewTask
 import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
 import io.specmatic.gradle.extensions.RepoType
@@ -168,6 +169,28 @@ class SpecmaticGradlePluginTest {
         assertThat(task.images.get()).containsExactly("specmatic/example")
         assertThat(task.version.get()).isEqualTo("1.2.3")
         assertThat(task.platforms.get()).containsExactly("linux/amd64", "linux/arm64")
+    }
+
+    @Test
+    fun `promotion Docker Hub README uses project for source image`() {
+        val project = createProject("org.example", "1.2.3")
+        project.plugins.apply("io.specmatic.gradle")
+        val webProject = ProjectBuilder.builder().withName("web").withParent(project).build()
+        val readme = webProject.file("readme.docker.md")
+        readme.parentFile.mkdirs()
+        readme.writeText("Docker Hub README")
+        webProject.tasks.register("dockerReadmePublish", UpdateDockerHubOverviewTask::class.java) {
+            repositoryName.set("specmatic/example")
+            readmeFile.set(readme)
+        }
+
+        project.extensions.getByType(SpecmaticGradleExtension::class.java).promotion {
+            dockerImage("specmatic/example", "acme/example")
+        }
+        project.configurePromotionTasks()
+
+        val task = project.tasks.named("updatePromotionDockerHubReadmeAcmeExample").get() as UpdateDockerHubOverviewTask
+        assertThat(task.readmeFile.get().asFile).isEqualTo(readme)
     }
 
     @Test

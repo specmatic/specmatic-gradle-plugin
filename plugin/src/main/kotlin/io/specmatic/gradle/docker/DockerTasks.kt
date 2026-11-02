@@ -141,8 +141,8 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
         tasks.register("dockerReadmePublish", UpdateDockerHubOverviewTask::class.java) {
             dependsOn(dockerBuildxPublishInternalTask)
             group = "docker"
-            val readmeFile = project.file("readme.docker.md")
-            onlyIf("Docker Hub README exists", HasDockerReadme(readmeFile))
+            val readmeSource = project.file("readme.docker.md")
+            onlyIf("Docker Hub README exists", HasDockerReadme(readmeSource))
 
             description = "Publishes the README to docker hub"
             dockerHubUsername.set(
@@ -160,8 +160,7 @@ internal fun Project.registerDockerTasks(dockerBuildConfig: DockerBuildConfig) {
             )
 
             repositoryName.set("$primaryOrg/$imageName")
-
-            readmeContent.set(provider { readmeFile.readText() })
+            readmeFile.set(project.layout.projectDirectory.file("readme.docker.md"))
         }
 
     tasks.register("dockerBuildxPublish", SpecmaticAggregateTask::class.java) {

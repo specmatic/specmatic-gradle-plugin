@@ -59,6 +59,51 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
     }
 
     @Test
+    fun `docker README tasks use source project and accept missing optional README with configuration cache`() {
+        settingsFile.writeText(
+            """
+            rootProject.name = "example-project"
+            include("web")
+            """.trimIndent(),
+        )
+        projectDir.resolve("web").mkdirs()
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                id("io.specmatic.gradle")
+            }
+
+            allprojects { repositories { mavenCentral() } }
+
+            specmatic {
+                withOSSApplication(project(":web")) {
+                    mainClass = "io.specmatic.example.Main"
+                    dockerBuild { imageName = "example" }
+                }
+                promotion {
+                    dockerImage("specmatic/example", "acme/example")
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val result =
+            createRunner(arrayOf("--dry-run", ":web:dockerReadmePublish", "updatePromotionDockerHubReadmeAcmeExample"))
+                .withEnvironment(
+                    System.getenv() +
+                        mapOf(
+                            "SPECMATIC_DOCKER_HUB_USERNAME" to "test-user",
+                            "SPECMATIC_DOCKER_HUB_TOKEN" to "test-token",
+                        ),
+                ).build()
+
+        assertThat(result.output)
+            .contains("BUILD SUCCESSFUL")
+            .contains("Configuration cache entry stored.")
+    }
+
+    @Test
     fun `promote artifacts fails when published git sha does not match current head`() {
         runWithSuccess("publishAllPublicationsToStagingRepository")
         addSignaturesToPublishedArtifacts()

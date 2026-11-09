@@ -52,7 +52,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
     init {
         maxParallelDownloads.convention(5)
         maxRetries.convention(3)
-        backoffMillis.convention(1_000)
+        backoffMillis.convention(5_000)
     }
 
     @TaskAction
@@ -95,7 +95,7 @@ abstract class DownloadPromotionMavenArtifactsTask : DefaultTask() {
                     )
                 }
 
-            futures.forEach { future -> future.get(60, TimeUnit.SECONDS) }
+            futures.forEach { future -> future.get(600, TimeUnit.SECONDS) }
         } catch (e: Exception) {
             throw GradleException("Failed to download promotion Maven artifacts", e)
         } finally {

@@ -134,7 +134,7 @@ class GitOperations(private val rootDir: File, private val projectProperties: Ma
             return
         }
 
-        rootDir.execGit(logger, "remote", "update")
+        retryGit("remote update") { rootDir.execGit(logger, "remote", "update") }
 
         val status =
             rootDir
@@ -203,6 +203,24 @@ class GitOperations(private val rootDir: File, private val projectProperties: Ma
             }
         }
         throw GradleException("Failed to push $target after 3 attempts", lastFailure)
+    }
+
+    private fun retryGit(operation: String, action: () -> ProcessResult) {
+        var lastFailure: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                action()
+                return
+            } catch (e: Exception) {
+                lastFailure = e
+                if (attempt < 2) {
+                    val delaySeconds = 5L shl attempt
+                    logger.warn("Git $operation failed (attempt ${attempt + 1}/3); retrying in ${delaySeconds}s")
+                    Thread.sleep(delaySeconds * 1_000)
+                }
+            }
+        }
+        throw GradleException("Failed to run git $operation after 3 attempts", lastFailure)
     }
 
     fun resetHardTo(originalGitCommit: String) {

@@ -4,13 +4,13 @@ Status reflects the retry behavior currently implemented in the plugin.
 
 | Phase / task | Operation | Status | Current behavior and caveat |
 |---|---|---|---|
-| `promotionPreFlight` | `git remote update` | Pending | No retry. Read-only operation; retrying transient Git/network failures would be safe. |
+| `promotionPreFlight` | `git remote update` | Implemented | Retries three times with 5s/10s backoff. |
 | `promotionPreFlight` | Branch, dirty-worktree, and incoming/outgoing checks | Intentional no-retry | Deterministic validation failures should be fixed rather than retried. |
 | `downloadPromotionMavenArtifacts` | HTTP artifact downloads | Implemented | Retries downloads and deletes partial files. Uses the existing global backoff; HTTP status handling is not yet differentiated between permanent and transient failures. |
-| `downloadPromotionMavenArtifacts` | Per-download `future.get(60s)` | Pending | The aggregate future timeout can fail while individual downloads are still retrying. |
+| `downloadPromotionMavenArtifacts` | Per-download future wait | Implemented | Waits up to 600s, allowing the download retry budget to finish. |
 | `verifyPromotionMavenArtifacts` | Checksums, POMs, and JAR manifests | Intentional no-retry | Local deterministic validation. |
 | `promoteMaven` | HTTP artifact PUTs | Implemented | Retries up to the configured limit. HTTP client has 120s call/write timeouts. Backoff behavior should be verified against the current branch implementation. |
-| `promoteMaven` | Existing Maven metadata GET | Pending | No retry for transient transport/5xx failures; 404 correctly means metadata is absent. |
+| `promoteMaven` | Existing Maven metadata GET | Implemented | Retries transport failures, 429, and 5xx three times with 5s/10s backoff; 404 means metadata is absent. |
 | `promoteMaven` | Maven metadata PUTs | Partial | Uses the artifact upload retry path, but concurrent releases can still overwrite each other's merged metadata. |
 | `promoteMaven` | Checksum sidecar PUTs | Implemented | Uses the artifact upload retry path and deterministic same-path content. |
 | `promoteMaven` | Maven Central bundle upload | Pending | Delegated to `SonatypeCentralPortal`; no state-aware retry is added. Blind resubmission after an ambiguous timeout could duplicate a deployment. |

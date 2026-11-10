@@ -214,6 +214,7 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
                 copyToFileRepository(baseUri, entry.metadataPath, metadataFile)
                 uploadChecksumSidecarsToFileRepository(baseUri, entry.metadataPath, metadataFile)
             } else {
+                headMetadata(baseUrl, username, password, repoName, entry.metadataPath)
                 uploadToHttpRepositoryWithRetries(
                     client = httpClient,
                     baseUrl = ensureTrailingSlash(baseUrl),
@@ -227,6 +228,34 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
                 uploadChecksumSidecarsToHttpRepository(baseUrl, username, password, repoName, entry.metadataPath, metadataFile)
             }
         }
+    }
+
+    private fun headMetadata(baseUrl: String, username: String, password: String, repoName: String, metadataPath: String) {
+        val request =
+            Request
+                .Builder()
+                .url("${ensureTrailingSlash(baseUrl)}$metadataPath")
+                .head()
+                .header("Authorization", okhttp3.Credentials.basic(username, password))
+                .build()
+
+        var lastFailure: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                httpClient.newCall(request).execute().use { response ->
+                    when {
+                        response.code == 404 || response.isSuccessful -> return
+                        response.code == 429 || response.code >= 500 ->
+                            throw IOException("Retryable HEAD failed for $metadataPath with HTTP ${response.code}")
+                        else -> throw GradleException("HEAD failed for $metadataPath in $repoName with HTTP ${response.code}")
+                    }
+                }
+            } catch (e: IOException) {
+                lastFailure = e
+                if (attempt < 2) Thread.sleep((5L shl attempt) * 1_000)
+            }
+        }
+        throw GradleException("Failed to HEAD $metadataPath in $repoName after 3 attempts", lastFailure)
     }
 
     private fun uploadChecksumSidecarsToFileRepository(baseUri: URI, metadataPath: String, metadataFile: File) {

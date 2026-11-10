@@ -49,6 +49,7 @@ class PromoteMavenArtifactsTaskTest {
                         "PUT /repository/releases/$artifactPath" to MockResponse().setResponseCode(201),
                         // metadata does not exist - no existing package
                         "GET /repository/releases/$metadataPath" to MockResponse().setResponseCode(404),
+                        "HEAD /repository/releases/$metadataPath" to MockResponse().setResponseCode(404),
                         // allow metadata upload (and checksums)
                         "PUT /repository/releases/$metadataPath" to MockResponse().setResponseCode(201),
                         "PUT /repository/releases/$metadataPath.md5" to MockResponse().setResponseCode(201),
@@ -87,6 +88,7 @@ class PromoteMavenArtifactsTaskTest {
             assertThat(jarRequest.body.readUtf8()).isEqualTo("artifact-bytes")
 
             requests.singleRequest("GET", "/repository/releases/$metadataPath")
+            requests.singleRequest("HEAD", "/repository/releases/$metadataPath")
 
             val metadataPut = requests.singleRequest("PUT", "/repository/releases/$metadataPath")
             val metadataXml = parseXml(metadataPut.body.readUtf8())
@@ -104,7 +106,7 @@ class PromoteMavenArtifactsTaskTest {
                     "PUT /repository/releases/$metadataPath.sha256",
                     "PUT /repository/releases/$metadataPath.sha512",
                 )
-            assertThat(requests).hasSize(8)
+            assertThat(requests).hasSize(9)
             assertThat(requests.values.flatten().map { it.path }).containsExactlyInAnyOrder(
                 "/repository/releases/$pomPath",
                 "/repository/releases/$artifactPath",
@@ -166,6 +168,7 @@ class PromoteMavenArtifactsTaskTest {
                                     </metadata>
                                     """.trimIndent(),
                                 ),
+                        "HEAD /repository/releases/$metadataPath" to MockResponse().setResponseCode(200),
                         // allow uploading metadata
                         "PUT /repository/releases/$metadataPath" to MockResponse().setResponseCode(201),
                         "PUT /repository/releases/$metadataPath.md5" to MockResponse().setResponseCode(201),
@@ -198,6 +201,7 @@ class PromoteMavenArtifactsTaskTest {
             requests.singleRequest("PUT", "/repository/releases/$pomPath")
             requests.singleRequest("PUT", "/repository/releases/$artifactPath")
             requests.singleRequest("GET", "/repository/releases/$metadataPath")
+            requests.singleRequest("HEAD", "/repository/releases/$metadataPath")
 
             val metadataPut = requests.singleRequest("PUT", "/repository/releases/$metadataPath")
             val metadataXml = parseXml(metadataPut.body.readUtf8())
@@ -216,7 +220,7 @@ class PromoteMavenArtifactsTaskTest {
                     "PUT /repository/releases/$metadataPath.sha256",
                     "PUT /repository/releases/$metadataPath.sha512",
                 )
-            assertThat(requests).hasSize(8)
+            assertThat(requests).hasSize(9)
         } finally {
             server.shutdown()
         }

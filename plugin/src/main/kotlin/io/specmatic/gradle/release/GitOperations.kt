@@ -182,9 +182,27 @@ class GitOperations(private val rootDir: File, private val projectProperties: Ma
 
     fun push() {
         logger.warn("Attempting to push branches")
-        rootDir.execGit(logger, "push")
+        pushWithRetries("branches") { rootDir.execGit(logger, "push") }
         logger.warn("Attempting to push tags")
-        rootDir.execGit(logger, "push", "--tags")
+        pushWithRetries("tags") { rootDir.execGit(logger, "push", "--tags") }
+    }
+
+    private fun pushWithRetries(target: String, push: () -> ProcessResult) {
+        var lastFailure: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                push()
+                return
+            } catch (e: Exception) {
+                lastFailure = e
+                if (attempt < 2) {
+                    val delaySeconds = 5L shl attempt
+                    logger.warn("Git push for $target failed (attempt ${attempt + 1}/3); retrying in ${delaySeconds}s")
+                    Thread.sleep(delaySeconds * 1_000)
+                }
+            }
+        }
+        throw GradleException("Failed to push $target after 3 attempts", lastFailure)
     }
 
     fun resetHardTo(originalGitCommit: String) {

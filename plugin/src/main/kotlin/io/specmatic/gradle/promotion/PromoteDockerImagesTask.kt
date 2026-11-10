@@ -1,7 +1,9 @@
 package io.specmatic.gradle.promotion
 
 import javax.inject.Inject
+import java.util.concurrent.TimeUnit
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -44,7 +46,22 @@ abstract class PromoteDockerImagesTask : DefaultTask() {
         val sourceRef = "$sourceImage:$tag"
         val targetRef = "$targetImage:$tag"
         logger.lifecycle("Promoting Docker image $sourceRef -> $targetRef")
-        runCommand(listOf("docker", "buildx", "imagetools", "create", "--tag", targetRef, sourceRef))
+        val command = listOf("docker", "buildx", "imagetools", "create", "--tag", targetRef, sourceRef)
+        var lastFailure: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                runCommand(command)
+                return
+            } catch (e: Exception) {
+                lastFailure = e
+                if (attempt < 2) {
+                    val delaySeconds = 5L shl attempt
+                    logger.warn("Docker promotion failed for $sourceRef -> $targetRef; retrying in ${delaySeconds}s")
+                    TimeUnit.SECONDS.sleep(delaySeconds)
+                }
+            }
+        }
+        throw GradleException("Failed to promote $sourceRef to $targetRef after 3 attempts", lastFailure)
     }
 
     internal open fun runCommand(commandLine: List<String>) {

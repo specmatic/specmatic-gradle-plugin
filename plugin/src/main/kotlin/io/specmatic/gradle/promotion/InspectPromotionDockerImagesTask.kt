@@ -3,6 +3,7 @@ package io.specmatic.gradle.promotion
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -41,10 +42,25 @@ abstract class InspectPromotionDockerImagesTask : DefaultTask() {
             val output = ByteArrayOutputStream()
 
             logger.lifecycle("Inspecting $imageRef")
-            execOperations.exec {
-                commandLine("docker", "buildx", "imagetools", "inspect", imageRef, "--raw")
-                standardOutput = output
+            var lastFailure: Exception? = null
+            repeat(3) { attempt ->
+                try {
+                    execOperations.exec {
+                        commandLine("docker", "buildx", "imagetools", "inspect", imageRef, "--raw")
+                        standardOutput = output
+                    }
+                    lastFailure = null
+                    return@repeat
+                } catch (e: Exception) {
+                    lastFailure = e
+                    if (attempt < 2) {
+                        val delaySeconds = 5L shl attempt
+                        logger.warn("Docker inspection failed for $imageRef; retrying in ${delaySeconds}s")
+                        TimeUnit.SECONDS.sleep(delaySeconds)
+                    }
+                }
             }
+            lastFailure?.let { throw GradleException("Failed to inspect $imageRef after 3 attempts", it) }
 
             val manifestList = jacksonObjectMapper().readValue(output.toByteArray(), DockerManifestList::class.java)
             val requiredPlatforms = platforms.get().toSet()

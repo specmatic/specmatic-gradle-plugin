@@ -61,7 +61,8 @@ class GitOperations(private val rootDir: File, private val projectProperties: Ma
         .map { it.trim() }
 
     private fun extractRemoteTags(): List<String> =
-        rootDir.execGit(logger, "ls-remote", "--tags", quiet = true).outputUTF8().lines().mapNotNull { line ->
+        retryGitCommand("ls-remote tags") { rootDir.execGit(logger, "ls-remote", "--tags", quiet = true) }
+            .outputUTF8().lines().mapNotNull { line ->
             val parts = line.split("\t")
             if (parts.size > 1 && parts[1].startsWith("refs/tags/")) {
                 parts[1].removePrefix("refs/tags/")
@@ -206,11 +207,14 @@ class GitOperations(private val rootDir: File, private val projectProperties: Ma
     }
 
     private fun retryGit(operation: String, action: () -> ProcessResult) {
+        retryGitCommand(operation, action)
+    }
+
+    private fun retryGitCommand(operation: String, action: () -> ProcessResult): ProcessResult {
         var lastFailure: Exception? = null
         repeat(3) { attempt ->
             try {
-                action()
-                return
+                return action()
             } catch (e: Exception) {
                 lastFailure = e
                 if (attempt < 2) {

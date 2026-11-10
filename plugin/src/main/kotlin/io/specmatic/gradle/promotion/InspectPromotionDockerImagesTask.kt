@@ -45,6 +45,7 @@ abstract class InspectPromotionDockerImagesTask : DefaultTask() {
             var lastFailure: Exception? = null
             repeat(3) { attempt ->
                 try {
+                    output.reset()
                     execOperations.exec {
                         commandLine("docker", "buildx", "imagetools", "inspect", imageRef, "--raw")
                         standardOutput = output

@@ -112,6 +112,7 @@ class PromoteMavenArtifactsTaskTest {
                 "/repository/releases/$artifactPath",
                 "/repository/releases/$metadataPath",
                 "/repository/releases/$metadataPath",
+                "/repository/releases/$metadataPath",
                 "/repository/releases/$metadataPath.md5",
                 "/repository/releases/$metadataPath.sha1",
                 "/repository/releases/$metadataPath.sha256",

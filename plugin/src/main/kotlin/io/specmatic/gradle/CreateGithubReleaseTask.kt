@@ -49,7 +49,7 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
                     ?: throw GradleException("GITHUB_REPOSITORY environment variable not set"),
             )
 
-        val githubRelease = findReleaseByName(githubRepo, releaseVersion.get()) ?: createRelease(githubRepo)
+        val githubRelease = retryGithubRead { findReleaseByName(githubRepo, releaseVersion.get()) } ?: createRelease(githubRepo)
         logger.warn("Created release ${githubRelease.name} with id ${githubRelease.id} at ${githubRelease.htmlUrl}")
 
         for (asset in githubRelease.listAssets()) {
@@ -130,5 +130,22 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
         }
 
         throw GradleException("Failed to upload GitHub asset $filename after 5 attempts", lastFailure)
+    }
+
+    private fun <T> retryGithubRead(read: () -> T): T {
+        var lastFailure: IOException? = null
+        repeat(3) { attempt ->
+            try {
+                return read()
+            } catch (e: IOException) {
+                lastFailure = e
+                if (attempt < 2) {
+                    val delaySeconds = 5L shl attempt
+                    logger.warn("GitHub read failed; retrying in ${delaySeconds}s")
+                    TimeUnit.SECONDS.sleep(delaySeconds)
+                }
+            }
+        }
+        throw GradleException("GitHub read failed after 3 attempts", lastFailure)
     }
 }

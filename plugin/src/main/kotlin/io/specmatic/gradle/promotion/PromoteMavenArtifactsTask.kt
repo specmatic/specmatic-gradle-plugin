@@ -282,22 +282,25 @@ abstract class PromoteMavenArtifactsTask : DefaultTask() {
                 .header("Authorization", okhttp3.Credentials.basic(username, password))
                 .build()
 
-        httpClient.newCall(request).execute().use { response ->
-            return when {
-                response.code == 404 -> {
-                    null
+        var lastFailure: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                httpClient.newCall(request).execute().use { response ->
+                    return when {
+                        response.code == 404 -> null
+                        response.code == 429 || response.code >= 500 ->
+                            throw IOException("Retryable failure fetching $metadataPath with HTTP ${response.code}")
+                        !response.isSuccessful ->
+                            throw GradleException("Failed to fetch $metadataPath with HTTP ${response.code}")
+                        else -> MetadataXpp3Reader().read(StringReader(response.body.string()))
+                    }
                 }
-
-                !response.isSuccessful -> {
-                    throw IOException("Failed to fetch $metadataPath with HTTP ${response.code}")
-                }
-
-                else -> {
-                    val body = response.body.string()
-                    MetadataXpp3Reader().read(StringReader(body))
-                }
+            } catch (e: IOException) {
+                lastFailure = e
+                if (attempt < 2) Thread.sleep((5L shl attempt) * 1_000)
             }
         }
+        throw GradleException("Failed to fetch $metadataPath after 3 attempts", lastFailure)
     }
 
     private fun mergeReleaseMetadata(existingMetadata: Metadata?, entry: ReleaseMetadataEntry): Metadata {

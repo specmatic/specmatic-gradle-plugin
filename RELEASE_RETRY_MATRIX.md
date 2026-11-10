@@ -15,15 +15,17 @@ Status reflects the retry behavior currently implemented in the plugin.
 | `promoteMaven` | Checksum sidecar PUTs | Implemented | Uses the artifact upload retry path and deterministic same-path content. |
 | `promoteMaven` | Maven Central bundle upload | Pending | Delegated to `SonatypeCentralPortal`; no state-aware retry is added. Blind resubmission after an ambiguous timeout could duplicate a deployment. |
 | `promoteMaven` | Maven Central deployment validation/polling | Partial | Delegated to the portal library; plugin does not add an outer retry/status policy. |
+| `inspectPromotionDockerImages` | Docker `buildx imagetools inspect` | Implemented | Retries command failures three times with 5s/10s backoff; output is reset between attempts. |
 | `promoteDocker` | Version-tag `docker buildx imagetools create` | Implemented | Three attempts with 5s/10s backoff. Ambiguous failures are not followed by target-digest verification. |
 | `promoteDocker` | `latest` tag promotion | Implemented | Same retry behavior as version tags; `latest` remains mutable and is not digest-verified. |
 | `updatePromotionDockerHubReadme` | Docker Hub login | Implemented | Retries transport failures, HTTP 5xx, and 429 responses three times with 5s/10s backoff. Authentication/configuration 4xx errors fail fast. |
 | `updatePromotionDockerHubReadme` | Docker Hub README PATCH | Implemented | Same retry policy. Same-content PATCH is effectively idempotent. `Retry-After` is not currently honored. |
+| `promotionCreateReleaseTag` | Remote `git ls-remote --tags` lookup | Implemented | Retries three times with 5s/10s backoff. |
 | `promotionCreateReleaseTag` | Local annotated tag creation | Intentional no-retry | Existing tags fail immediately. No state-aware “already exists and points to expected commit” handling yet. |
 | `promotionPostReleaseBump` | Edit, stage, and commit `gradle.properties` | Intentional no-retry | Rerunning blindly could create duplicate commits or encounter a dirty worktree. |
 | `promotionGitPush` | Branch push | Implemented | Three attempts with 5s/10s backoff. Does not independently verify remote state after an ambiguous failure. |
 | `promotionGitPush` | Tag push | Implemented | Three attempts with 5s/10s backoff. Same remote-state caveat as branch push. |
-| `promotionCreateGithubRelease` | Find release by tag/name | Pending | No retry for GitHub GET/list calls. |
+| `promotionCreateGithubRelease` | Find release by tag/name | Implemented | Retries GitHub read failures three times with 5s/10s backoff. |
 | `promotionCreateGithubRelease` | Create GitHub release | Partial | A rerun can find an already-created release, but an ambiguous create failure is not explicitly followed by a lookup before another create attempt. |
 | `promotionCreateGithubRelease` | Delete existing release assets | Partial | Existing assets are deleted, and deletion failures are retried only indirectly by retrying the asset upload cycle. Deletes are destructive and do not have dedicated 404/5xx handling. |
 | `promotionCreateGithubRelease` | Upload binary assets | Implemented | Five attempts with 5s/10s/20s/40s backoff; matching assets are deleted before each attempt. |

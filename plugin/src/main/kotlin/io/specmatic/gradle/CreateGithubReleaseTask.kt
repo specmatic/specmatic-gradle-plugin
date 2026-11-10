@@ -4,6 +4,7 @@ import io.specmatic.gradle.utils.okHttpConnector
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.TimeUnit
 import org.apache.commons.codec.digest.DigestUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -99,22 +100,35 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
     private fun uploadAsset(release: GHRelease, file: File) {
         val mimeType = Files.probeContentType(file.toPath())
         val filename = file.name
+        val sha256 = file.inputStream().use { DigestUtils.sha256Hex(it) }
 
-        for (existing in release.listAssets()) {
-            if (existing.name.startsWith(filename)) {
-                logger.info("Replacing existing asset {}", existing.name)
-                existing.delete()
+        var lastFailure: Exception? = null
+        repeat(5) { attempt ->
+            try {
+                for (existing in release.listAssets()) {
+                    if (existing.name.startsWith(filename)) {
+                        logger.info("Replacing existing asset {}", existing.name)
+                        existing.delete()
+                    }
+                }
+
+                logger.info("Uploading asset {} (attempt {}/5)", filename, attempt + 1)
+                file.inputStream().use {
+                    release.uploadAsset(filename, it, mimeType)
+                }
+                release.uploadAsset("$filename.SHA256", "$sha256 $filename".byteInputStream(), "text/plain")
+                return
+            } catch (e: Exception) {
+                lastFailure = e
+                logger.warn("GitHub asset upload failed for {} (attempt {}/5): {}", filename, attempt + 1, e.message)
+                if (attempt < 4) {
+                    val delaySeconds = 5L shl attempt
+                    logger.info("Retrying GitHub asset upload for {} in {} seconds", filename, delaySeconds)
+                    TimeUnit.SECONDS.sleep(delaySeconds)
+                }
             }
         }
 
-        val sha256 = file.inputStream().use { DigestUtils.sha256Hex(it) }
-
-        logger.info("Uploading asset {}", filename)
-        val releaseFileName = file.name
-
-        file.inputStream().use {
-            release.uploadAsset(releaseFileName, it, mimeType)
-        }
-        release.uploadAsset("$releaseFileName.SHA256", "$sha256 $releaseFileName".byteInputStream(), "text/plain")
+        throw GradleException("Failed to upload GitHub asset $filename after 5 attempts", lastFailure)
     }
 }

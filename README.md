@@ -238,9 +238,12 @@ specmatic {
         targetMavenRepository("reposilite", "https://repo.example.com/releases")
         targetMavenCentral()
         dockerImage("specmatic/example", "acme/example")
+        githubReleaseArtifacts("io.specmatic:example-all") // optional; omitted means release has no uploaded assets
     }
 }
 ```
+
+`githubReleaseArtifacts` optionally lists Maven `group:artifact` coordinates whose selected fat JARs should be attached to the GitHub release. Omit it to cut the release without uploading assets.
 
 Mark each published project whose artifacts should be promoted:
 

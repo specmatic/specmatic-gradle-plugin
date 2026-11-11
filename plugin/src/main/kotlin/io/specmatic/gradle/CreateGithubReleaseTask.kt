@@ -9,6 +9,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
@@ -24,6 +25,13 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
 
     @get:Internal
     abstract val sourceDir: Property<File>
+
+    @get:Input
+    abstract val deleteExistingAssets: Property<Boolean>
+
+    init {
+        deleteExistingAssets.convention(true)
+    }
 
     @TaskAction
     fun createGithubRelease() {
@@ -52,8 +60,10 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
         val githubRelease = retryGithubRead { findReleaseByName(githubRepo, releaseVersion.get()) } ?: createRelease(githubRepo)
         logger.warn("Created release ${githubRelease.name} with id ${githubRelease.id} at ${githubRelease.htmlUrl}")
 
-        for (asset in githubRelease.listAssets()) {
-            asset.delete()
+        if (deleteExistingAssets.get()) {
+            for (asset in githubRelease.listAssets()) {
+                asset.delete()
+            }
         }
 
         if (sourceDir.isPresent && sourceDir.get().exists()) {
@@ -106,7 +116,7 @@ abstract class CreateGithubReleaseTask : DefaultTask() {
         repeat(5) { attempt ->
             try {
                 for (existing in release.listAssets()) {
-                    if (existing.name.startsWith(filename)) {
+                    if (existing.name == filename || existing.name == "$filename.SHA256") {
                         logger.info("Replacing existing asset {}", existing.name)
                         existing.delete()
                     }

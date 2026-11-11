@@ -74,7 +74,7 @@ class GitOperationsTest {
             gitOperations.commitGradleProperties("1.0.0", CommitType.POST_RELEASE)
 
             gitRepo.execGit(logger, "log", "-2", "--pretty=format:%s").outputUTF8().lines().let { log ->
-                assertThat(log).contains("chore(release): post-release bump version 1.0.0")
+                assertThat(log).contains("chore(release): post-release [ci skip] bump version 1.0.0")
                 assertThat(log).hasSize(2)
             }
         }

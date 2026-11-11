@@ -26,6 +26,7 @@ open class PromotionConfig {
     var canonicalMavenRepository: SourceMavenRepository? = null
     internal val targetMavenRepositories = mutableListOf<PublishTarget>()
     val dockerImagePromotions = mutableListOf<PromotionDockerImage>()
+    internal val githubReleaseArtifactCoordinates = linkedSetOf<String>()
 
     fun sourceMavenRepository(name: String, url: String) {
         sourceMavenRepository(name, URI.create(url))
@@ -45,6 +46,15 @@ open class PromotionConfig {
 
     fun dockerImage(sourceImage: String, targetImage: String) {
         dockerImagePromotions.add(PromotionDockerImage(sourceImage, targetImage))
+    }
+
+    fun githubReleaseArtifacts(vararg coordinates: String) {
+        coordinates.forEach { coordinate ->
+            require(Regex("[^:\\s]+:[^:\\s]+").matches(coordinate)) {
+                "GitHub release artifacts must use group:artifact coordinates: $coordinate"
+            }
+            githubReleaseArtifactCoordinates.add(coordinate)
+        }
     }
 }
 

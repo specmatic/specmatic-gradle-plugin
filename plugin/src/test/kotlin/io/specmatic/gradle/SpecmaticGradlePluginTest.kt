@@ -10,6 +10,7 @@ import io.specmatic.gradle.extensions.SourceMavenRepository
 import io.specmatic.gradle.extensions.SpecmaticGradleExtension
 import io.specmatic.gradle.promotion.DownloadPromotionMavenArtifactsTask
 import io.specmatic.gradle.promotion.InspectPromotionDockerImagesTask
+import io.specmatic.gradle.promotion.PreparePromotionGithubReleaseArtifactsTask
 import io.specmatic.gradle.promotion.PromoteDockerImagesTask
 import io.specmatic.gradle.promotion.PromoteMavenArtifactsTask
 import io.specmatic.gradle.promotion.PromotionMavenTargetKind
@@ -384,6 +385,7 @@ class SpecmaticGradlePluginTest {
             sourceMavenRepository("specmaticReleases", "https://repo.specmatic.io/releases")
             targetMavenRepository("reposilite", "https://repo.example.com/releases", RepoType.PUBLISH_ALL)
             dockerImage("specmatic/example", "acme/example")
+            githubReleaseArtifacts("org.example:example-all")
         }
         extension.withOSSApplication(project) {
             mainClass = "org.example.Main"
@@ -396,7 +398,10 @@ class SpecmaticGradlePluginTest {
 
         val inspectTask = project.tasks.named("inspectPromotion").get()
         val promoteArtifactsTask = project.tasks.named("promoteArtifacts").get()
-        val createGithubReleaseTask = project.tasks.named("promotionCreateGithubRelease").get()
+        val createGithubReleaseTask =
+            project.tasks.named("promotionCreateGithubRelease", CreateGithubReleaseTask::class.java).get()
+        val prepareGithubReleaseArtifactsTask =
+            project.tasks.named("promotionPrepareGithubReleaseArtifacts", PreparePromotionGithubReleaseArtifactsTask::class.java).get()
         val gitPushTask = project.tasks.named("promotionGitPush").get()
         val promoteTask = project.tasks.named("promote").get()
 
@@ -409,6 +414,9 @@ class SpecmaticGradlePluginTest {
         assertThat(createGithubReleaseTask.taskDependencies.getDependencies(createGithubReleaseTask))
             .contains(project.tasks.named("promotionGitPush").get())
             .contains(project.tasks.named("updatePromotionDockerHubReadme").get())
+        assertThat(prepareGithubReleaseArtifactsTask.githubReleaseArtifactCoordinates.get())
+            .containsExactly("org.example:example-all")
+        assertThat(createGithubReleaseTask.deleteExistingAssets.get()).isFalse()
         assertThat(gitPushTask.taskDependencies.getDependencies(gitPushTask))
             .contains(project.tasks.named("promotionPrepareGithubReleaseArtifacts").get())
     }

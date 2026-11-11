@@ -60,7 +60,7 @@ class SpecmaticReleasePluginTest : AbstractFunctionalTest() {
         val lines = projectDir.execGit(logger, "log", "-2", "--pretty=format:%s").outputUTF8().lines()
         // assert the last commit message
         assertThat(lines).containsExactly(
-            "chore(release): post-release bump version 7.8.5-SNAPSHOT",
+            "chore(release): post-release [ci skip] bump version 7.8.5-SNAPSHOT",
             "chore(release): pre-release bump version 7.8.1",
         )
     }

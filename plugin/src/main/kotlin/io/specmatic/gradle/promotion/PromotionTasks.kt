@@ -22,10 +22,12 @@ import io.specmatic.gradle.versioninfo.versionInfo
 import java.io.File
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenArtifact
@@ -72,19 +74,50 @@ abstract class PreparePromotionGithubReleaseArtifactsTask : DefaultTask() {
     @get:Input
     abstract val artifactType: Property<String>
 
+    @get:Input
+    abstract val githubReleaseArtifactCoordinates: ListProperty<String>
+
+    init {
+        githubReleaseArtifactCoordinates.convention(emptyList())
+    }
+
     @TaskAction
     fun prepare() {
         val output = outputDirectory.get().asFile
         output.deleteRecursively()
         output.mkdirs()
 
+        val requestedCoordinates = githubReleaseArtifactCoordinates.get().toSet()
+        if (requestedCoordinates.isEmpty()) return
+
+        val preparedCoordinates = mutableSetOf<String>()
         inputFiles.files
             .asSequence()
             .filter { it.isFile && it.extension == "pom" }
-            .filter { readArtifactType(it) == artifactType.get() }
-            .map { pom -> pom.resolveSibling("${pom.nameWithoutExtension}.jar") }
-            .filter { it.isFile }
-            .forEach { jar -> jar.copyTo(output.resolve(jar.name), overwrite = true) }
+            .forEach { pom ->
+                val coordinate = readCoordinate(pom) ?: return@forEach
+                if (coordinate !in requestedCoordinates || readArtifactType(pom) != artifactType.get()) return@forEach
+
+                val jar = pom.resolveSibling("${pom.nameWithoutExtension}.jar")
+                if (jar.isFile) {
+                    jar.copyTo(output.resolve(jar.name), overwrite = true)
+                    preparedCoordinates.add(coordinate)
+                }
+            }
+
+        val missingCoordinates = requestedCoordinates - preparedCoordinates
+        if (missingCoordinates.isNotEmpty()) {
+            throw GradleException(
+                "GitHub release artifacts were not found in promotion Maven artifacts with type '${artifactType.get()}': ${missingCoordinates.sorted().joinToString()}",
+            )
+        }
+    }
+
+    private fun readCoordinate(pom: File): String? = pom.inputStream().use {
+        val model = MavenXpp3Reader().read(it)
+        val groupId = model.groupId ?: model.parent?.groupId ?: return@use null
+        val artifactId = model.artifactId ?: return@use null
+        "$groupId:$artifactId"
     }
 
     private fun readArtifactType(pom: File): String? = pom.inputStream().use {
@@ -226,6 +259,7 @@ internal fun Project.configurePromotionTasks() {
                 }
                 inputFiles.from(fileTree(layout.buildDirectory.dir("promotion/maven")))
                 outputDirectory.set(layout.buildDirectory.dir("githubAssets"))
+                githubReleaseArtifactCoordinates.set(promotionConfig.githubReleaseArtifactCoordinates.toList())
                 artifactType.set(
                     provider {
                         if (specmaticExtension().projectConfigurations.values.any {
@@ -335,6 +369,7 @@ private fun Project.registerPromotionCreateGithubReleaseTask(
             .get()
             .asFile,
     )
+    deleteExistingAssets.set(false)
     releaseVersion.set(provider { version.toString() })
 }
 

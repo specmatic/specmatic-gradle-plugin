@@ -259,7 +259,7 @@ class GitOperationsTest {
 
             val commits = gitRepo.execGit(logger, "log", "--pretty=format:%s").outputUTF8().lines()
             assertThat(commits).hasSize(2)
-            assertThat(commits.first()).isEqualTo("chore(release): post-release bump version 1.1.0-SNAPSHOT")
+            assertThat(commits.first()).isEqualTo("chore(release): post-release [ci skip] bump version 1.1.0-SNAPSHOT")
         }
 
         @Test

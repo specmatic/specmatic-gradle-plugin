@@ -10,7 +10,7 @@ import org.zeroturnaround.exec.ProcessResult
 
 enum class CommitType(private val messageSubstring: String) {
     PRE_RELEASE("pre-release"),
-    POST_RELEASE("post-release");
+    POST_RELEASE("post-release [ci skip]");
 
     fun commitMessage(version: String): String = "chore(release): $messageSubstring bump version $version"
 }

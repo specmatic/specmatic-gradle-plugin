@@ -14,7 +14,7 @@ repositories {
 dependencies {
     val dependenciesWithVulnFixes =
         listOf(
-            "org.apache.commons:commons-lang3:3.21.0",
+            "org.apache.commons:commons-lang3:3.22.0",
             "org.freemarker:freemarker:2.3.35",
         )
 

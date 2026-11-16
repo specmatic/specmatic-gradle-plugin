@@ -33,6 +33,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         mainClass = "io.specmatic.example.Main"
                         dockerBuild()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
@@ -134,6 +135,7 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         mainClass = "io.specmatic.example.Main"
                         shadow("example")
                 
@@ -233,11 +235,13 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 specmatic {
                     
                     withOSSLibrary(project(":core")) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withOSSApplication(project("executable")) {
+                        generateVersionInfo()
                         mainClass = "io.specmatic.example.executable.Main"
                         dockerBuild {
                             imageName = "specmatic-foo"
@@ -374,11 +378,13 @@ class OSSApplicationFeatureTest : AbstractFunctionalTest() {
                 specmatic {
                     
                     withOSSLibrary(project(":core")) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withOSSApplication(project("executable")) {
+                        generateVersionInfo()
                         mainClass = "io.specmatic.example.executable.Main"
                         shadow("example")
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)

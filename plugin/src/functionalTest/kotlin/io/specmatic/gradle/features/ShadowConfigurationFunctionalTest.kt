@@ -43,9 +43,11 @@ class ShadowConfigurationFunctionalTest : AbstractFunctionalTest() {
             
             specmatic {
                 withCommercialLibrary(project(":core")) {
+                    generateVersionInfo()
                 }
                 
                 withCommercialLibrary(project(":executable")) {
+                    generateVersionInfo()
                     shadow("blah")
                 }
             }

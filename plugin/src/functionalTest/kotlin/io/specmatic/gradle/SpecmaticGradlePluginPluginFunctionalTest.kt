@@ -105,6 +105,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withOSSLibrary(rootProject) {
+                    generateVersionInfo()
                     publishGradle {}
                 }
             }
@@ -135,6 +136,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
             
             specmatic {
                 withOSSApplication(rootProject) {
+                    generateVersionInfo()
                     shadow("bad-package") 
                 }
             }
@@ -195,6 +197,12 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                     // workaround for https://github.com/google/osv-scanner/issues/1744
                     implementation("org.junit.jupiter:junit-jupiter-api:5.12.1")
                 }
+
+                specmatic {
+                    withOSSApplication(rootProject) {
+                        generateVersionInfo()
+                    }
+                }
                 
                 """.trimIndent(),
             )
@@ -246,6 +254,12 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                    apply(plugin = "java")
                 }
                 // nothing applied to project-b
+
+                specmatic {
+                    withOSSApplication(project(":project-a")) {
+                        generateVersionInfo()
+                    }
+                }
                 """.trimIndent(),
             )
 
@@ -283,6 +297,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         // we asked it to be published, but not specified where
                         publish() {
                             // we don't configure pom
@@ -316,6 +331,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         // we asked it to be published, but also specified where
                         publish {}
                         publishToMavenCentral()
@@ -361,6 +377,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         mainClass = "org.example.Main"
                         
                         // we asked it to be published, but also specified where
@@ -411,6 +428,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         publishToMavenCentral()
                     }
                 }

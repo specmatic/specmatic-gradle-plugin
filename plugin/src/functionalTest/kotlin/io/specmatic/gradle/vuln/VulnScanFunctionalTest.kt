@@ -7,21 +7,39 @@ import org.junit.jupiter.api.Test
 class VulnScanFunctionalTest : AbstractFunctionalTest() {
     @Test
     fun `vulnScan aggregates jar and SBOM scans`() {
+        projectDir.resolve("module-a").mkdirs()
+        projectDir.resolve("module-b").mkdirs()
+        settingsFile.writeText("rootProject.name = \"example\"\ninclude(\"module-a\", \"module-b\")")
         buildFile.writeText(
             """
             plugins {
                 id("java")
                 id("io.specmatic.gradle")
             }
+
+            allprojects {
+                repositories { mavenCentral() }
+            }
+
+            subprojects {
+                apply(plugin = "java")
+            }
             """.trimIndent(),
         )
 
-        val result = runWithSuccess("vulnScan", "--dry-run")
+        val result = runWithSuccess("vulnScan", "--dry-run", "--configuration-cache")
 
         assertThat(result.output)
-            .contains(":vulnScanJarScan SKIPPED")
-            .contains(":vulnScanSBOMScan SKIPPED")
+            .contains(":module-a:vulnScanJarScan SKIPPED")
+            .contains(":module-a:vulnScanSBOMScan SKIPPED")
+            .contains(":module-b:vulnScanJarScan SKIPPED")
+            .contains(":module-b:vulnScanSBOMScan SKIPPED")
             .contains(":updateVulnerabilityDatabase SKIPPED")
+
+        val update = result.output.indexOf(":updateVulnerabilityDatabase SKIPPED")
+        assertThat(update).isLessThan(result.output.indexOf(":module-a:vulnScanJarScan SKIPPED"))
+        assertThat(update).isLessThan(result.output.indexOf(":module-b:vulnScanSBOMScan SKIPPED"))
+        assertThat(Regex(":updateVulnerabilityDatabase SKIPPED").findAll(result.output).count()).isEqualTo(1)
     }
 
     @Test

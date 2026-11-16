@@ -43,6 +43,7 @@ class LoggingTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplicationLibrary(rootProject) {
+                        generateVersionInfo()
                         mainClass = "io.specmatic.example.Main"
                     }
                 }

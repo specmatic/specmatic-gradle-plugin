@@ -33,6 +33,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 specmatic {
                     kotlinVersion = "1.9.20"
                     withOSSLibrary(rootProject) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
@@ -104,6 +105,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSLibrary(rootProject) {
+                        generateVersionInfo()
                         shadow("example") {}
                     }
                 }
@@ -165,11 +167,13 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSLibrary(project(":core")) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
                     
                     withOSSLibrary(project("executable")) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     }
@@ -274,6 +278,7 @@ class OSSLibraryFeatureTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSLibrary(project(":core")) {
+                        generateVersionInfo()
                         shadow("example") {}
                     }
                 }

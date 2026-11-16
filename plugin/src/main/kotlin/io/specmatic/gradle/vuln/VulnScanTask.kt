@@ -15,18 +15,23 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.process.ExecOperations
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.work.DisableCachingByDefault
 
-@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
+@CacheableTask
 abstract class AbstractVulnScanTask
     @Inject
     constructor(private val execLauncher: ExecOperations) : DefaultTask() {
@@ -39,7 +44,6 @@ abstract class AbstractVulnScanTask
         fun vulnScan() {
             val scanner = scannerStrategy(scannerTool.get())
             val scannerContext = scannerContext(scanner)
-            scanner.ensureInstalled(scannerContext)
 
             reportsDir.get().mkdirs()
 
@@ -50,7 +54,7 @@ abstract class AbstractVulnScanTask
                 )
 
             formats.forEach { (format, output) ->
-                runScan(scanner.commandFor(scannerContext, scanTarget(), format, extraArgs.get()), output)
+                runScan(scanner, scanner.commandFor(scannerContext, scanTarget(), format, extraArgs.get()), output)
             }
 
             logger.warn(getTextTableReportFile().readText())
@@ -61,6 +65,10 @@ abstract class AbstractVulnScanTask
 
         @get:OutputDirectory
         abstract val reportsDir: Property<File>
+
+        @get:InputFiles
+        @get:PathSensitive(PathSensitivity.RELATIVE)
+        abstract val scannerStateFiles: ConfigurableFileCollection
 
         @OutputFile
         fun getJsonReportFile(): File = reportsDir.get().resolve("report.json")
@@ -83,7 +91,7 @@ abstract class AbstractVulnScanTask
         @get:Inject
         abstract val archiveOperations: ArchiveOperations
 
-        private fun runScan(cliArgs: List<String>, output: File) {
+        private fun runScan(scanner: VulnerabilityScanner, cliArgs: List<String>, output: File) {
             try {
                 output.outputStream().use { outputStream: FileOutputStream ->
                     logger.warn("[SGP - $path]: $ ${shellEscapedArgs(cliArgs)}")
@@ -91,6 +99,7 @@ abstract class AbstractVulnScanTask
                     execLauncher.exec {
                         standardOutput = outputStream
                         errorOutput = System.err
+                        environment(scanner.databaseUpdateEnvironment())
                         commandLine = cliArgs
                     }
                 }
@@ -122,10 +131,62 @@ abstract class AbstractVulnScanTask
             temporaryDir = temporaryDir,
         )
 
-        private fun scannerStrategy(type: VulnScannerType): VulnerabilityScanner = when (type) {
-            VulnScannerType.TRIVY -> TrivyScanner()
-            VulnScannerType.GRYPE -> GrypeScanner()
+        private fun scannerStrategy(type: VulnScannerType): VulnerabilityScanner = scannerFor(type)
+    }
+
+internal fun scannerFor(type: VulnScannerType): VulnerabilityScanner = when (type) {
+    VulnScannerType.TRIVY -> TrivyScanner()
+    VulnScannerType.GRYPE -> GrypeScanner()
+}
+
+internal fun AbstractVulnScanTask.configureScannerState(type: VulnScannerType) {
+    val scanner = scannerFor(type)
+    scannerStateFiles.from(scanner.databaseFiles(), scanner.versionFile(), scanner.executableFile())
+}
+
+@DisableCachingByDefault(because = "Updates an external vulnerability database")
+abstract class UpdateVulnerabilityDatabaseTask
+    @Inject
+    constructor(
+        private val execLauncher: ExecOperations,
+        private val fileSystemOperations: FileSystemOperations,
+        private val archiveOperations: ArchiveOperations,
+    ) : DefaultTask() {
+        @get:Input
+        abstract val scannerTool: Property<VulnScannerType>
+
+        @TaskAction
+        fun update() {
+            val scanner = scannerFor(scannerTool.get())
+            val context = ScannerContext(
+                logger = logger,
+                projectPath = path,
+                fileSystemOperations = fileSystemOperations,
+                archiveOperations = archiveOperations,
+                scannerHomeDir = scanner.homeDir(),
+                temporaryDir = temporaryDir,
+            )
+            scanner.ensureInstalled(context)
+            scanner.databaseUpdateCommands(context).forEach { command ->
+                execLauncher.exec {
+                    commandLine(command)
+                    environment(scanner.databaseUpdateEnvironment())
+                }
+            }
         }
     }
+
+internal fun Project.updateVulnerabilityDatabaseTask(): TaskProvider<UpdateVulnerabilityDatabaseTask> {
+    val root = rootProject
+    return if (root.tasks.findByName("updateVulnerabilityDatabase") == null) {
+        root.tasks.register("updateVulnerabilityDatabase", UpdateVulnerabilityDatabaseTask::class.java) {
+            group = "verification"
+            description = "Updates the vulnerability database used by all vulnerability scans"
+            scannerTool.set(root.vulnScannerType())
+        }
+    } else {
+        root.tasks.named("updateVulnerabilityDatabase", UpdateVulnerabilityDatabaseTask::class.java)
+    }
+}
 
 internal fun Project.vulnScannerType(): VulnScannerType = VulnScannerType.from(findProperty("vulnScanner")?.toString())

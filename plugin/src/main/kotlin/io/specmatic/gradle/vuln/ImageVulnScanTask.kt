@@ -9,7 +9,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.work.DisableCachingByDefault
 import org.gradle.process.ExecOperations
 
-@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
+@DisableCachingByDefault(because = "A Docker image tag can point to different image contents between builds")
 abstract class ImageVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
@@ -30,9 +30,11 @@ internal fun Project.createDockerVulnScanTask(imageName: String) {
 
     val scanTask =
         tasks.register("${scanTaskName}Scan", ImageVulnScanTask::class.java) {
+            dependsOn(project.updateVulnerabilityDatabaseTask())
             dependsOn("dockerBuild")
             image = imageName
             scannerTool.set(scannerType)
+            configureScannerState(scannerType)
             skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             reportsDir.set(
                 project.layout.buildDirectory

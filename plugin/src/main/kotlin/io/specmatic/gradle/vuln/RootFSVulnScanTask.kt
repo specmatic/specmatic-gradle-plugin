@@ -12,9 +12,9 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.jvm.tasks.Jar
 import org.gradle.plugins.signing.Sign
 import org.gradle.process.ExecOperations
-import org.gradle.work.DisableCachingByDefault
+import org.gradle.api.tasks.CacheableTask
 
-@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
+@CacheableTask
 abstract class RootFSVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
@@ -31,10 +31,12 @@ internal fun Project.createJarVulnScanTask() {
 
     val scanTask =
         tasks.register("${scanTaskName}Scan", RootFSVulnScanTask::class.java) {
+            dependsOn(project.updateVulnerabilityDatabaseTask())
             dependsOn("assemble")
             dependsOn(project.tasks.withType(Jar::class.java))
             dependsOn(project.tasks.withType(Sign::class.java))
             scannerTool.set(scannerType)
+            configureScannerState(scannerType)
             skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             inputDir.set(
                 project.layout.buildDirectory

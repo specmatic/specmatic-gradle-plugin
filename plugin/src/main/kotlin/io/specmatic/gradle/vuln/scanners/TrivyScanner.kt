@@ -8,6 +8,7 @@ import io.specmatic.gradle.vuln.scanner.ScanTargetKind
 import io.specmatic.gradle.vuln.scanner.ScannerContext
 import io.specmatic.gradle.vuln.scanner.VulnerabilitySeverity
 import java.io.File
+import org.apache.commons.lang3.SystemUtils
 import org.kohsuke.github.GHAsset
 
 class TrivyScanner :
@@ -19,8 +20,25 @@ class TrivyScanner :
         installDirName = "trivy",
         versionFileName = "trivy.version",
     ) {
+    override fun databaseCacheDirectory(): File = SystemUtils.getUserHome().resolve(".cache/trivy")
+
+    override fun versionFile(): File = homeDir().resolve("trivy.version")
+
+    override fun databaseFiles(): List<File> = listOf(databaseCacheDirectory().resolve("db"), databaseCacheDirectory().resolve("java-db"))
+
+    override fun databaseUpdateCommands(context: ScannerContext): List<List<String>> = listOf(
+        listOf(executablePath(context), "image", "--cache-dir", databaseCacheDirectory().path, "--download-db-only"),
+        listOf(executablePath(context), "image", "--cache-dir", databaseCacheDirectory().path, "--download-java-db-only"),
+    )
+
+    override fun databaseUpdateEnvironment(): Map<String, String> = mapOf("TRIVY_CACHE_DIR" to databaseCacheDirectory().path)
+
     override fun commandFor(context: ScannerContext, target: ScanTarget, format: String, extraArgs: List<String>): List<String> = commandPrefix(context, target) +
         listOf(
+            "--cache-dir",
+            databaseCacheDirectory().path,
+            "--skip-db-update",
+            "--skip-java-db-update",
             "--ignore-unfixed",
             "--quiet",
             "--no-progress",

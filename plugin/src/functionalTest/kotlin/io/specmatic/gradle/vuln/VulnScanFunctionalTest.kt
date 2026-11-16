@@ -31,15 +31,50 @@ class VulnScanFunctionalTest : AbstractFunctionalTest() {
 
         assertThat(result.output)
             .contains(":module-a:vulnScanJarScan SKIPPED")
+            .contains(":module-a:vulnScanJarTrivyScan SKIPPED")
             .contains(":module-a:vulnScanSBOMScan SKIPPED")
+            .contains(":module-a:vulnScanSBOMTrivyScan SKIPPED")
             .contains(":module-b:vulnScanJarScan SKIPPED")
+            .contains(":module-b:vulnScanJarTrivyScan SKIPPED")
             .contains(":module-b:vulnScanSBOMScan SKIPPED")
+            .contains(":module-b:vulnScanSBOMTrivyScan SKIPPED")
             .contains(":updateVulnerabilityDatabase SKIPPED")
+            .contains(":aggregateVulnerabilityReport SKIPPED")
 
         val update = result.output.indexOf(":updateVulnerabilityDatabase SKIPPED")
         assertThat(update).isLessThan(result.output.indexOf(":module-a:vulnScanJarScan SKIPPED"))
         assertThat(update).isLessThan(result.output.indexOf(":module-b:vulnScanSBOMScan SKIPPED"))
         assertThat(Regex(":updateVulnerabilityDatabase SKIPPED").findAll(result.output).count()).isEqualTo(1)
+    }
+
+    @Test
+    fun `aggregate vulnerability report combines scanner reports`() {
+        val reportsDir = projectDir.resolve("build/reports/vulnerabilities")
+        reportsDir.resolve("grype/jars/report.txt").apply {
+            parentFile.mkdirs()
+            writeText("GRYPE JAR FINDING")
+        }
+        reportsDir.resolve("trivy/sbom/report.txt").apply {
+            parentFile.mkdirs()
+            writeText("TRIVY SBOM FINDING")
+        }
+
+        buildFile.writeText(
+            """
+            plugins {
+                id("java")
+                id("io.specmatic.gradle")
+            }
+            """.trimIndent(),
+        )
+
+        val result = runWithSuccess("aggregateVulnerabilityReport")
+        val combinedReport = reportsDir.resolve("report.txt")
+
+        assertThat(combinedReport).exists()
+        assertThat(combinedReport.readText())
+            .contains("grype/jars/report.txt", "GRYPE JAR FINDING", "trivy/sbom/report.txt", "TRIVY SBOM FINDING")
+        assertThat(result.output).contains("Combined vulnerability report file:")
     }
 
     @Test

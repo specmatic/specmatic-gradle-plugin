@@ -457,36 +457,38 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
     @Nested
     inner class JarVulnScan {
         @Test
-        fun `should flag vulnerable dependencies in jars`() {
+        fun `should flag vulnerable dependencies with both scanners`() {
             val result = runJarVulnScanWithFailure()
 
             assertThat(result.output)
-                .contains("│ gson", "2.8.8", "2.8.9", "java-archive", "GHSA-4jrv-ppp4-jm57", "High")
+                .contains(
+                    "│ gson",
+                    "│ com.google.code.gson:gson",
+                    "2.8.8",
+                    "2.8.9",
+                    "java-archive",
+                    "GHSA-4jrv-ppp4-jm57",
+                    "CVE-2022-25647",
+                    "High",
+                    "HIGH",
+                )
 
             assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
-            val scannerInvocations = Regex("""\[SGP - :vulnScan(?:Jar|SBOM)Scan\]: \$""").findAll(result.output).count()
-            assertThat(scannerInvocations).isEqualTo(2)
+            val scannerInvocations = Regex("""\[SGP - :vulnScan(?:Jar|SBOM)(?:Trivy)?Scan\]: \$""").findAll(result.output).count()
+            assertThat(scannerInvocations).isEqualTo(4)
+            assertThat(result.output).contains("Combined vulnerability report file:")
             assertThat(result.output.indexOf("Vulnerability report file:")).isLessThan(
                 result.output.indexOf("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan."),
             )
+
+            val combinedReport = projectDir.resolve("build/reports/vulnerabilities/report.txt")
+            assertThat(combinedReport).exists()
+            assertThat(combinedReport.readText())
+                .contains("grype/jars/report.txt", "trivy/jars/report.txt", "grype/sbom/report.txt", "trivy/sbom/report.txt")
+                .contains("GHSA-4jrv-ppp4-jm57", "CVE-2022-25647")
         }
 
-        @Test
-        fun `should flag vulnerable dependencies in jars using trivy scanner`() {
-            val result = runJarVulnScanWithFailure("-PvulnScanner=trivy")
-
-            assertThat(result.output)
-                .contains("│ com.google.code.gson:gson", "CVE-2022-25647", "HIGH", "2.8.8", "2.8.9")
-
-            assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
-            val scannerInvocations = Regex("""\[SGP - :vulnScan(?:Jar|SBOM)Scan\]: \$""").findAll(result.output).count()
-            assertThat(scannerInvocations).isEqualTo(2)
-            assertThat(result.output.indexOf("Vulnerability report file:")).isLessThan(
-                result.output.indexOf("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan."),
-            )
-        }
-
-        private fun runJarVulnScanWithFailure(vararg extraArgs: String): BuildResult {
+        private fun runJarVulnScanWithFailure(): BuildResult {
             // Set up the test build
             settingsFile.writeText("rootProject.name = \"fooBar\"")
             buildFile.writeText(
@@ -507,10 +509,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 """.trimIndent(),
             )
-            return runWithFailure(
-                "check",
-                *extraArgs,
-            )
+            return runWithFailure("check")
         }
     }
 }

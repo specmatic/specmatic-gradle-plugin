@@ -2,6 +2,7 @@ package io.specmatic.gradle.vuln
 
 import io.specmatic.gradle.vuln.scanner.ScanTarget
 import io.specmatic.gradle.vuln.scanner.ScanTargetKind
+import io.specmatic.gradle.vuln.scanner.VulnScannerType
 import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -26,11 +27,10 @@ abstract class ImageVulnScanTask
 
 internal fun Project.createDockerVulnScanTask(imageName: String) {
     val scanTaskName = "vulnScanDocker"
-    val scannerType = vulnScannerType()
-
-    val scanTask =
-        tasks.register("${scanTaskName}Scan", ImageVulnScanTask::class.java) {
-            dependsOn(project.updateVulnerabilityDatabaseTask())
+    VulnScannerType.entries.forEach { scannerType ->
+        val scannerName = if (scannerType == VulnScannerType.TRIVY) "Trivy" else ""
+        tasks.register("$scanTaskName$scannerName" + "Scan", ImageVulnScanTask::class.java) {
+            dependsOn(updateVulnerabilityDatabaseTask())
             dependsOn("dockerBuild")
             image = imageName
             scannerTool.set(scannerType)
@@ -40,11 +40,8 @@ internal fun Project.createDockerVulnScanTask(imageName: String) {
                 project.layout.buildDirectory
                     .get()
                     .asFile
-                    .resolve("reports/vulnerabilities/image")
+                    .resolve("reports/vulnerabilities/${scannerType.name.lowercase()}/image")
             )
         }
-
-    tasks.named("check") {
-        dependsOn(scanTask)
     }
 }

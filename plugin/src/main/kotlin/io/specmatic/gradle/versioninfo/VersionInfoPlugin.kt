@@ -1,8 +1,5 @@
 package io.specmatic.gradle.versioninfo
 
-import io.specmatic.gradle.autogen.createVersionInfoKotlinTask
-import io.specmatic.gradle.autogen.createVersionPropertiesFileTask
-import io.specmatic.gradle.license.pluginInfo
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -18,13 +15,6 @@ class VersionInfoPlugin : Plugin<Project> {
             if (project.version.toString().isEmpty()) {
                 throw GradleException("Set your project version in the `gradle.properties`, not in the `build.gradle.kts` file")
             }
-
-            project.pluginInfo("Configuring version properties file")
-
-            val versionInfoForProject = project.versionInfo()
-
-            project.createVersionInfoKotlinTask(versionInfoForProject)
-            project.createVersionPropertiesFileTask(versionInfoForProject)
         }
     }
 }

@@ -51,6 +51,11 @@ abstract class GithubReleaseBinaryScanner(
 
     private fun versionFile(context: ScannerContext): File = context.scannerHomeDir.resolve(versionFileName)
 
+    override fun executableFile(): File {
+        val extension = if (platform().os == "windows") ".exe" else ""
+        return homeDir().resolve(installDirName).resolve("$executableName$extension")
+    }
+
     private fun executableFile(context: ScannerContext): File {
         val extension = if (platform().os == "windows") ".exe" else ""
         return installDir(context).resolve("$executableName$extension")

@@ -12,6 +12,7 @@ class EnsureJarsAreStampedPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         target.afterEvaluate {
             target.tasks.withType(Jar::class.java) {
+                versionInfo().addToManifest(manifest)
                 if (mainclass().isNullOrEmpty()) {
                     target.pluginInfo("Ensuring that ${this.path} is stamped")
                 } else {
@@ -19,7 +20,6 @@ class EnsureJarsAreStampedPlugin : Plugin<Project> {
                     target.pluginInfo("Ensuring that ${this.path} is stamped with main class ${mainclass()}")
                 }
 
-                project.versionInfo().addToManifest(manifest)
             }
         }
     }

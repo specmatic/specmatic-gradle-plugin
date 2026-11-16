@@ -63,6 +63,7 @@ class MiscTest : AbstractFunctionalTest() {
             projectDir.resolve("executable"),
             "io.specmatic.example.executable.Main",
             "io.specmatic.example.executable.internal.fluxcapacitor",
+            includeVersionInfo = false,
         )
         writeRandomClasses(projectDir.resolve("core"), "io.specmatic.example.core.internal.chronocore")
 

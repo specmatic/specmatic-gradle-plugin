@@ -34,6 +34,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 specmatic {
                     kotlinVersion = "1.9.20"
                     withCommercialLibrary(rootProject) {
+                        generateVersionInfo()
                         shadow("blah")
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
@@ -182,6 +183,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 specmatic {
                     
                     withCommercialLibrary(rootProject) {
+                        generateVersionInfo()
                         shadow("example")
 
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
@@ -300,6 +302,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 specmatic {
 
                     withCommercialLibrary(project(":core")) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                         
@@ -309,6 +312,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     }
                     
                     withCommercialLibrary(project(":executable")) {
+                        generateVersionInfo()
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
                         publishTo("allArtifacts", file("build/all-artifacts").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                         
@@ -463,6 +467,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                 specmatic {
                     
                     withCommercialLibrary(project(":core")) {
+                        generateVersionInfo()
                         shadow("core")
 
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)
@@ -470,6 +475,7 @@ class CommercialLibraryFeatureTest : AbstractFunctionalTest() {
                     }
                     
                     withCommercialLibrary(project(":executable")) {
+                        generateVersionInfo()
                         shadow("example")
 
                         publishTo("obfuscatedOnly", file("build/obfuscated-only").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_OBFUSCATED_ONLY)

@@ -112,9 +112,10 @@ open class AbstractFunctionalTest {
         }
     }
 
-    fun writeMainClass(projectDir: File, mainClass: String, innerPackage: String? = null) {
+    fun writeMainClass(projectDir: File, mainClass: String, innerPackage: String? = null, includeVersionInfo: Boolean = true) {
         val fileName = mainClass.replace(".", "/") + ".kt"
         val packageName = mainClass.substringBeforeLast(".")
+        val versionDescription = if (includeVersionInfo) "VersionInfo.describe()" else "\"test\""
         projectDir.resolve("src/main/kotlin/$fileName").also {
             val callInnerPackageCode =
                 if (innerPackage.orEmpty().isNotEmpty()) {
@@ -136,11 +137,11 @@ open class AbstractFunctionalTest {
                         // initialize an slf4j logger
                         // this is to ensure that obfuscation/shadowing etc work fine
                         val logger = org.slf4j.LoggerFactory.getLogger("slf4j")
-                        logger.info("Hello, logger! Version: " + VersionInfo.describe())
+                        logger.info("Hello, logger! Version: " + $versionDescription)
                         println("Logger class is " + logger.javaClass)
                         
                         // this should only print if the above works
-                        println("Hello, world! Version: " + VersionInfo.describe())
+                        println("Hello, world! Version: " + $versionDescription)
                 
                         $callInnerPackageCode
                     }
@@ -165,6 +166,8 @@ open class AbstractFunctionalTest {
             "-Dmaven.repo.local=$localMavenRepo",
             "--configuration-cache",
             "--stacktrace",
+            "--parallel",
+            "--build-cache",
 //                "-d"
 //                "-Dorg.gradle.debug=true"
         )

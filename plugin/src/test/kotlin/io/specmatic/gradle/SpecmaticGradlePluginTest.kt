@@ -566,6 +566,11 @@ class SpecmaticGradlePluginTest {
 
             project.plugins.apply("java")
             project.plugins.apply("io.specmatic.gradle")
+            assertThat(project.the<SourceSetContainer>()["main"].java.srcDirs)
+                .doesNotContain(project.file("src/main/gen-kt"))
+            project.extensions.getByType(SpecmaticGradleExtension::class.java).withOSSApplication(project) {
+                generateVersionInfo()
+            }
             project.evaluationDependsOn(":") // force execution of `afterEvaluate` block
 
             assertGeneratedResourcesSourceExists(project)
@@ -594,6 +599,9 @@ class SpecmaticGradlePluginTest {
                     .build()
 
             rootProject.plugins.apply("io.specmatic.gradle")
+            rootProject.extensions.getByType(SpecmaticGradleExtension::class.java).withOSSApplication(subProjectWithJava) {
+                generateVersionInfo()
+            }
             rootProject.evaluationDependsOn(":") // force execution of `afterEvaluate` block
 
             assertGeneratedResourcesSourceExists(subProjectWithJava)

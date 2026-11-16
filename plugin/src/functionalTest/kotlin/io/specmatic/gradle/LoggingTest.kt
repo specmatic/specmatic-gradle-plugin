@@ -43,6 +43,7 @@ class LoggingTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplicationLibrary(rootProject) {
+                        generateVersionInfo()
                         mainClass = "io.specmatic.example.Main"
                     }
                 }
@@ -85,7 +86,7 @@ class LoggingTest : AbstractFunctionalTest() {
 
     @Test
     fun `it renders logs from all log frameworks using logback`() {
-        val result = runWithSuccessWithoutInitialGitCommit("runMain", "-xvulnScanJar")
+        val result = runWithSuccessWithoutInitialGitCommit("runMain", "-xvulnScanJarScan", "-xvulnScanJarTrivyScan")
         assertThat(getDependencies("io.specmatic.example:example-project:1.2.3")).containsExactlyInAnyOrder(
             "io.specmatic.logger:log-all:3.4.5-SNAPSHOT",
             *loggingDependencies,

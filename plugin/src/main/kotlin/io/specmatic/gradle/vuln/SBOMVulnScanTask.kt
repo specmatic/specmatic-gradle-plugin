@@ -2,6 +2,7 @@ package io.specmatic.gradle.vuln
 
 import io.specmatic.gradle.vuln.scanner.ScanTarget
 import io.specmatic.gradle.vuln.scanner.ScanTargetKind
+import io.specmatic.gradle.vuln.scanner.VulnScannerType
 import java.io.File
 import javax.inject.Inject
 import org.cyclonedx.gradle.BaseCyclonedxTask
@@ -10,10 +11,10 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
-import org.gradle.work.DisableCachingByDefault
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.process.ExecOperations
 
-@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
+@CacheableTask
 abstract class SBOMVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
@@ -26,12 +27,13 @@ abstract class SBOMVulnScanTask
 
 internal fun Project.createSBOMVulnScanTask() {
     val scanTaskName = "vulnScanSBOM"
-    val scannerType = vulnScannerType()
-
-    val scanTask =
-        tasks.register("${scanTaskName}Scan", SBOMVulnScanTask::class.java) {
+    VulnScannerType.entries.forEach { scannerType ->
+        val scannerName = if (scannerType == VulnScannerType.TRIVY) "Trivy" else ""
+        tasks.register("$scanTaskName$scannerName" + "Scan", SBOMVulnScanTask::class.java) {
+            dependsOn(updateVulnerabilityDatabaseTask())
             dependsOn(tasks.withType(BaseCyclonedxTask::class.java))
             scannerTool.set(scannerType)
+            configureScannerState(scannerType)
             skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             sbomFile.set(
                 project.layout.buildDirectory
@@ -44,11 +46,8 @@ internal fun Project.createSBOMVulnScanTask() {
                 project.layout.buildDirectory
                     .get()
                     .asFile
-                    .resolve("reports/vulnerabilities/sbom")
+                    .resolve("reports/vulnerabilities/${scannerType.name.lowercase()}/sbom")
             )
         }
-
-    project.tasks.named("check") {
-        dependsOn(scanTask)
     }
 }

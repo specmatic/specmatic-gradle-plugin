@@ -10,6 +10,7 @@ import io.specmatic.gradle.features.OSSLibraryFeature
 import java.net.URI
 import org.gradle.api.Project
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.kotlin.dsl.embeddedKotlinVersion
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 interface PublishTarget
@@ -70,7 +71,7 @@ open class SpecmaticGradleExtension {
             field = value
         }
 
-    var kotlinVersion = "2.4.21"
+    var kotlinVersion = embeddedKotlinVersion
     var downstreamDependentProjects = listOf<String>()
 
     var kotlinApiVersion: KotlinVersion = KotlinVersion.KOTLIN_2_4

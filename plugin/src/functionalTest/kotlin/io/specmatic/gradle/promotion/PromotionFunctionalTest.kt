@@ -37,6 +37,7 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withOSSLibrary(rootProject) {
+                    generateVersionInfo()
                     publishTo("staging", file("build/mvn-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
                 }
@@ -78,6 +79,7 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withOSSApplication(project(":web")) {
+                    generateVersionInfo()
                     mainClass = "io.specmatic.example.Main"
                     dockerBuild { imageName = "example" }
                 }
@@ -164,6 +166,7 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withCommercialLibrary(rootProject) {
+                    generateVersionInfo()
                     publishTo("privateArtifacts", file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
                 }
@@ -203,6 +206,7 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withCommercialApplication(rootProject) {
+                    generateVersionInfo()
                     mainClass = "io.specmatic.example.Main"
                     publishTo("privateArtifacts", file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
@@ -244,10 +248,12 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withCommercialLibrary(project(":core")) {
+                    generateVersionInfo()
                     publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
                 }
                 withCommercialApplication(project(":executable")) {
+                    generateVersionInfo()
                     mainClass = "io.specmatic.example.executable.Main"
                     publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
@@ -302,10 +308,12 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withCommercialLibrary(project(":core")) {
+                    generateVersionInfo()
                     publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
                 }
                 withCommercialLibrary(project(":executable")) {
+                    generateVersionInfo()
                     publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
                 }
@@ -355,6 +363,7 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withCommercialApplicationLibrary(rootProject) {
+                    generateVersionInfo()
                     mainClass = "io.specmatic.example.Main"
                     publishTo("privateArtifacts", file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
@@ -401,10 +410,12 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withCommercialLibrary(project(":core")) {
+                    generateVersionInfo()
                     publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()
                 }
                 withCommercialApplicationLibrary(project(":executable")) {
+                    generateVersionInfo()
                     mainClass = "io.specmatic.example.executable.Main"
                     publishTo("privateArtifacts", rootProject.file("build/private-repo").toURI(), io.specmatic.gradle.extensions.RepoType.PUBLISH_ALL)
                     promote()

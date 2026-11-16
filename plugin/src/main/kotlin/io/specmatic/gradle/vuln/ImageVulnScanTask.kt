@@ -2,6 +2,7 @@ package io.specmatic.gradle.vuln
 
 import io.specmatic.gradle.vuln.scanner.ScanTarget
 import io.specmatic.gradle.vuln.scanner.ScanTargetKind
+import io.specmatic.gradle.vuln.scanner.VulnScannerType
 import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.Project
@@ -9,7 +10,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.work.DisableCachingByDefault
 import org.gradle.process.ExecOperations
 
-@DisableCachingByDefault(because = "Vulnerability databases and scan results can change outside Gradle inputs")
+@DisableCachingByDefault(because = "A Docker image tag can point to different image contents between builds")
 abstract class ImageVulnScanTask
     @Inject
     constructor(execLauncher: ExecOperations) : AbstractVulnScanTask(execLauncher) {
@@ -26,23 +27,21 @@ abstract class ImageVulnScanTask
 
 internal fun Project.createDockerVulnScanTask(imageName: String) {
     val scanTaskName = "vulnScanDocker"
-    val scannerType = vulnScannerType()
-
-    val scanTask =
-        tasks.register("${scanTaskName}Scan", ImageVulnScanTask::class.java) {
+    VulnScannerType.entries.forEach { scannerType ->
+        val scannerName = if (scannerType == VulnScannerType.TRIVY) "Trivy" else ""
+        tasks.register("$scanTaskName$scannerName" + "Scan", ImageVulnScanTask::class.java) {
+            dependsOn(updateVulnerabilityDatabaseTask())
             dependsOn("dockerBuild")
             image = imageName
             scannerTool.set(scannerType)
+            configureScannerState(scannerType)
             skipVulnValidation.set(project.providers.gradleProperty("skipVulnValidation").map { it == "true" }.orElse(false))
             reportsDir.set(
                 project.layout.buildDirectory
                     .get()
                     .asFile
-                    .resolve("reports/vulnerabilities/image")
+                    .resolve("reports/vulnerabilities/${scannerType.name.lowercase()}/image")
             )
         }
-
-    tasks.named("check") {
-        dependsOn(scanTask)
     }
 }

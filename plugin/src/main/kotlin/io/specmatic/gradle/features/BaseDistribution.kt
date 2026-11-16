@@ -4,6 +4,8 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.vanniktech.maven.publish.MavenPublishBasePlugin
 import io.specmatic.gradle.autogen.createJULLogForwarderClassTask
 import io.specmatic.gradle.autogen.createLogbackXMLFileTask
+import io.specmatic.gradle.autogen.createVersionInfoKotlinTask
+import io.specmatic.gradle.autogen.createVersionPropertiesFileTask
 import io.specmatic.gradle.docker.registerDockerTasks
 import io.specmatic.gradle.extensions.MavenCentral
 import io.specmatic.gradle.extensions.MavenInternal
@@ -14,6 +16,7 @@ import io.specmatic.gradle.jar.massage.mavenPublications
 import io.specmatic.gradle.jar.publishing.isCommercial
 import io.specmatic.gradle.versioninfo.SpecmaticArtifactType
 import io.specmatic.gradle.versioninfo.versionInfo
+import io.specmatic.gradle.vuln.disableVulnScanTasks
 import java.net.URI
 import org.gradle.api.Action
 import org.gradle.api.Project
@@ -29,6 +32,17 @@ import org.gradlex.jvm.dependency.conflict.resolution.JvmDependencyConflictResol
 import org.gradlex.jvm.dependency.conflict.resolution.JvmDependencyConflictsExtension
 
 abstract class BaseDistribution(protected val project: Project) : DistributionFlavor {
+    private var generateVersionInfo = false
+    private var vulnScanDisabled = false
+
+    fun generateVersionInfo() {
+        generateVersionInfo = true
+    }
+
+    fun disableVulnScan() {
+        vulnScanDisabled = true
+    }
+
     internal var isGradlePlugin = false
     internal var publicationConfigurations = mutableListOf<Action<MavenPublication>>()
     internal var githubRelease: GithubReleaseConfig = GithubReleaseConfig()
@@ -69,6 +83,14 @@ abstract class BaseDistribution(protected val project: Project) : DistributionFl
     }
 
     internal open fun applyToProject() {
+        if (vulnScanDisabled) {
+            project.disableVulnScanTasks()
+        }
+        if (generateVersionInfo) {
+            val versionInfo = project.versionInfo()
+            project.createVersionInfoKotlinTask(versionInfo)
+            project.createVersionPropertiesFileTask(versionInfo)
+        }
         // hook for any common setup
         signPublishTasksDependOnSourcesJar()
         project.plugins.apply(JavaPlugin::class.java)

@@ -14,7 +14,7 @@ repositories {
 dependencies {
     val dependenciesWithVulnFixes =
         listOf(
-            "org.apache.commons:commons-lang3:3.21.0",
+            "org.apache.commons:commons-lang3:3.22.0",
             "org.freemarker:freemarker:2.3.35",
         )
 
@@ -41,6 +41,7 @@ dependencies {
     implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
     implementation("com.github.jk1:gradle-license-report:3.1.5")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.23.0")
+    implementation("com.jakewharton.picnic:picnic:0.7.0")
     implementation("org.gradlex.jvm-dependency-conflict-resolution:org.gradlex.jvm-dependency-conflict-resolution.gradle.plugin:2.5")
     implementation("org.gradlex.java-ecosystem-capabilities:org.gradlex.java-ecosystem-capabilities.gradle.plugin:1.5.3")
     implementation("io.fuchs.gradle.classpath-collision-detector:io.fuchs.gradle.classpath-collision-detector.gradle.plugin:1.0.0")
@@ -50,7 +51,7 @@ dependencies {
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
     implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.11")
     implementation("org.apache.maven:maven-model:3.10.1")
-    implementation("org.apache.maven:maven-repository-metadata:3.10.0")
+    implementation("org.apache.maven:maven-repository-metadata:3.10.1")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.assertj:assertj-core:3.27.7")

@@ -34,6 +34,7 @@ class SpecmaticReleasePluginTest : AbstractFunctionalTest() {
             
             specmatic {
                 withOSSLibrary(rootProject) {
+                    generateVersionInfo()
                 }
             }
             """.trimIndent(),

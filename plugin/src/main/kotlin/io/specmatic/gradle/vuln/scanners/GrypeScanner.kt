@@ -8,6 +8,7 @@ import io.specmatic.gradle.vuln.scanner.ScanTargetKind
 import io.specmatic.gradle.vuln.scanner.ScannerContext
 import io.specmatic.gradle.vuln.scanner.VulnerabilitySeverity
 import java.io.File
+import org.apache.commons.lang3.SystemUtils
 import org.kohsuke.github.GHAsset
 
 class GrypeScanner :
@@ -19,6 +20,21 @@ class GrypeScanner :
         installDirName = "grype",
         versionFileName = "grype.version",
     ) {
+    override fun databaseCacheDirectory(): File = SystemUtils.getUserHome().resolve(".cache/grype/db")
+
+    override fun versionFile(): File = homeDir().resolve("grype.version")
+
+    override fun databaseFiles(): List<File> = listOf(databaseCacheDirectory())
+
+    override fun databaseUpdateCommands(context: ScannerContext): List<List<String>> = listOf(
+        listOf(executablePath(context), "db", "update"),
+    )
+
+    override fun databaseUpdateEnvironment(): Map<String, String> = mapOf(
+        "GRYPE_DB_CACHE_DIR" to databaseCacheDirectory().path,
+        "GRYPE_DB_AUTO_UPDATE" to "false",
+    )
+
     override fun commandFor(context: ScannerContext, target: ScanTarget, format: String, extraArgs: List<String>): List<String> = commandPrefix(context, target) +
         listOf(
             "--quiet",
@@ -26,6 +42,26 @@ class GrypeScanner :
             "--output",
             format,
         ) + extraArgs
+
+    override fun renderTextReport(jsonReportFile: File): String {
+        val report = jacksonObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .readValue(jsonReportFile, GrypeReport::class.java)
+
+        return renderTable(
+            listOf("NAME", "INSTALLED", "FIXED-IN", "TYPE", "VULNERABILITY", "SEVERITY"),
+            report.matches.map { match ->
+                listOf(
+                    match.artifact?.name.orEmpty(),
+                    match.artifact?.version.orEmpty(),
+                    match.vulnerability?.fix?.versions?.joinToString(", ").orEmpty(),
+                    match.artifact?.type.orEmpty(),
+                    match.vulnerability?.id.orEmpty(),
+                    match.vulnerability?.severity.orEmpty(),
+                )
+            },
+        )
+    }
 
     override fun hasVulnerabilities(jsonReportFile: File, severities: Set<VulnerabilitySeverity>,): Boolean = jacksonObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)

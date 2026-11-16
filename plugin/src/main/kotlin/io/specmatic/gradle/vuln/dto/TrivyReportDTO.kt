@@ -25,6 +25,7 @@ data class Vulnerability(
     @field:JsonProperty("PkgName") val pkgName: String? = null,
     @field:JsonProperty("PkgIdentifier") val pkgIdentifier: PkgIdentifier? = null,
     @field:JsonProperty("InstalledVersion") val installedVersion: String? = null,
+    @field:JsonProperty("FixedVersion") val fixedVersion: String? = null,
     @field:JsonProperty("Status") val status: String? = null,
     @field:JsonProperty("SeveritySource") val severitySource: String? = null,
     @field:JsonProperty("PrimaryURL") val primaryUrl: String? = null,

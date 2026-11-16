@@ -105,6 +105,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
 
             specmatic {
                 withOSSLibrary(rootProject) {
+                    generateVersionInfo()
                     publishGradle {}
                 }
             }
@@ -135,6 +136,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
             
             specmatic {
                 withOSSApplication(rootProject) {
+                    generateVersionInfo()
                     shadow("bad-package") 
                 }
             }
@@ -195,6 +197,12 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                     // workaround for https://github.com/google/osv-scanner/issues/1744
                     implementation("org.junit.jupiter:junit-jupiter-api:5.12.1")
                 }
+
+                specmatic {
+                    withOSSApplication(rootProject) {
+                        generateVersionInfo()
+                    }
+                }
                 
                 """.trimIndent(),
             )
@@ -246,6 +254,12 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                    apply(plugin = "java")
                 }
                 // nothing applied to project-b
+
+                specmatic {
+                    withOSSApplication(project(":project-a")) {
+                        generateVersionInfo()
+                    }
+                }
                 """.trimIndent(),
             )
 
@@ -283,6 +297,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         // we asked it to be published, but not specified where
                         publish() {
                             // we don't configure pom
@@ -316,6 +331,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         // we asked it to be published, but also specified where
                         publish {}
                         publishToMavenCentral()
@@ -361,6 +377,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         mainClass = "org.example.Main"
                         
                         // we asked it to be published, but also specified where
@@ -411,6 +428,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 specmatic {
                     withOSSApplication(rootProject) {
+                        generateVersionInfo()
                         publishToMavenCentral()
                     }
                 }
@@ -439,34 +457,38 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
     @Nested
     inner class JarVulnScan {
         @Test
-        fun `should flag vulnerable dependencies in jars`() {
+        fun `should flag vulnerable dependencies with both scanners`() {
             val result = runJarVulnScanWithFailure()
 
-            assertThat(result.output).matches(
-                Pattern.compile(
-                    ".*gson\\s+2.8.8\\s+2.8.9\\s+java-archive\\s+GHSA-4jrv-ppp4-jm57\\s+High.*",
-                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
-                ),
-            )
+            assertThat(result.output)
+                .contains(
+                    "│ gson",
+                    "│ com.google.code.gson:gson",
+                    "2.8.8",
+                    "2.8.9",
+                    "java-archive",
+                    "GHSA-4jrv-ppp4-jm57",
+                    "CVE-2022-25647",
+                    "High",
+                    "HIGH",
+                )
 
             assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
-        }
-
-        @Test
-        fun `should flag vulnerable dependencies in jars using trivy scanner`() {
-            val result = runJarVulnScanWithFailure("-PvulnScanner=trivy")
-
-            assertThat(result.output).matches(
-                Pattern.compile(
-                    ".* com.google.code.gson:gson .* CVE-2022-25647 .* 2.8.8 .*",
-                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
-                ),
+            val scannerInvocations = Regex("""\[SGP - :vulnScan(?:Jar|SBOM)(?:Trivy)?Scan\]: \$""").findAll(result.output).count()
+            assertThat(scannerInvocations).isEqualTo(4)
+            assertThat(result.output).contains("Combined vulnerability report file:")
+            assertThat(result.output.indexOf("Vulnerability report file:")).isLessThan(
+                result.output.indexOf("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan."),
             )
 
-            assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
+            val combinedReport = projectDir.resolve("build/reports/vulnerabilities/report.txt")
+            assertThat(combinedReport).exists()
+            assertThat(combinedReport.readText())
+                .contains("grype/jars/report.txt", "trivy/jars/report.txt", "grype/sbom/report.txt", "trivy/sbom/report.txt")
+                .contains("GHSA-4jrv-ppp4-jm57", "CVE-2022-25647")
         }
 
-        private fun runJarVulnScanWithFailure(vararg extraArgs: String): BuildResult {
+        private fun runJarVulnScanWithFailure(): BuildResult {
             // Set up the test build
             settingsFile.writeText("rootProject.name = \"fooBar\"")
             buildFile.writeText(
@@ -487,10 +509,7 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
                 
                 """.trimIndent(),
             )
-            return runWithFailure(
-                "check",
-                *extraArgs,
-            )
+            return runWithFailure("check")
         }
     }
 }

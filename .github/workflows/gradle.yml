@@ -16,6 +16,8 @@ jobs:
         uses: specmatic/specmatic-github-workflows/action-build-gradle@main
         with:
           runner-label: ubuntu-latest
+          gradle-extra-args: check
+
 
       - name: Publish Snapshot
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')

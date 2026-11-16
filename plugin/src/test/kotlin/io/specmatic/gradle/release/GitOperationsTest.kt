@@ -28,6 +28,10 @@ class GitOperationsTest {
         remoteRepoDir.execGit(logger, "init", "--initial-branch=main")
         remoteRepoDir.resolve("README.md").writeText("dummy content")
         remoteRepoDir.execGit(logger, "add", "README.md")
+
+        remoteRepoDir.execGit(logger, "config", "--local", "user.email", "bob@example.org")
+        remoteRepoDir.execGit(logger, "config", "--local", "user.name", "Bob")
+
         remoteRepoDir.execGit(logger, "commit", "-m", "Initial commit")
         initialCommitId = remoteRepoDir.execGit(logger, "rev-parse", "HEAD").outputUTF8().trim()
         remoteRepoDir.execGit(logger, "config", "receive.denyCurrentBranch", "updateInstead")

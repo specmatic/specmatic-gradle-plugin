@@ -54,6 +54,10 @@ class PromotionFunctionalTest : AbstractFunctionalTest() {
 
         remoteRepoDir.execGit(logger, "init", "--bare", "--initial-branch=main")
         projectDir.execGit(logger, "add", ".")
+
+        projectDir.execGit(logger, "config", "--local", "user.email", "bob@example.org")
+        projectDir.execGit(logger, "config", "--local", "user.name", "Bob")
+
         projectDir.execGit(logger, "commit", "-m", "Initial commit")
         projectDir.execGit(logger, "remote", "add", "origin", remoteRepoDir.absolutePath)
         projectDir.execGit(logger, "push", "-u", "origin", "main")

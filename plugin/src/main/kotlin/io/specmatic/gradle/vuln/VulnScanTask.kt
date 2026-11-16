@@ -47,20 +47,15 @@ abstract class AbstractVulnScanTask
 
             reportsDir.get().mkdirs()
 
-            val formats =
-                mapOf(
-                    "table" to getTextTableReportFile(),
-                    "json" to getJsonReportFile(),
-                )
+            val jsonReportFile = getJsonReportFile()
+            runScan(scanner, scanner.commandFor(scannerContext, scanTarget(), "json", extraArgs.get()), jsonReportFile)
 
-            formats.forEach { (format, output) ->
-                runScan(scanner, scanner.commandFor(scannerContext, scanTarget(), format, extraArgs.get()), output)
-            }
-
-            logger.warn(getTextTableReportFile().readText())
+            val textReport = scanner.renderTextReport(jsonReportFile)
+            getTextTableReportFile().writeText(textReport)
+            logger.warn(textReport)
             logger.warn("Vulnerability report file: ${getTextTableReportFile().toURI()}")
 
-            validateNoHighOrCriticalVulnerabilities(scanner, getJsonReportFile())
+            validateNoHighOrCriticalVulnerabilities(scanner, jsonReportFile)
         }
 
         @get:OutputDirectory

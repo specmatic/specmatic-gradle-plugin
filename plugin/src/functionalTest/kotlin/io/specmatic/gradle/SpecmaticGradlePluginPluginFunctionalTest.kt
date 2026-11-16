@@ -442,28 +442,30 @@ class SpecmaticGradlePluginPluginFunctionalTest : AbstractFunctionalTest() {
         fun `should flag vulnerable dependencies in jars`() {
             val result = runJarVulnScanWithFailure()
 
-            assertThat(result.output).matches(
-                Pattern.compile(
-                    ".*gson\\s+2.8.8\\s+2.8.9\\s+java-archive\\s+GHSA-4jrv-ppp4-jm57\\s+High.*",
-                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
-                ),
-            )
+            assertThat(result.output)
+                .contains("│ gson", "2.8.8", "2.8.9", "java-archive", "GHSA-4jrv-ppp4-jm57", "High")
 
             assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
+            val scannerInvocations = Regex("""\[SGP - :vulnScan(?:Jar|SBOM)Scan\]: \$""").findAll(result.output).count()
+            assertThat(scannerInvocations).isEqualTo(2)
+            assertThat(result.output.indexOf("Vulnerability report file:")).isLessThan(
+                result.output.indexOf("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan."),
+            )
         }
 
         @Test
         fun `should flag vulnerable dependencies in jars using trivy scanner`() {
             val result = runJarVulnScanWithFailure("-PvulnScanner=trivy")
 
-            assertThat(result.output).matches(
-                Pattern.compile(
-                    ".* com.google.code.gson:gson .* CVE-2022-25647 .* 2.8.8 .*",
-                    Pattern.MULTILINE or Pattern.DOTALL or Pattern.CASE_INSENSITIVE,
-                ),
-            )
+            assertThat(result.output)
+                .contains("│ com.google.code.gson:gson", "CVE-2022-25647", "HIGH", "2.8.8", "2.8.9")
 
             assertThat(result.output).contains("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan.")
+            val scannerInvocations = Regex("""\[SGP - :vulnScan(?:Jar|SBOM)Scan\]: \$""").findAll(result.output).count()
+            assertThat(scannerInvocations).isEqualTo(2)
+            assertThat(result.output.indexOf("Vulnerability report file:")).isLessThan(
+                result.output.indexOf("Vulnerabilities with severity [CRITICAL, HIGH] found in the scan."),
+            )
         }
 
         private fun runJarVulnScanWithFailure(vararg extraArgs: String): BuildResult {

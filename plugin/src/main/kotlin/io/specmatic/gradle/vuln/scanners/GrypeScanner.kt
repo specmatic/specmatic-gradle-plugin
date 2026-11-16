@@ -43,6 +43,26 @@ class GrypeScanner :
             format,
         ) + extraArgs
 
+    override fun renderTextReport(jsonReportFile: File): String {
+        val report = jacksonObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .readValue(jsonReportFile, GrypeReport::class.java)
+
+        return renderTable(
+            listOf("NAME", "INSTALLED", "FIXED-IN", "TYPE", "VULNERABILITY", "SEVERITY"),
+            report.matches.map { match ->
+                listOf(
+                    match.artifact?.name.orEmpty(),
+                    match.artifact?.version.orEmpty(),
+                    match.vulnerability?.fix?.versions?.joinToString(", ").orEmpty(),
+                    match.artifact?.type.orEmpty(),
+                    match.vulnerability?.id.orEmpty(),
+                    match.vulnerability?.severity.orEmpty(),
+                )
+            },
+        )
+    }
+
     override fun hasVulnerabilities(jsonReportFile: File, severities: Set<VulnerabilitySeverity>,): Boolean = jacksonObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         .readValue(jsonReportFile, GrypeReport::class.java)

@@ -47,6 +47,28 @@ class TrivyScanner :
         ) + extraArgs +
         target.value
 
+    override fun renderTextReport(jsonReportFile: File): String {
+        val report: VulnerabilityReport =
+            jacksonObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .readValue(jsonReportFile, VulnerabilityReport::class.java)
+
+        return renderTable(
+            listOf("PACKAGE", "VULNERABILITY", "SEVERITY", "INSTALLED", "FIXED"),
+            report.results.flatMap { result ->
+                result.vulnerabilities.map { vulnerability ->
+                    listOf(
+                        vulnerability.pkgName.orEmpty(),
+                        vulnerability.vulnerabilityId.orEmpty(),
+                        vulnerability.severity.orEmpty(),
+                        vulnerability.installedVersion.orEmpty(),
+                        vulnerability.fixedVersion.orEmpty(),
+                    )
+                }
+            },
+        )
+    }
+
     override fun hasVulnerabilities(jsonReportFile: File, severities: Set<VulnerabilitySeverity>,): Boolean {
         val report: VulnerabilityReport =
             jacksonObjectMapper()

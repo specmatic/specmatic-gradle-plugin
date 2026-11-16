@@ -45,8 +45,8 @@ class SpecmaticReleasePluginTest : AbstractFunctionalTest() {
 
         projectDir.execGit(logger, "add", ".")
 
-        projectDir.execGit(logger, "config", "--local", "user.email", "bob@example.org")
-        projectDir.execGit(logger, "config", "--local", "user.name", "Bob")
+        projectDir.execGit(logger, "config", "user.email", "bob@example.org")
+        projectDir.execGit(logger, "config", "user.name", "Bob")
 
         projectDir.execGit(logger, "commit", "-m", "Initial commit")
         projectDir.execGit(logger, "remote", "add", "origin", remoteRepoDir.absolutePath)

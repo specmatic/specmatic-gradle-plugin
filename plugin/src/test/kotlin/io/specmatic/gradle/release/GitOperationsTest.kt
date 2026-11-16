@@ -29,8 +29,8 @@ class GitOperationsTest {
         remoteRepoDir.resolve("README.md").writeText("dummy content")
         remoteRepoDir.execGit(logger, "add", "README.md")
 
-        remoteRepoDir.execGit(logger, "config", "--local", "user.email", "bob@example.org")
-        remoteRepoDir.execGit(logger, "config", "--local", "user.name", "Bob")
+        remoteRepoDir.execGit(logger, "config", "user.email", "bob@example.org")
+        remoteRepoDir.execGit(logger, "config", "user.name", "Bob")
 
         remoteRepoDir.execGit(logger, "commit", "-m", "Initial commit")
         initialCommitId = remoteRepoDir.execGit(logger, "rev-parse", "HEAD").outputUTF8().trim()
@@ -350,6 +350,10 @@ class GitOperationsTest {
         fun `should push changes to remote repository`() {
             gitRepo.resolve("newFile.txt").writeText("new content")
             gitRepo.execGit(logger, "add", "newFile.txt")
+
+            gitRepo.execGit(logger, "config", "user.email", "bob@example.org")
+            gitRepo.execGit(logger, "config", "user.name", "Bob")
+
             gitRepo.execGit(logger, "commit", "-m", "New commit")
             gitRepo.execGit(logger, "tag", "-a", "1.0.0", "-m", "bump to 1.0.0")
 

@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: 'Build/test'
         uses: specmatic/specmatic-github-workflows/action-build-gradle@main
+        with:
+          runner-label: ubuntu-latest
 
       - name: 'Release'
         run: |

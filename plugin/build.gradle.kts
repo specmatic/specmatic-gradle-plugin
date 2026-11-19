@@ -38,7 +38,7 @@ dependencies {
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.37.0")
     implementation("com.vanniktech:central-portal:0.37.0")
     implementation("org.kohsuke:github-api:1.330")
-    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.6.1")
     implementation("com.github.jk1:gradle-license-report:3.1.5")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.23.0")
     implementation("com.jakewharton.picnic:picnic:0.7.0")

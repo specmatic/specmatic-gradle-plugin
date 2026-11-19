@@ -33,7 +33,7 @@ dependencies {
         exclude(group = "org.codehaus.plexus", module = "plexus-utils")
         exclude(group = "org.codehaus.plexus", module = "plexus-xml")
     }
-    implementation("org.codehaus.plexus:plexus-utils:4.1.0")
+    implementation("org.codehaus.plexus:plexus-utils:4.2.0")
     implementation("org.codehaus.plexus:plexus-xml:3.0.2")
     implementation("com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin:0.37.0")
     implementation("com.vanniktech:central-portal:0.37.0")

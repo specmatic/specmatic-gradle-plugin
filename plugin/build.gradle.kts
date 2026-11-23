@@ -50,7 +50,7 @@ dependencies {
     implementation("org.zeroturnaround:zt-exec:1.13.0")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.8")
     implementation("org.jetbrains.kotlinx:kover-gradle-plugin:0.9.11")
-    implementation("org.apache.maven:maven-model:3.10.1")
+    implementation("org.apache.maven:maven-model:3.10.2")
     implementation("org.apache.maven:maven-repository-metadata:3.10.1")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
